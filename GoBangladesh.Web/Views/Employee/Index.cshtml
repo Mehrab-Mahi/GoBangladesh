@@ -1,0 +1,200 @@
+﻿@{
+    ViewData["Title"] = "GoBangladesh | Employees";
+}
+<style>
+    td.details-control {
+        background: url('../resources/details_open.png') no-repeat center center;
+        cursor: pointer;
+    }
+
+    tr.shown td.details-control {
+        background: url('../resources/details_close.png') no-repeat center center;
+    }
+
+    .select2-drop {
+        z-index: 99999999 !important;
+    }
+
+    .page-body .select2-container {
+        display: block !important;
+    }
+</style>
+<ol class="breadcrumb bc-3">
+    <li class="active">
+        <a href="/"><i class="fa-home"></i>Home</a>
+    </li>
+    <li>
+        <a href="/employees"> <i class="entypo-cc-by"></i>Employees</a>
+    </li>
+</ol>
+
+<h3><i class="entypo-cc-by"></i>All Employees</h3>
+<br />
+<a onclick="return GoBangladesh.Employee.Add()" class="btn btn-success add_btn create">
+    <i class="entypo-plus"></i>
+    Add
+</a>
+<table class="table table-bordered datatable" id="tblEmployees">
+    <thead>
+        <tr class="replace-inputs">
+            <th>Employee Id</th>
+            <th>Image</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Designation</th>
+            <th>Department</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Settings</th>
+        </tr>
+    </thead>
+</table>
+
+
+<div class="modal fade" id="Client_crud_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel"> <i class="entypo-github"></i>Add Client</h4>
+            </div>
+            <form role="form" id="Client_crud_frm" method="post" class="validate">
+                <div class="modal-body" style="color:#373e4a !important;">
+                    <input type="hidden" value="0" id="entityId" name="entityId" />
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Client Name</label>
+
+                                <input type="text" class="form-control" id="name" name="name" data-validate="required" data-message-required="Name is a required Field." placeholder="Name of the Client" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Client Username</label>
+
+                                <input type="text" class="form-control" id="userName" name="userName" data-validate="required" data-message-required="Username is a required Field." placeholder="Username of the Client" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Email</label>
+
+                                <input type="text" class="form-control" id="email" name="email" data-validate="required" data-message-required="email is a required Field." placeholder="Email of the Client" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Category</label>
+
+                                <input type="text" class="form-control" id="category" name="category" placeholder="Category of the Client" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Country</label>
+
+                                <input type="text" class="form-control" id="country" name="country" placeholder="Country of the Client" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Date of Birth</label>
+
+                                <div class="input-group">
+                                    <input type="text" id="dob" name="dob" class="form-control">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Payment Option</label>
+
+                                <input type="text" class="form-control" id="paymentOption" name="paymentOption" placeholder="Payment option of the Client" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Cost/Minute</label>
+
+                                <input type="text" class="form-control" id="costperminute" name="costperminute" placeholder="Cost per Minute of the Client" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Money Lent</label>
+
+                                <input type="text" class="form-control" id="moneyLent" name="moneyLent" placeholder="Total money lent by the Client" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Rating / 10</label>
+
+                                <input type="text" class="form-control" id="rating" name="rating" placeholder="So far Rating of the Client" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-10">
+                            <div class="form-group">
+
+                                <label class="control-label">Note</label>
+
+                                <textarea class="form-control autogrow" id="note" name="note" rows="5"></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+        var roleId = $('#currentUserRole').val();
+        GoBangladesh.Settings.LoadUserMenu(roleId);
+        GoBangladesh.Settings.SetMenuActive('5', 'menu-clients');
+        GoBangladesh.Client.GetAllClients('tblClients', 'loader');
+        $('#dob').datepicker();
+
+        $("#Client_crud_frm").validate({
+            rules: {
+
+                name: {
+                    required: true
+                },
+                userName: {
+                    required: true
+                },
+                email: {
+                    required: true
+                }
+            }
+        });
+    });
+</script>

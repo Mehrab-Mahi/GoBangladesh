@@ -1,0 +1,111 @@
+﻿@model List<GoBangladesh.Domain.Entities.Role>
+@{
+    ViewData["Title"] = "GoBangladesh | Roles";
+}
+<ol class="breadcrumb bc-3">
+    <li class="active">
+        <a href="/"><i class="entypo-home"></i>Home</a>
+    </li>
+    <li>
+
+        <a href="/roles"><i class="entypo-link"></i>Role</a>
+    </li>
+</ol>
+
+<h3><i class="entypo-link"></i> All System Roles</h3>
+<br />
+
+<a onclick="return GoBangladesh.Role.Add('')" class="btn btn-success add_btn create">
+    <i class="entypo-plus"></i>
+    Add
+</a>
+
+<table class="table table-bordered datatable" id="tblRole">
+    <thead>
+        <tr class="replace-inputs">
+            <th>Id</th>
+            <th>Name</th> 
+            <th>Creation Time</th>
+            <th>Created By</th>
+            <th>Settings</th>
+        </tr>
+    </thead>
+
+</table>
+
+<script type="text/javascript">
+  
+    $(document).ready(function () {
+        var roleId = $('#currentUserRole').val();
+        GoBangladesh.Settings.LoadUserMenu(roleId);
+        GoBangladesh.Settings.SetMenuActive('3', 'menu_role');
+        GoBangladesh.Role.GetAllRoles('tblRole', 'loader');
+
+        $("#placeorderForm").validate({
+            rules: {
+                name: {
+                    required: true
+                }
+
+            },
+            messages: {
+                password: {
+                    required: "the password is required"
+
+                }
+            }
+
+        });
+
+    });
+
+</script>
+
+
+<script src="~/lib/js-tree/jstree.js"></script>
+<script src="~/lib/js-tree/jstree.checkbox.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+
+<div class="modal fade" id="Role_add_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel"> <i class="entypo-link"></i> Role</h4>
+            </div>
+
+
+            <form role="form" id="placeorderForm" method="post" class="validate">
+                <input type="hidden" value="0" id="role-id" name="RoleId" />
+
+
+                <div class="modal-body" style="color:#373e4a !important;">
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Name</label>
+
+                                <input type="text" class="form-control" id="name" name="name" data-validate="required" placeholder="Role Name" />
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div id="tree"></div>
+
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,129 @@
+﻿@{
+    ViewData["Title"] = "GoBangladesh | Invite User";
+}
+
+<script src="~/js/jquery.toast.min.js"></script>
+<ol class="breadcrumb bc-3">
+    <li class="active">
+        <a href="/Home/Index"><i class="fa-home"></i>Home</a>
+    </li>
+    <li>
+
+        <a href="/Invite/Index"><i class="fa-users"></i>Invite User</a>
+    </li>
+</ol>
+
+<h3>All Invitations</h3>
+<br />
+
+<a onclick="return GoBangladesh.InviteUser.Invite()" class="btn btn-success add_btn create">
+    <i class="entypo-forward"></i>
+    New Invitation
+</a>
+
+<table class="table table-bordered datatable" id="tblInvite">
+    <thead>
+        <tr class="replace-inputs">
+            <th>Invitation Id</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Settings</th>
+        </tr>
+    </thead>
+
+</table>
+
+<div class="modal fade" id="User_invite_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel"> <i class="entypo-forward"></i>Invite User</h4>
+            </div>
+            <form role="form" id="user_invite_frm" method="post" class="validate">
+                <div class="modal-body" style="color:#373e4a !important;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">First Name</label>
+
+                                <input type="text" class="form-control" id="firstName" name="firstName" data-validate="required" data-message-required="First Name is a required Field." placeholder="First Name of the User" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Last Name</label>
+
+                                <input type="text" class="form-control" id="lastName" name="lastName" data-validate="required" data-message-required="Last Name is a required Field." placeholder="Last Name of the User" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Email</label>
+
+                                <input type="text" class="form-control" id="emailAddress" name="emailAddress" data-validate="required,email" placeholder="User Email" />
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Role</label>
+
+                                <select class="form-control" name="roleid" id="roleid" data-validate="required">
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Send Invitation</button>
+                        <button type="reset" class="btn btn-primary">Reset</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var roleId = $('#currentUserRole').val();
+        GoBangladesh.Settings.LoadUserMenu(roleId);
+        GoBangladesh.Settings.SetMenuActive('3', 'menu_user_invite');
+        GoBangladesh.Datables.GetAllInvitation('tblInvite', 'loader');
+
+        $("#user_invite_frm").validate({
+            rules: {
+                roleid: {
+                    required: true
+                },
+                emailAddress: {
+                    required: true
+                },
+                firstName: {
+                    required: true
+                }
+
+            },
+            messages: {
+                password: {
+                    required: "the password is required"
+
+                }
+            }
+
+        });
+
+    });
+</script>

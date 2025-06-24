@@ -1,0 +1,283 @@
+﻿@{
+    ViewData["Title"] = "GoBangladesh | Users";
+}
+<style>
+    td.details-control {
+        background: url('../resources/details_open.png') no-repeat center center;
+        cursor: pointer;
+    }
+
+    tr.shown td.details-control {
+        background: url('../resources/details_close.png') no-repeat center center;
+    }
+
+    .select2-drop {
+        z-index: 99999999 !important;
+    }
+
+    .page-body .select2-container {
+        display: block !important;
+    }
+</style>
+<ol class="breadcrumb bc-3">
+    <li class="active">
+        <a href="/"><i class="entypo-home"></i>Home</a>
+    </li>
+    <li>
+
+        <a href="/users"><i class="entypo-user"></i>User</a>
+    </li>
+</ol>
+
+<h3><i class="entypo-user"></i> All System Users</h3>
+<br />
+<a onclick="return GoBangladesh.User.Add()" class="btn btn-success add_btn create">
+    <i class="entypo-plus"></i>
+    Add
+</a>
+
+<table class="table table-bordered datatable" id="tblUser">
+    <thead>
+        <tr class="replace-inputs">
+            <th>User Id</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>User Name</th>
+            <th>Role</th>
+            <th>Creation Time</th>
+            <th>Created By</th>
+            <th>Settings</th>
+        </tr>
+    </thead>
+</table>
+
+<div class="modal fade" id="User_crud_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel"> <i class="entypo-user"></i>Add User</h4>
+            </div>
+            <form role="form" id="User_crud_frm" method="post" class="validate">
+                <div class="modal-body" style="color:#373e4a !important;">
+                    <input type="hidden" value="0" id="entityId" name="entityId" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">First Name</label>
+
+                                <input type="text" class="form-control" id="firstName" name="firstName" data-validate="required" data-message-required="First Name is a required Field." placeholder="First Name of the User" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Last Name</label>
+
+                                <input type="text" class="form-control" id="lastName" name="lastName" data-validate="required" data-message-required="Last Name is a required Field." placeholder="Last Name of the User" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Email</label>
+
+                                <input type="text" class="form-control" id="email" name="emailAddress" data-validate="required,email" placeholder="User Email" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">User Name</label>
+                                <input type="text" class="form-control" id="userName" name="userName" data-validate="required" placeholder="User Name" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+
+                        <div class="col-md-10">
+                            <div class="form-group">
+                                <label class="control-label">Role</label>
+
+                                <select class="form-control" name="roleid" id="roleid">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="passInput">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Password</label>
+
+                                <input type="password" class="form-control" id="newPassword" name="newPassword" data-validate="required" data-message-required="Password is a required Field." placeholder="Password" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Confirm Password</label>
+
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" data data-validate="required,equalTo : " #newPass" data-message-required="Confirm Password is a required Field." placeholder="Confirm Password" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <button type="reset" class="btn btn-primary">Reset</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="User_reset_pass">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel2"><i class="entypo-eye"></i> Reset Password</h4>
+            </div>
+            <form role="form" id="User_pass_frm" method="post" class="validate">
+                <div class="modal-body" style="color:#373e4a !important;">
+                    <input type="hidden" id="modal_entity_id" value="0" />
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="control-label">Old Password</label>
+
+                                <input type="password" class="form-control" id="oldPass" name="oldPass" data-validate="required" data-message-required="Old Password is a required Field." placeholder="Old Password " />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" onclick="return GoBangladesh.User.ShowPass()" style="margin-top:23px;" class="btn btn-primary btn-icon">
+                                Show
+                                <i class="entypo-network"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">New Password</label>
+
+                                <input type="password" class="form-control" id="newPass" name="newPass" data-validate="required" data-message-required="New Password is a required Field." placeholder="New Password" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Confirm Password</label>
+
+                                <input type="password" class="form-control" id="confirmPass" name="confirmPass" data data-validate="required,equalTo : " #newPass" data-message-required="Confirm Password is a required Field." placeholder="Confirm Password" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <button type="reset" class="btn btn-primary">Reset</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        var roleId = $('#currentUserRole').val();
+        GoBangladesh.Settings.LoadUserMenu(roleId);
+        GoBangladesh.Settings.SetMenuActive('3', 'menu_User_list');
+        GoBangladesh.Datables.GetAllUser('tblUser', 'loader');
+
+        $("#User_pass_frm").validate({
+            rules: {
+                newPass: {
+                    required: true,
+                    minlength: 6
+
+                },
+
+                confirmPass: {
+                    equalTo: "#newPass",
+                    minlength: 6
+                }            },
+            messages: {
+                password: {
+                    required: "the password is required"
+
+                }
+            }
+
+        });
+
+        $("#User_crud_frm").validate({
+            rules: {
+                newPassword: {
+                    required: true,
+                    minlength: 6
+                },
+
+                confirmPassword: {
+                    equalTo: "#newPassword",
+                    minlength: 6
+                },
+                roleid: {
+                    required: true
+                },
+                emailAddress: {
+                    required: true
+                },
+                firstName: {
+                    required: true
+                },
+                 userName: {
+                    required: true
+                }
+
+            },
+            messages: {
+                password: {
+                    required: "the password is required"
+
+                }
+            }
+
+        });
+
+        //$.ajax({
+        //    url: '/Role/GetCreateUpdateDelete',
+        //    type: "POST",
+        //    dataType: "json",
+        //    data: {
+        //        id:'31'
+        //    },
+        //    success: function (data) {
+        //        debugger;
+        //        var createIndex = _.findIndex(data, function (o) { return o.name == 'create'; });
+        //        if (createIndex < 0) {
+        //            $('.create').remove();
+        //        }
+        //        createIndex = _.findIndex(data, function (o) { return o.name == 'update'; });
+        //        if (createIndex < 0) {
+        //            $('.update').remove();
+        //        }
+        //        createIndex = _.findIndex(data, function (o) { return o.name == 'delete'; });
+        //        if (createIndex < 0) {
+        //            $('.delete').remove();
+        //        }
+        //    },
+        //    error: function (e) {
+
+        //    }
+        //});
+
+    });
+</script>

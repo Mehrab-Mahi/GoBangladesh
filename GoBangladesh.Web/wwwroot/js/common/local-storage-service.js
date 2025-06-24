@@ -1,0 +1,4 @@
+﻿var localStorage = {
+    setItem: function () {
+    }
+}

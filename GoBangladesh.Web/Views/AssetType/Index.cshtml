@@ -1,0 +1,110 @@
+﻿@{
+    ViewData["Title"] = "GoBangladesh | Asset Types";
+}
+<style>
+    td.details-control {
+        background: url('../resources/details_open.png') no-repeat center center;
+        cursor: pointer;
+    }
+
+    tr.shown td.details-control {
+        background: url('../resources/details_close.png') no-repeat center center;
+    }
+
+    .select2-drop {
+        z-index: 99999999 !important;
+    }
+
+    .page-body .select2-container {
+        display: block !important;
+    }
+</style>
+<ol class="breadcrumb bc-3">
+    <li class="active">
+        <a href="/"><i class="entypo-home"></i>Home</a>
+    </li>
+    <li>
+
+        <a href="/assettypes"> <i class="entypo-book"></i>Asset Types</a>
+    </li>
+</ol>
+
+<h3><i class="entypo-book"></i> All Asset Types</h3>
+<br />
+<a onclick="return GoBangladesh.AssetType.Add()" class="btn btn-success add_btn create">
+    <i class="entypo-plus"></i>
+    Add
+</a>
+<table class="table table-bordered datatable" id="tblAssetTypes">
+    <thead>
+        <tr class="replace-inputs">
+            <th>AssetType Id</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Creation Time</th>
+            <th>Created By</th>
+            <th>Settings</th>
+        </tr>
+    </thead>
+</table>
+
+<div class="modal fade" id="AssetType_crud_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel"> <i class="entypo-book"></i>Add Asset Type</h4>
+            </div>
+            <form role="form" id="AssetType_crud_frm" method="post" class="validate">
+                <div class="modal-body" style="color:#373e4a !important;">
+                    <input type="hidden" value="0" id="entityId" name="entityId" />
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Asset Type Name</label>
+                                <input type="text" class="form-control" id="name" name="name" data-validate="required" data-message-required="Name is a required Field." placeholder="Name of the Department" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" cols="5" rows="5"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group" style="float:right;">
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var roleId = $('#currentUserRole').val();
+        GoBangladesh.Settings.LoadUserMenu(roleId);
+        GoBangladesh.Settings.SetMenuActive('4', 'menu_assettype_list');
+        GoBangladesh.AssetType.GetAllAssetTypes('tblAssetTypes', 'loader');
+
+        $("#AssetType_crud_modal").validate({
+            rules: {
+
+                name: {
+                    required: true
+                }
+            }
+        });
+    });
+</script>
