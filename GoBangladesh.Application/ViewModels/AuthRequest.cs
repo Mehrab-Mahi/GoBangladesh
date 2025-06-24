@@ -6,7 +6,6 @@ namespace GoBangladesh.Application.ViewModels
 {
     public class AuthRequest
     {
-        [JsonIgnore]
         [Display(Name = "UserName")]
         public string Email { get; set; }
 

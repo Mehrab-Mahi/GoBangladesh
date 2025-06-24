@@ -60,6 +60,8 @@ namespace GoBangladesh.Application.Services
             {
                 var model = new User()
                 {
+                    Name = user.Name,
+                    EmailAddress = user.EmailAddress,
                     DateOfBirth = user.DateOfBirth,
                     MobileNumber = user.MobileNumber,
                     Address = user.Address,
