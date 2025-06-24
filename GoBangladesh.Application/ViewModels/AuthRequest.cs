@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace GoBangladesh.Application.ViewModels
 {
@@ -20,9 +16,6 @@ namespace GoBangladesh.Application.ViewModels
         
         [Display(Name = "MobileNumber")]
         public string MobileNumber { get; set; }
-
-        [Display(Name = "DateOfBirth")]
-        public string DateOfBirth { get; set; }
     }
 
     public class AuthResponse

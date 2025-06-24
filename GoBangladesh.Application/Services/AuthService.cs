@@ -56,11 +56,8 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
-            if (user.UserType != "Admin" && string.IsNullOrEmpty(model.Password))
-            {
-                model.Password = "123";
-            }
             var isVerified = VerifyPassword(model.Password, user.PasswordHash);
+
             if (!isVerified)
             {
                 return new PayloadResponse
@@ -68,10 +65,11 @@ namespace GoBangladesh.Application.Services
                     IsSuccess = false,
                     PayloadType = "authentication",
                     Content = null,
-                    Message = "authentication unsuccessful.Password does not match"
+                    Message = "Password does not match!"
                 };
             }
             var token = GenerateJwtToken(user);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -91,13 +89,12 @@ namespace GoBangladesh.Application.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new(ClaimTypes.Name, (user.FullName)),
+                    new(ClaimTypes.Name, (user.Name)),
                     new(type: "UserId", user.Id),
                     new(type: "IsSuperAdmin", user.IsSuperAdmin.ToString()),
-                    new(type: "FullName", user.FullName),
+                    new(type: "Name", user.Name),
                     new(type: "UserType", user.UserType)
                 }),
-                Expires = DateTime.UtcNow.AddHours(24),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);
@@ -173,13 +170,6 @@ namespace GoBangladesh.Application.Services
                         join AccessControls ac on mc.AccessControlId = ac.Id where mc.RoleId = '{roleId}'; ";
             }
             return BuildMenuTree(_repo.Query<AccessControlVm>(query));
-        }
-
-        public UserTypeResponse UserType(AuthRequest model)
-        {
-            var response = _userService.GetUserTypeByPhoneNumberAndDob(model);
-            
-            return response;
         }
 
         private List<AccessControlVm> BuildMenuTree(List<AccessControlVm> accessControlVms)

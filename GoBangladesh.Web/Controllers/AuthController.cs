@@ -22,14 +22,6 @@ namespace GoBangladesh.Web.Controllers
             var response = _authService.Authenticate(model);
             return Ok(new {data = response});
         }
-        
-        [AllowAnonymous]
-        [HttpPost("usertype")]
-        public IActionResult UserType([FromBody] AuthRequest model)
-        {
-            var response = _authService.UserType(model);
-            return Ok(new {data = response});
-        }
 
         [Authorize]
         [ApiExplorerSettings(IgnoreApi = true)]

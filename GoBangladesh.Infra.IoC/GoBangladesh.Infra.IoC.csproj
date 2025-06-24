@@ -13,4 +13,8 @@
     <ProjectReference Include="..\GoBangladesh.Application\GoBangladesh.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="MappingProfiles\" />
+  </ItemGroup>
+
 </Project>

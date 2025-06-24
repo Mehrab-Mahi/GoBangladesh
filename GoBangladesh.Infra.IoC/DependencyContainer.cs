@@ -18,27 +18,13 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IConnectionStringProvider, ConnectionStringProvider>();
             services.AddScoped<IBaseRepository, BaseRepository>();
             services.AddScoped<IUserService, UserService>();
-            services.AddScoped<IDepartmentService, DepartmentService>();
-            services.AddScoped<IDesignationService, DesignationService>();
-            services.AddScoped<IAssetTypeService, AssetTypeService>();
-            services.AddScoped<IAssetStatusService, AssetStatusService>();
-            services.AddScoped<IMaintenanceTypeService, MaintenanceTypeService>();
-            services.AddScoped<IEmployeeService, EmployeeService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<ICommonService, CommonService>();
             services.AddScoped<IMailService, MailService>();
             services.AddScoped<IViewRenderService, ViewRenderService>();
-            services.AddScoped<IInvitationService, InvitationService>();
-            services.AddScoped<ICampaignService, CampaignService>();
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<ILoggedInUserService, LoggedInUserService>();
-            services.AddScoped<ILocationService, LocationService>();
-            services.AddScoped<IBloodBankService, BloodBankService>();
-            services.AddScoped<INoticeService, NoticeService>();
-            services.AddScoped<INewsService, NewsService>();
-            services.AddScoped<IMediaService, MediaService>();
-            services.AddScoped<IContactService, ContactService>();
         }
     }
 }

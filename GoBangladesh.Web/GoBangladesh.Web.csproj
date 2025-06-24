@@ -9,14 +9,22 @@
   <ItemGroup>
     <Compile Remove="Controllers\AssetStatusController.cs" />
     <Compile Remove="Controllers\AssetTypeController.cs" />
+    <Compile Remove="Controllers\BloodBankController.cs" />
+    <Compile Remove="Controllers\CampaignController.cs" />
+    <Compile Remove="Controllers\ContactController.cs" />
     <Compile Remove="Controllers\DepartmentController.cs" />
     <Compile Remove="Controllers\DesignationController.cs" />
     <Compile Remove="Controllers\EmployeeController.cs" />
     <Compile Remove="Controllers\HomeController.cs" />
     <Compile Remove="Controllers\InviteController.cs" />
+    <Compile Remove="Controllers\LocationController.cs" />
     <Compile Remove="Controllers\MaintenanceTypeController.cs" />
+    <Compile Remove="Controllers\MediaController.cs" />
+    <Compile Remove="Controllers\NewsController.cs" />
+    <Compile Remove="Controllers\NoticeController.cs" />
     <Compile Remove="Controllers\RegisterController.cs" />
     <Compile Remove="Controllers\RoleController.cs" />
+    <Compile Remove="Controllers\SettingsController.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,14 +40,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Views\Settings\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Views\AccessDenied\Index.cshtml" />
   </ItemGroup>
 
   <ItemGroup>
