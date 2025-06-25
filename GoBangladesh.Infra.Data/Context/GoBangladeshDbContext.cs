@@ -1,10 +1,5 @@
 ﻿using GoBangladesh.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GoBangladesh.Infra.Data.Context
 {
@@ -20,6 +15,11 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<MenuCrud> MenuCruds { get; set; }
         public DbSet<AccessControl> AccessControls { get; set; }
         public DbSet<MailHost> MailHosts { get; set; }   
+        public DbSet<Organization> Organizations { get; set; }
+        public DbSet<Bus> Buses { get; set; }
+        public DbSet<Card> Cards { get; set; }
+        public DbSet<PassengerCardMapping> PassengerCardMappings { get; set; }
+        public DbSet<StaffBusMapping> StaffBusMappings { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {

@@ -25,6 +25,9 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IViewRenderService, ViewRenderService>();
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<ILoggedInUserService, LoggedInUserService>();
+            services.AddScoped<IPassengerService, PassengerService>();
+            services.AddScoped<IStaffService, StaffService>();
+            services.AddScoped<IAgentService, AgentService>();
         }
     }
 }

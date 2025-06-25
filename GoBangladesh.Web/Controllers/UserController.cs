@@ -1,4 +1,7 @@
-﻿using GoBangladesh.Application.Helper;
+﻿using GoBangladesh.Application.DTOs.Agent;
+using GoBangladesh.Application.DTOs.Passenger;
+using GoBangladesh.Application.DTOs.Staff;
+using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -6,147 +9,107 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
 {
-    [Route("api/user")]
+    [Route("api/")]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
+        private readonly IPassengerService _passengerService;
+        private readonly IStaffService _staffService;
+        private readonly IAgentService _agentService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, 
+            IPassengerService passengerService, 
+            IStaffService staffService, 
+            IAgentService agentService)
         {
             _userService = userService;
+            _passengerService = passengerService;
+            _staffService = staffService;
+            _agentService = agentService;
         }
 
         [AllowAnonymous]
-        [HttpPost("registration")]
-        public IActionResult Create([FromForm] UserCreationVm model)
+        [HttpPost("passenger/Registration")]
+        public IActionResult PassengerInsert([FromForm] PassengerCreateRequest model)
         {
-            var data = _userService.Insert(model);
+            var data = _passengerService.PassengerInsert(model);
             return Ok(new { data });
         }
 
         [GoBangladeshAuth]
-        [HttpPut("update")]
-        public IActionResult Update([FromForm] UserCreationVm model)
+        [HttpPut("passenger/update")]
+        public IActionResult UpdatePassenger([FromForm] PassengerUpdateRequest model)
         {
-            var response = _userService.Update(model);
-            return Ok(new {data = response});
+            var data = _passengerService.UpdatePassenger(model);
+            return Ok(new { data });
         }
         
-        //[GoBangladeshAuth]
-        //[HttpPost("approvevolunteer")]
-        //public IActionResult ApproveUser([FromBody] UserApproval userApproval)
-        //{
-        //    var data = _userService.ApproveUser(userApproval.Id);
-        //    return Ok(new { data });
-        //}
-        
-        //[GoBangladeshAuth]
-        //[HttpPost("disapprovevolunteer")]
-        //public IActionResult DisapproveUser([FromBody] UserApproval userApproval)
-        //{
-        //    var data = _userService.DisapproveUser(userApproval.Id);
-        //    return Ok(new { data });
-        //}
+        [GoBangladeshAuth]
+        [HttpGet("passenger/getById")]
+        public IActionResult GetPassengerById(string id)
+        {
+            var data = _passengerService.GetPassengerById(id);
+            return Ok(new { data });
+        }
 
-        //[GoBangladeshAuth]
-        //[HttpGet("getUnapprovedVolunteer")]
-        //public IActionResult GetUnapprovedVolunteer(int pageNo = 1, int pageSize = 10)
-        //{
-        //    var data = _userService.GetUnapprovedVolunteer(pageNo, pageSize);
-        //    return Ok(data);
-        //}
-        
-        //[GoBangladeshAuth]
-        //[HttpGet("getApprovedVolunteer")]
-        //public IActionResult GetAllApprovedVolunteer(int pageNo = 1, int pageSize = 10)
-        //{
-        //    var data = _userService.GetApprovedVolunteer(pageNo, pageSize);
-        //    return Ok(data);
-        //}
+        [AllowAnonymous]
+        [HttpPost("staff/Registration")]
+        public IActionResult StaffInsert([FromForm] StaffCreateRequest model)
+        {
+            var data = _staffService.StaffInsert(model);
+            return Ok(new { data });
+        }
 
         [GoBangladeshAuth]
-        [HttpDelete("delete/{id}")]
+        [HttpPut("staff/update")]
+        public IActionResult UpdateStaff([FromForm] StaffUpdateRequest model)
+        {
+            var data = _staffService.UpdateStaff(model);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("staff/getById")]
+        public IActionResult GetStaffById(string id)
+        {
+            var data = _staffService.GetStaffById(id);
+            return Ok(new { data });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("agent/Registration")]
+        public IActionResult AgentInsert([FromForm] AgentCreateRequest model)
+        {
+            var data = _agentService.AgentInsert(model);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpPut("agent/update")]
+        public IActionResult UpdateAgent([FromForm] AgentUpdateRequest model)
+        {
+            var data = _agentService.UpdateAgent(model);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("agent/getById")]
+        public IActionResult GetAgentById(string id)
+        {
+            var data = _agentService.GetAgentById(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpDelete("user/delete/{id}")]
         public IActionResult DeleteUser(string id)
         {
             var response = _userService.DeleteUser(id);
             return Ok(new {data = response});
         }
-
-
-        [GoBangladeshAuth]
-        [HttpGet("getall")]
-        public IActionResult GetAll()
-        {
-            var data = _userService.GetAll();
-            return Ok(data);
-        }
-        
-        //[GoBangladeshAuth]
-        //[HttpPost("getApprovedDonor")]
-        //public IActionResult GetApprovedDonor([FromBody] DonorFilter donorFilter)
-        //{
-        //    var data = _userService.GetApprovedDonor(donorFilter);
-        //    return Ok(data);
-        //}
-        
-        //[GoBangladeshAuth]
-        //[HttpPost("getUnapprovedDonor")]
-        //public IActionResult GetUnapprovedDonor([FromBody] DonorFilter donorFilter)
-        //{
-        //    var data = _userService.GetUnapprovedDonor(donorFilter);
-        //    return Ok(data);
-        //}
-        
-        //[GoBangladeshAuth]
-        //[HttpGet("getAllAdmin")]
-        //public IActionResult GetAllAdmin(int pageNo = 1, int pageSize = 10)
-        //{
-        //    var data = _userService.GetAllAdmin(pageNo, pageSize);
-        //    return Ok(data);
-        //}
-        
-        //[GoBangladeshAuth]
-        //[HttpGet("getPermittedDonors")]
-        //public IActionResult GetPermittedDonors(int pageNo = 1, int pageSize = 10)
-        //{
-        //    var data = _userService.GetPermittedDonors(pageNo, pageSize);
-        //    return Ok(data);
-        //}
-        
-        //[AllowAnonymous]
-        //[HttpGet("getOfficialLeaders")]
-        //public IActionResult GetOfficialLeaders()
-        //{
-        //    var data = _userService.GetOfficialLeaders();
-        //    return Ok(data);
-        //}
-        
-        //[AllowAnonymous]
-        //[HttpGet("getScoutLeaders")]
-        //public IActionResult GetScoutLeaders(int pageNo = 1, int pageSize = 10)
-        //{
-        //    var data = _userService.GetScoutLeaders(pageNo, pageSize);
-        //    return Ok(data);
-        //}
-
-        //[GoBangladeshAuth]
-        //[HttpPost("donorRegistration")]
-        //public IActionResult DonorRegistration([FromForm] UserCreationVm model)
-        //{
-        //    var data = _userService.Insert(model);
-        //    return Ok(new { data });
-        //}
-
-        [GoBangladeshAuth]
-        [HttpGet("getbyid/{id}")]
-        public IActionResult GetById(string id)
-        {
-            var userData = _userService.GetById(id);
-            return Ok(new { data = userData });
-        }
         
         [GoBangladeshAuth]
-        [HttpPost("changePassword")]
+        [HttpPost("user/changePassword")]
         public IActionResult ChangePassword([FromBody]ChangePassword changePassword)
         {
             var response = _userService.ChangePassword(changePassword);
