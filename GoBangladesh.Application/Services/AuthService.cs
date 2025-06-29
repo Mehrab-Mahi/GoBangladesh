@@ -22,14 +22,21 @@ namespace GoBangladesh.Application.Services
         private IHttpContextAccessor _httpContextAccessor;
         private readonly IBaseRepository _repo;
         private readonly IRepository<AccessControl> _accessRepo;
+        private readonly IOtpService _otpService;
 
-        public AuthService(IUserService userService, IOptions<AppSettings> appSettings, IHttpContextAccessor httpContextAccessor, IBaseRepository repo, IRepository<AccessControl> accessRepo)
+        public AuthService(IUserService userService,
+            IOptions<AppSettings> appSettings,
+            IHttpContextAccessor httpContextAccessor,
+            IBaseRepository repo,
+            IRepository<AccessControl> accessRepo,
+            IOtpService otpService)
         {
             _userService = userService;
             _appSettings = appSettings.Value;
             _httpContextAccessor = httpContextAccessor;
             _repo = repo;
             _accessRepo = accessRepo;
+            _otpService = otpService;
         }
 
         public PayloadResponse Authenticate(AuthRequest model)
@@ -56,16 +63,18 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
-            var isVerified = VerifyPassword(model.Password, user.PasswordHash);
+            var verification = (!string.IsNullOrEmpty(model.MobileNumber) && string.IsNullOrEmpty(model.Otp)) ?
+                _otpService.VerifyOtp(model.MobileNumber, model.Otp) :
+                VerifyPassword(model.Password, user.PasswordHash);
 
-            if (!isVerified)
+            if (!verification.IsSuccess)
             {
                 return new PayloadResponse
                 {
                     IsSuccess = false,
                     PayloadType = "authentication",
                     Content = null,
-                    Message = "Password does not match!"
+                    Message = verification.Message
                 };
             }
             var token = GenerateJwtToken(user);
@@ -75,7 +84,7 @@ namespace GoBangladesh.Application.Services
                 IsSuccess = true,
                 PayloadType = "authentication",
                 Content = new AuthResponse(token),
-                Message = "authentication successful"
+                Message = "Authentication successful"
             };
         }
 
@@ -145,9 +154,24 @@ namespace GoBangladesh.Application.Services
             }
         }
 
-        private bool VerifyPassword(string password, string passwordHash)
+        private PayloadResponse VerifyPassword(string password, string passwordHash)
         {
-            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            var isVerified = BCrypt.Net.BCrypt.Verify(password, passwordHash);
+
+            if (isVerified)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    Message = "Password has been matched"
+                };
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Password doesn't match!"
+            };
         }
 
         public UserAuthVm GetCurrentUser()

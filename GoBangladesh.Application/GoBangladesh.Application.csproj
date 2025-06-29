@@ -18,4 +18,8 @@
     <ProjectReference Include="..\GoBangladesh.Infra.Data\GoBangladesh.Infra.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ViewModels\Transaction\" />
+  </ItemGroup>
+
 </Project>

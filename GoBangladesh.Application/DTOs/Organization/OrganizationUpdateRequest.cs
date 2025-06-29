@@ -1,7 +1,8 @@
-﻿namespace GoBangladesh.Domain.Entities;
+﻿namespace GoBangladesh.Application.DTOs.Organization;
 
-public class Organization : Entity
+public class OrganizationUpdateRequest
 {
+    public string Id { get; set; }
     public string Name { get; set; }
     public string Code { get; set; }
     public string FocalPerson { get; set; }

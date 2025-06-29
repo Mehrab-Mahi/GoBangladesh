@@ -6,7 +6,7 @@ namespace GoBangladesh.Application.ViewModels
 {
     public class AuthRequest
     {
-        [Display(Name = "UserName")]
+        [Display(Name = "Email")]
         public string Email { get; set; }
 
         [DataType(DataType.Password)]
@@ -15,6 +15,9 @@ namespace GoBangladesh.Application.ViewModels
         
         [Display(Name = "MobileNumber")]
         public string MobileNumber { get; set; }
+        
+        [Display(Name = "Otp")]
+        public string Otp { get; set; }
     }
 
     public class AuthResponse

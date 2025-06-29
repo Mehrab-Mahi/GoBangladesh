@@ -28,6 +28,11 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IPassengerService, PassengerService>();
             services.AddScoped<IStaffService, StaffService>();
             services.AddScoped<IAgentService, AgentService>();
+            services.AddScoped<IOtpService, OtpService>();
+            services.AddScoped<ITransactionService, TransactionService>();
+            services.AddScoped<IHistoryService, HistoryService>();
+            services.AddScoped<IOrganizationService, OrganizationService>();
+            services.AddScoped<IBusService, BusService>();
         }
     }
 }

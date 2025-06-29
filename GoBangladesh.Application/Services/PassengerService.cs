@@ -5,6 +5,7 @@ using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Linq;
+using GoBangladesh.Application.Util;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
@@ -26,14 +27,14 @@ public class PassengerService : IPassengerService
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
     {
-        if (IfDuplicateUser(user.MobileNumber))
+        if (IfDuplicateUser(user))
         {
             return new PayloadResponse
             {
                 IsSuccess = false,
                 PayloadType = "Passenger Creation",
                 Content = null,
-                Message = "User with this mobile number already exists!"
+                Message = "Duplicate user!"
             };
         }
 
@@ -47,14 +48,15 @@ public class PassengerService : IPassengerService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = user.UserType,
+                UserType = UserTypes.Passenger,
                 PassengerId = user.PassengerId,
                 OrganizationId = user.OrganizationId
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            model.PasswordHash = _commonService.GetPasswordHash(user.Password);
+            model.PasswordHash = string.IsNullOrEmpty(user.Password) ? "" :
+                _commonService.GetPasswordHash(user.Password);
             model.ImageUrl = _commonService.UploadAndGetImageUrl(user.ProfilePicture, "ProfilePicture");
             model.CreatedBy = currentUser is null ? "" : currentUser.Id;
             model.LastModifiedBy = currentUser is null ? "" : currentUser.Id;
@@ -89,7 +91,7 @@ public class PassengerService : IPassengerService
         {
             if (user.MobileNumber != model.MobileNumber)
             {
-                if (IfDuplicateUser(user.MobileNumber))
+                if (IfDuplicateMobileNumber(user.MobileNumber))
                 {
                     return new PayloadResponse
                     {
@@ -173,13 +175,53 @@ public class PassengerService : IPassengerService
                 UserType = passenger.UserType,
                 ImageUrl = passenger.ImageUrl,
                 PassengerId = passenger.PassengerId,
-                Organization = passenger.Organization
+                OrganizationId = passenger.OrganizationId,
+                Organization = passenger.Organization,
+                CardNumber = passenger.CardNumber,
+                Balance = passenger.Balance
             },
             Message = "Passenger not found!"
         };
     }
 
-    private bool IfDuplicateUser(string mobileNumber)
+    public PayloadResponse UpdateCardNumber(CardNumberUpdateRequest model)
+    {
+        var passenger = _userRepository
+            .GetConditional(p => p.Id == model.UserId);
+
+        if (passenger == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Passenger not found!"
+            };
+        }
+
+        passenger.CardNumber = model.CardNumber;
+
+        _userRepository.Update(passenger);
+        _userRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card Number changer for passenger",
+            Message = "Card number has been updated!"
+        };
+    }
+
+    private bool IfDuplicateUser(PassengerCreateRequest model)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber 
+                                 || u.CardNumber == model.CardNumber);
+
+        return user is not null;
+    }
+    
+    private bool IfDuplicateMobileNumber(string mobileNumber)
     {
         var user = _userRepository
             .GetAll()

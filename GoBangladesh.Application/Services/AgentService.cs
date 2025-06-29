@@ -1,5 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -48,7 +49,7 @@ public class AgentService : IAgentService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = user.UserType,
+                UserType = UserTypes.Agent,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
                 Code = serial.ToString("D6")
@@ -56,7 +57,8 @@ public class AgentService : IAgentService
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            model.PasswordHash = _commonService.GetPasswordHash(user.Password);
+            model.PasswordHash = string.IsNullOrEmpty(user.Password) ?
+                "" : _commonService.GetPasswordHash(user.Password);
             model.ImageUrl = _commonService.UploadAndGetImageUrl(user.ProfilePicture, "ProfilePicture");
             model.CreatedBy = currentUser is null ? "" : currentUser.Id;
             model.LastModifiedBy = currentUser is null ? "" : currentUser.Id;
@@ -188,6 +190,7 @@ public class AgentService : IAgentService
                 Gender = agent.Gender,
                 UserType = agent.UserType,
                 ImageUrl = agent.ImageUrl,
+                OrganizationId = agent.OrganizationId,
                 Organization = agent.Organization,
                 Code = agent.Code
             },

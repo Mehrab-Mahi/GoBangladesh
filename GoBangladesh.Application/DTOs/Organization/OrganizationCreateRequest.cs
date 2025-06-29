@@ -1,6 +1,6 @@
-﻿namespace GoBangladesh.Domain.Entities;
+﻿namespace GoBangladesh.Application.DTOs.Organization;
 
-public class Organization : Entity
+public class OrganizationCreateRequest
 {
     public string Name { get; set; }
     public string Code { get; set; }

@@ -1,5 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -14,14 +15,17 @@ public class StaffService : IStaffService
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IRepository<StaffBusMapping> _staffBusMappingRepository;
 
     public StaffService(IRepository<User> userRepository, 
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IRepository<StaffBusMapping> staffBusMappingRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _staffBusMappingRepository = staffBusMappingRepository;
     }
 
     public PayloadResponse StaffInsert(StaffCreateRequest user)
@@ -47,13 +51,14 @@ public class StaffService : IStaffService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = user.UserType,
+                UserType = UserTypes.Staff,
                 OrganizationId = user.OrganizationId
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            model.PasswordHash = _commonService.GetPasswordHash(user.Password);
+            model.PasswordHash = string.IsNullOrEmpty(user.Password) ?
+                "" : _commonService.GetPasswordHash(user.Password);
             model.ImageUrl = _commonService.UploadAndGetImageUrl(user.ProfilePicture, "ProfilePicture");
             model.CreatedBy = currentUser is null ? "" : currentUser.Id;
             model.LastModifiedBy = currentUser is null ? "" : currentUser.Id;
@@ -183,5 +188,47 @@ public class StaffService : IStaffService
             },
             Message = "Passenger not found!"
         };
+    }
+
+    public PayloadResponse MapStaffWithBus(StaffBusMappingDto staffBusMapping)
+    {
+        try
+        {
+            var mapping = _staffBusMappingRepository
+                .GetConditional(b => b.BusId == staffBusMapping.BusId);
+
+            if (mapping == null)
+            {
+                _staffBusMappingRepository.Insert(new StaffBusMapping()
+                {
+                    BusId = staffBusMapping.BusId,
+                    UserId = staffBusMapping.UserId
+                });
+            }
+            else
+            {
+                mapping.UserId = staffBusMapping.UserId;
+
+                _staffBusMappingRepository.Update(mapping);
+            }
+
+            _staffBusMappingRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Staff Bus Mapping",
+                Message = "Staff has been mapped with bus successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Staff Bus Mapping",
+                Message = $"Staff bus mapping failed because {ex.Message}"
+            };
+        }
     }
 }

@@ -8,4 +8,5 @@ public interface IPassengerService
     PayloadResponse PassengerInsert(PassengerCreateRequest model);
     PayloadResponse UpdatePassenger(PassengerUpdateRequest model);
     PayloadResponse GetPassengerById(string id);
+    PayloadResponse UpdateCardNumber(CardNumberUpdateRequest model);
 }

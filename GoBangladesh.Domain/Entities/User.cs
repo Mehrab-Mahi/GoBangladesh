@@ -24,5 +24,7 @@ namespace GoBangladesh.Domain.Entities
         public Organization Organization { get; set; }
         public int Serial { get; set; } = 0;
         public string Code { get; set; }
+        public string CardNumber { get; set; }
+        public decimal Balance { get; set; } = 0;
     }
 }

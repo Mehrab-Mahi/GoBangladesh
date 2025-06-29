@@ -20,6 +20,8 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<Card> Cards { get; set; }
         public DbSet<PassengerCardMapping> PassengerCardMappings { get; set; }
         public DbSet<StaffBusMapping> StaffBusMappings { get; set; }
+        public DbSet<OneTimePassword> OneTimePasswords { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {

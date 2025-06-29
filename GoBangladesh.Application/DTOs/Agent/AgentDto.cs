@@ -16,5 +16,5 @@ public class AgentDto
     public string ImageUrl { get; set; }
     public string Code { get; set; }
     public string OrganizationId { get; set; }
-    public Organization Organization { get; set; }
+    public Domain.Entities.Organization Organization { get; set; }
 }

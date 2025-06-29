@@ -75,6 +75,7 @@ namespace GoBangladesh.Web
 
             services.AddMvc(options => options.EnableEndpointRouting = false);
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+            services.Configure<OtpSettings>(Configuration.GetSection("OtpSettings"));
         }
 
         private void ConfigureAutomapper(IServiceCollection services)

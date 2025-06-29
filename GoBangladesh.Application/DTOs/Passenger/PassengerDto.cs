@@ -18,5 +18,7 @@ public class PassengerDto
     public string ImageUrl { get; set; }
     public string PassengerId { get; set; }
     public string OrganizationId { get; set; }
-    public Organization Organization { get; set; }
+    public Domain.Entities.Organization Organization { get; set; }
+    public string CardNumber { get; set; }
+    public decimal Balance { get; set; } = 0;
 }

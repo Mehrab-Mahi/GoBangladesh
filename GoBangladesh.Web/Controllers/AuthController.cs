@@ -9,10 +9,13 @@ namespace GoBangladesh.Web.Controllers
     public class AuthController : Controller
     {
         private readonly IAuthService _authService;
+        private readonly IOtpService _otpService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, 
+            IOtpService otpService)
         {
             _authService = authService;
+            _otpService = otpService;
         }
 
         [AllowAnonymous]
@@ -20,6 +23,14 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult Token([FromBody] AuthRequest model)
         {
             var response = _authService.Authenticate(model);
+            return Ok(new {data = response});
+        }
+        
+        [AllowAnonymous]
+        [HttpGet("sendOtp")]
+        public IActionResult SendOtp(string mobileNumber)
+        {
+            var response = _otpService.SendOtp(mobileNumber);
             return Ok(new {data = response});
         }
 
