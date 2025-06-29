@@ -42,7 +42,7 @@ namespace GoBangladesh.Web.Controllers
         
         [GoBangladeshAuth]
         [HttpPost("mapStaffWithBus")]
-        public IActionResult MapStaffWithBus(StaffBusMappingDto staffBusMapping)
+        public IActionResult MapStaffWithBus([FromBody] StaffBusMappingDto staffBusMapping)
         {
             var data = _staffService.MapStaffWithBus(staffBusMapping);
             return Ok(new { data });

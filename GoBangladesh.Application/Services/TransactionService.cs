@@ -127,7 +127,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            trip = AddTrip(model, passenger.Id, bus.Id);
+            trip = AddTrip(model, passenger.Id, bus.BusId);
         }
         catch (Exception ex)
         {
@@ -215,8 +215,6 @@ public class TransactionService : ITransactionService
         string passengerId,
         Trip trip)
     {
-        if (trip.Bus == null) throw new DataException("Bus not found!");
-
         var transaction = new Transaction()
         {
             TransactionType = transactionType,

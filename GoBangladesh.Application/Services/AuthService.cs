@@ -63,7 +63,7 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
-            var verification = (!string.IsNullOrEmpty(model.MobileNumber) && string.IsNullOrEmpty(model.Otp)) ?
+            var verification = (!string.IsNullOrEmpty(model.MobileNumber) && !string.IsNullOrEmpty(model.Otp)) ?
                 _otpService.VerifyOtp(model.MobileNumber, model.Otp) :
                 VerifyPassword(model.Password, user.PasswordHash);
 

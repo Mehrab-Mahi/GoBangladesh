@@ -11,16 +11,32 @@ public class OtpService : IOtpService
 {
     private readonly IRepository<OneTimePassword> _oneTimePasswordRepository;
     private readonly OtpSettings _otpSettings;
+    private readonly IRepository<User> _userRepository;
 
     public OtpService(IRepository<OneTimePassword> oneTimePasswordRepository,
-        IOptions<OtpSettings> otpSettings)
+        IOptions<OtpSettings> otpSettings,
+        IRepository<User> userRepository)
     {
         _oneTimePasswordRepository = oneTimePasswordRepository;
+        _userRepository = userRepository;
         _otpSettings = otpSettings.Value;
     }
 
     public PayloadResponse SendOtp(string mobileNumber)
     {
+        var user = _userRepository
+            .GetConditional(u => u.MobileNumber == mobileNumber);
+
+        if (user == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Otp",
+                Message = "User with this mobile number is not found!"
+            };
+        }
+
         var otp = GenerateOtp();
 
         _oneTimePasswordRepository.Insert(new OneTimePassword()
@@ -35,7 +51,8 @@ public class OtpService : IOtpService
 
         return new PayloadResponse()
         {
-            IsSuccess = false,
+            IsSuccess = true,
+            PayloadType = "Otp",
             Message = "Otp has been sent!"
         };
     }
@@ -49,7 +66,7 @@ public class OtpService : IOtpService
     {
         var otpData = _oneTimePasswordRepository
             .GetConditional(o => o.MobileNumber == mobileNumber &&
-                                 o.Otp == otp);
+                                 o.Otp == otp && o.IsValid);
 
         if (otpData is null)
         {
@@ -60,7 +77,7 @@ public class OtpService : IOtpService
             };
         }
 
-        if (otpData.ValidationTime < DateTime.Now)
+        if (otpData.ValidationTime < DateTime.Now || !otpData.IsValid)
         {
             return new PayloadResponse()
             {

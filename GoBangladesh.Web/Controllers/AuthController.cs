@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.Interfaces;
+﻿using GoBangladesh.Application.DTOs.Otp;
+using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,10 +28,10 @@ namespace GoBangladesh.Web.Controllers
         }
         
         [AllowAnonymous]
-        [HttpGet("sendOtp")]
-        public IActionResult SendOtp(string mobileNumber)
+        [HttpPost("sendOtp")]
+        public IActionResult SendOtp([FromBody] OtpDto otpDto)
         {
-            var response = _otpService.SendOtp(mobileNumber);
+            var response = _otpService.SendOtp(otpDto.MobileNumber);
             return Ok(new {data = response});
         }
 

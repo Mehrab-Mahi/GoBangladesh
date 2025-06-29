@@ -17,6 +17,7 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<MailHost> MailHosts { get; set; }   
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<Bus> Buses { get; set; }
+        public DbSet<Trip> Trips { get; set; }
         public DbSet<Card> Cards { get; set; }
         public DbSet<PassengerCardMapping> PassengerCardMappings { get; set; }
         public DbSet<StaffBusMapping> StaffBusMappings { get; set; }

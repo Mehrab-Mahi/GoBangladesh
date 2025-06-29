@@ -50,7 +50,8 @@ public class PassengerService : IPassengerService
                 Gender = user.Gender,
                 UserType = UserTypes.Passenger,
                 PassengerId = user.PassengerId,
-                OrganizationId = user.OrganizationId
+                OrganizationId = user.OrganizationId,
+                CardNumber = user.CardNumber
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
