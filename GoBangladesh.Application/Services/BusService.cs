@@ -12,10 +12,13 @@ namespace GoBangladesh.Application.Services;
 public class BusService : IBusService
 {
     private readonly IRepository<Bus> _busRepository;
+    private readonly ILoggedInUserService _loggedInUserService;
 
-    public BusService(IRepository<Bus> busRepository)
+    public BusService(IRepository<Bus> busRepository,
+        ILoggedInUserService loggedInUserService)
     {
         _busRepository = busRepository;
+        _loggedInUserService = loggedInUserService;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -219,6 +222,57 @@ public class BusService : IBusService
                 IsSuccess = false,
                 PayloadType = "Bus",
                 Message = $"Bus deletion is failed! because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetPermittedBus()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Staff not found"
+                };
+            }
+
+            if (currentUser.OrganizationId == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Staff is not mapped with any organization!"
+                };
+            }
+
+            var busList = _busRepository
+                .GetAll()
+                .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Content = busList,
+                Message = "Bus has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus fetching is failed because {ex.Message}!"
             };
         }
     }

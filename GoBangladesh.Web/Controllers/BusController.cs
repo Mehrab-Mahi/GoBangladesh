@@ -56,4 +56,12 @@ public class BusController : Controller
         var data = _busService.Delete(id);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("getPermittedBus")]
+    public IActionResult GetPermittedBus()
+    {
+        var data = _busService.GetPermittedBus();
+        return Ok(new { data });
+    }
 }

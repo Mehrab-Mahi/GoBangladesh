@@ -10,4 +10,5 @@ public interface IBusService
     PayloadResponse GetById(string id);
     PayloadResponse GetAll();
     PayloadResponse Delete(string id);
+    PayloadResponse GetPermittedBus();
 }
