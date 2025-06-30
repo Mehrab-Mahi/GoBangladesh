@@ -178,6 +178,55 @@ public class TransactionService : ITransactionService
         }
     }
 
+    public PayloadResponse IsMinimumBalanceAvailable(string cardNumber)
+    {
+        try
+        {
+            var passenger = _userRepository
+                .GetConditional(u => u.CardNumber == cardNumber);
+
+            if (passenger == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = false,
+                    PayloadType = "Transaction",
+                    Message = "Passenger with this card number not found"
+                };
+            }
+
+            if (passenger.Balance < 20)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = false,
+                    PayloadType = "Transaction",
+                    Message = $"Passenger balance is only {passenger.Balance}"
+                };
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = true,
+                PayloadType = "Transaction",
+                Message = $"Passenger balance is upper than the limit"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Content = false,
+                PayloadType = "Transaction",
+                Message = $"Balance checking failed because {ex.Message}"
+            };
+        }
+    }
+
     private void DeleteTrip(Trip trip)
     {
         _tripRepository.Delete(trip);

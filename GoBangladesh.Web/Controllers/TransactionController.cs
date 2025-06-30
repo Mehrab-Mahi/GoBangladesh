@@ -30,5 +30,13 @@ namespace GoBangladesh.Web.Controllers
             var data = _transactionService.BusFare(model);
             return Ok(new { data });
         }
+        
+        [GoBangladeshAuth]
+        [HttpGet("IsMinimumBalanceAvailable")]
+        public IActionResult IsMinimumBalanceAvailable(string cardNumber)
+        {
+            var data = _transactionService.IsMinimumBalanceAvailable(cardNumber);
+            return Ok(new { data });
+        }
     }
 }

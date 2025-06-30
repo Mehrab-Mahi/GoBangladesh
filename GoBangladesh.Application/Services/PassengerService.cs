@@ -56,8 +56,12 @@ public class PassengerService : IPassengerService
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            model.PasswordHash = string.IsNullOrEmpty(user.Password) ? "" :
-                _commonService.GetPasswordHash(user.Password);
+            if (string.IsNullOrEmpty(user.Password))
+            {
+                user.Password = "123";
+            }
+
+            model.PasswordHash = _commonService.GetPasswordHash(user.Password);
             model.ImageUrl = _commonService.UploadAndGetImageUrl(user.ProfilePicture, "ProfilePicture");
             model.CreatedBy = currentUser is null ? "" : currentUser.Id;
             model.LastModifiedBy = currentUser is null ? "" : currentUser.Id;

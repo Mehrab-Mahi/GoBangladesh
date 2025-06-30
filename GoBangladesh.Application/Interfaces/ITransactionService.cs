@@ -7,4 +7,5 @@ public interface ITransactionService
 {
     PayloadResponse Recharge(RechargeRequest model);
     PayloadResponse BusFare(BusFareRequest model);
+    PayloadResponse IsMinimumBalanceAvailable(string cardNumber);
 }
