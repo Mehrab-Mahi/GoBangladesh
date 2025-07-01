@@ -1,9 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Admin;
-using GoBangladesh.Application.DTOs.Passenger;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
