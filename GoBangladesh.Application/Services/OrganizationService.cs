@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.Interfaces;
@@ -11,10 +12,13 @@ namespace GoBangladesh.Application.Services;
 public class OrganizationService : IOrganizationService
 {
     private readonly IRepository<Organization> _organizationRepository;
+    private readonly ILoggedInUserService _loggedInUserService;
 
-    public OrganizationService(IRepository<Organization> organizationRepository)
+    public OrganizationService(IRepository<Organization> organizationRepository, 
+        ILoggedInUserService loggedInUserService)
     {
         _organizationRepository = organizationRepository;
+        _loggedInUserService = loggedInUserService;
     }
 
     public PayloadResponse OrganizationInsert(OrganizationCreateRequest model)
@@ -154,12 +158,53 @@ public class OrganizationService : IOrganizationService
         }
     }
 
-    public PayloadResponse GetAll()
+    public PayloadResponse GetAll(int pageNo, int pageSize)
     {
         try
         {
-            var organizationList = _organizationRepository
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User not found!"
+                };
+            }
+
+            List<Organization> organizationList;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                organizationList = _organizationRepository
+                    .GetAll()
+                    .ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Organization",
+                    Content = organizationList,
+                    Message = "Organization has been sent successfully"
+                };
+            }
+
+            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User is not associated with any organization!"
+                };
+            }
+
+            organizationList = _organizationRepository
                 .GetAll()
+                .Where(o => o.Id == currentUser.OrganizationId)
                 .ToList();
 
             return new PayloadResponse()

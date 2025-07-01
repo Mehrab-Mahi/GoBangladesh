@@ -33,6 +33,7 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IHistoryService, HistoryService>();
             services.AddScoped<IOrganizationService, OrganizationService>();
             services.AddScoped<IBusService, BusService>();
+            services.AddScoped<IAdminService, AdminService>();
         }
     }
 }

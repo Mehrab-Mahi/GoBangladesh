@@ -8,6 +8,6 @@ public interface IOrganizationService
     PayloadResponse OrganizationInsert(OrganizationCreateRequest model);
     PayloadResponse OrganizationUpdate(OrganizationUpdateRequest model);
     PayloadResponse GetById(string id);
-    PayloadResponse GetAll();
+    PayloadResponse GetAll(int pageNo, int pageSize);
     PayloadResponse Delete(string id);
 }

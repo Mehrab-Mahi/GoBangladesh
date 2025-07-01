@@ -4,6 +4,7 @@ using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
@@ -160,12 +161,58 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAll()
+    public PayloadResponse GetAll(int pageNo, int pageSize)
     {
         try
         {
-            var busList = _busRepository
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Staff not found"
+                };
+            }
+
+            List<Bus> busList;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                busList = _busRepository
+                    .GetAll()
+                    .Skip((pageNo-1)*pageSize)
+                    .Take(pageSize)
+                    .Include(b => b.Organization)
+                    .ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Bus",
+                    Content = busList,
+                    Message = "Bus has been fetched successfully!"
+                };
+            }
+
+            if (currentUser.OrganizationId == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Staff is not mapped with any organization!"
+                };
+            }
+
+            busList = _busRepository
                 .GetAll()
+                .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
                 .Include(b => b.Organization)
                 .ToList();
 
@@ -174,7 +221,7 @@ public class BusService : IBusService
                 IsSuccess = true,
                 PayloadType = "Bus",
                 Content = busList,
-                Message = "Bus has been sent successfully"
+                Message = "Bus has been fetched successfully!"
             };
         }
         catch (Exception ex)
@@ -183,7 +230,7 @@ public class BusService : IBusService
             {
                 IsSuccess = false,
                 PayloadType = "Bus",
-                Message = $"Bus fetching has been failed because {ex.Message}"
+                Message = $"Bus fetching is failed because {ex.Message}!"
             };
         }
     }
@@ -222,57 +269,6 @@ public class BusService : IBusService
                 IsSuccess = false,
                 PayloadType = "Bus",
                 Message = $"Bus deletion is failed! because {ex.Message}"
-            };
-        }
-    }
-
-    public PayloadResponse GetPermittedBus()
-    {
-        try
-        {
-            var currentUser = _loggedInUserService
-                .GetLoggedInUser();
-
-            if (currentUser == null)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Bus",
-                    Message = "Staff not found"
-                };
-            }
-
-            if (currentUser.OrganizationId == null)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Bus",
-                    Message = "Staff is not mapped with any organization!"
-                };
-            }
-
-            var busList = _busRepository
-                .GetAll()
-                .Where(b => b.OrganizationId == currentUser.OrganizationId)
-                .ToList();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Bus",
-                Content = busList,
-                Message = "Bus has been fetched successfully!"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Bus",
-                Message = $"Bus fetching is failed because {ex.Message}!"
             };
         }
     }

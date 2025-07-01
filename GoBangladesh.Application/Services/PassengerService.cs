@@ -4,6 +4,7 @@ using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.Util;
 using Microsoft.EntityFrameworkCore;
@@ -214,6 +215,152 @@ public class PassengerService : IPassengerService
             PayloadType = "Card Number changer for passenger",
             Message = "Card number has been updated!"
         };
+    }
+
+    public PayloadResponse GetAll(int pageNo, int pageSize)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Current User not found!"
+                };
+            }
+
+            List<PassengerDto> passengerData;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                passengerData = _userRepository
+                    .GetAll()
+                    .Include(u => u.Organization)
+                    .Skip((pageNo - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(passenger => new PassengerDto()
+                    {
+                        Id = passenger.Id,
+                        Name = passenger.Name,
+                        DateOfBirth = passenger.DateOfBirth,
+                        MobileNumber = passenger.MobileNumber,
+                        EmailAddress = passenger.EmailAddress,
+                        Address = passenger.Address,
+                        Gender = passenger.Gender,
+                        UserType = passenger.UserType,
+                        ImageUrl = passenger.ImageUrl,
+                        PassengerId = passenger.PassengerId,
+                        OrganizationId = passenger.OrganizationId,
+                        Organization = passenger.Organization,
+                        CardNumber = passenger.CardNumber,
+                        Balance = passenger.Balance
+                    })
+                    .ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Passenger",
+                    Content = passengerData,
+                    Message = "Passenger data fetch is successful"
+                };
+            }
+
+            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Current User is not associated with any organization!"
+                };
+            }
+
+            passengerData = _userRepository
+                .GetAll()
+                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+                .Include(u => u.Organization)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Select(passenger => new PassengerDto()
+                {
+                    Id = passenger.Id,
+                    Name = passenger.Name,
+                    DateOfBirth = passenger.DateOfBirth,
+                    MobileNumber = passenger.MobileNumber,
+                    EmailAddress = passenger.EmailAddress,
+                    Address = passenger.Address,
+                    Gender = passenger.Gender,
+                    UserType = passenger.UserType,
+                    ImageUrl = passenger.ImageUrl,
+                    PassengerId = passenger.PassengerId,
+                    OrganizationId = passenger.OrganizationId,
+                    Organization = passenger.Organization,
+                    CardNumber = passenger.CardNumber,
+                    Balance = passenger.Balance
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Passenger",
+                Content = passengerData,
+                Message = "Passenger data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger",
+                Message = $"Passenger fetching is failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse Delete(string id)
+    {
+        try
+        {
+            var passenger = _userRepository
+                .GetConditional(u => u.Id == id);
+
+            if (passenger == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Passenger not found"
+                };
+            }
+
+            _userRepository.Delete(passenger);
+            _userRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Passenger",
+                Message = "Passenger has been deleted successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger",
+                Message = $"Passenger deletion is failed! because {ex.Message}"
+            };
+        }
     }
 
     private bool IfDuplicateUser(PassengerCreateRequest model)

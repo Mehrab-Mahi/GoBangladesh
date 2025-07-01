@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace GoBangladesh.Application.DTOs.Passenger;
+namespace GoBangladesh.Application.DTOs.Admin;
 
-public class PassengerDto
+public class AdminDto
 {
     public string Id { get; set; }
     public string Name { get; set; }
@@ -13,9 +13,6 @@ public class PassengerDto
     public string Gender { get; set; }
     public string UserType { get; set; }
     public string ImageUrl { get; set; }
-    public string PassengerId { get; set; }
     public string OrganizationId { get; set; }
     public Domain.Entities.Organization Organization { get; set; }
-    public string CardNumber { get; set; }
-    public decimal Balance { get; set; } = 0;
 }

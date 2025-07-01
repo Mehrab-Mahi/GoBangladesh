@@ -6,6 +6,7 @@ using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace GoBangladesh.Application.Services;
@@ -232,6 +233,144 @@ public class StaffService : IStaffService
                 IsSuccess = false,
                 PayloadType = "Staff Bus Mapping",
                 Message = $"Staff bus mapping failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetAll(int pageNo, int pageSize)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Staff",
+                    Message = "Current User not found!"
+                };
+            }
+
+            List<StaffDto> staffData;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                staffData = _userRepository
+                    .GetAll()
+                    .Include(u => u.Organization)
+                    .Skip((pageNo - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(staff => new StaffDto()
+                    {
+                        Id = staff.Id,
+                        Name = staff.Name,
+                        DateOfBirth = staff.DateOfBirth,
+                        MobileNumber = staff.MobileNumber,
+                        EmailAddress = staff.EmailAddress,
+                        Address = staff.Address,
+                        Gender = staff.Gender,
+                        UserType = staff.UserType,
+                        ImageUrl = staff.ImageUrl,
+                        Organization = staff.Organization
+                    })
+                    .ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Staff",
+                    Content = staffData,
+                    Message = "Staff data fetch is successful"
+                };
+            }
+
+            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Staff",
+                    Message = "Current User is not associated with any organization!"
+                };
+            }
+
+            staffData = _userRepository
+                .GetAll()
+                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+                .Include(u => u.Organization)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Select(staff => new StaffDto()
+                {
+                    Id = staff.Id,
+                    Name = staff.Name,
+                    DateOfBirth = staff.DateOfBirth,
+                    MobileNumber = staff.MobileNumber,
+                    EmailAddress = staff.EmailAddress,
+                    Address = staff.Address,
+                    Gender = staff.Gender,
+                    UserType = staff.UserType,
+                    ImageUrl = staff.ImageUrl,
+                    Organization = staff.Organization
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Staff",
+                Content = staffData,
+                Message = "Staff data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Staff",
+                Message = $"Staff fetching is failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse Delete(string id)
+    {
+        try
+        {
+            var staff = _userRepository
+                .GetConditional(u => u.Id == id);
+
+            if (staff == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Staff",
+                    Message = "Staff not found"
+                };
+            }
+
+            _userRepository.Delete(staff);
+            _userRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Staff",
+                Message = "Staff has been deleted successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Staff",
+                Message = $"Staff deletion is failed! because {ex.Message}"
             };
         }
     }

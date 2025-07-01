@@ -47,4 +47,20 @@ public class PassengerController : Controller
         var data = _passengerService.GetPassengerById(id);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAll")]
+    public IActionResult GetAll(int pageNo, int pageSize)
+    {
+        var data = _passengerService.GetAll(pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpDelete("delete")]
+    public IActionResult Delete(string id)
+    {
+        var data = _passengerService.Delete(id);
+        return Ok(new { data });
+    }
 }

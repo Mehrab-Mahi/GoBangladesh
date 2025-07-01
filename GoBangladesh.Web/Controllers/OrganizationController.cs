@@ -41,9 +41,9 @@ public class OrganizationController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("getAll")]
-    public IActionResult GetAll()
+    public IActionResult GetAll(int pageNo, int pageSize)
     {
-        var data = _organizationService.GetAll();
+        var data = _organizationService.GetAll(pageNo, pageSize);
         return Ok(new { data });
     }
 

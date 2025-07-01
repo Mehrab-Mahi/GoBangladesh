@@ -8,4 +8,6 @@ public interface IAgentService
     PayloadResponse AgentInsert(AgentCreateRequest user);
     PayloadResponse UpdateAgent(AgentUpdateRequest user);
     PayloadResponse GetAgentById(string id);
+    PayloadResponse GetAll(int pageNo, int pageSize);
+    PayloadResponse Delete(string id);
 }

@@ -1,6 +1,7 @@
 ﻿using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,6 +38,22 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult GetAgentById(string id)
         {
             var data = _agentService.GetAgentById(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getAll")]
+        public IActionResult GetAll(int pageNo, int pageSize)
+        {
+            var data = _agentService.GetAll(pageNo, pageSize);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpDelete("delete")]
+        public IActionResult Delete(string id)
+        {
+            var data = _agentService.Delete(id);
             return Ok(new { data });
         }
     }

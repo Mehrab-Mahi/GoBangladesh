@@ -1,4 +1,4 @@
-﻿using GoBangladesh.Application.DTOs.Agent;
+﻿using GoBangladesh.Application.DTOs.Admin;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
@@ -11,13 +11,13 @@ using System.Linq;
 
 namespace GoBangladesh.Application.Services;
 
-public class AgentService : IAgentService
+public class AdminService : IAdminService
 {
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
 
-    public AgentService(IRepository<User> userRepository,
+    public AdminService(IRepository<User> userRepository, 
         ILoggedInUserService loggedInUserService,
         ICommonService commonService)
     {
@@ -25,23 +25,22 @@ public class AgentService : IAgentService
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
     }
-    public PayloadResponse AgentInsert(AgentCreateRequest user)
+
+    public PayloadResponse AdminInsert(AdminCreateRequest user)
     {
-        if (IfDuplicateUser(user.MobileNumber))
+        if (IfDuplicateUser(user))
         {
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Agent Creation",
+                PayloadType = "Admin Creation",
                 Content = null,
-                Message = "User with this mobile number already exists!"
+                Message = "Duplicate user!"
             };
         }
 
         try
         {
-            var serial = GetSerialNumber();
-
             var model = new User()
             {
                 Name = user.Name,
@@ -50,10 +49,8 @@ public class AgentService : IAgentService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Agent,
-                OrganizationId = user.OrganizationId,
-                Serial = serial,
-                Code = serial.ToString("D6")
+                UserType = UserTypes.Admin,
+                OrganizationId = user.OrganizationId
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -74,9 +71,9 @@ public class AgentService : IAgentService
             return new PayloadResponse
             {
                 IsSuccess = true,
-                PayloadType = "Agent Creation",
+                PayloadType = "Admin",
                 Content = null,
-                Message = "Agent Creation has been successful"
+                Message = "Admin Creation has been successful"
             };
         }
         catch (Exception ex)
@@ -84,43 +81,39 @@ public class AgentService : IAgentService
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Agent Creation",
+                PayloadType = "Admin",
                 Content = null,
-                Message = $"Agent Creation become unsuccessful because {ex.Message}"
+                Message = $"Admin Creation become unsuccessful because {ex.Message}"
             };
         }
     }
 
-    private int GetSerialNumber()
-    {
-        var maxSerial = _userRepository.GetAll().Max(s => s.Serial);
-        return maxSerial + 1;
-    }
-
-    private bool IfDuplicateUser(string mobileNumber)
+    private bool IfDuplicateUser(AdminCreateRequest model)
     {
         var user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == mobileNumber);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber
+                                 || u.EmailAddress == model.EmailAddress);
 
         return user is not null;
     }
 
-    public PayloadResponse UpdateAgent(AgentUpdateRequest user)
+    public PayloadResponse UpdateAdmin(AdminUpdateRequest user)
     {
-        var model = _userRepository.GetConditional(u => u.Id == user.Id);
+        var model = _userRepository
+            .GetConditional(u => u.Id == user.Id);
         try
         {
             if (user.MobileNumber != model.MobileNumber)
             {
-                if (IfDuplicateUser(user.MobileNumber))
+                if (IfDuplicateMobileNumber(user.MobileNumber))
                 {
                     return new PayloadResponse
                     {
                         IsSuccess = false,
-                        PayloadType = "Agent Update",
+                        PayloadType = "Admin Update",
                         Content = null,
-                        Message = "Agent with the mobile number already exists!"
+                        Message = "User with the mobile number already exists!"
                     };
                 }
             }
@@ -145,9 +138,9 @@ public class AgentService : IAgentService
             return new PayloadResponse
             {
                 IsSuccess = true,
-                PayloadType = "Agent Update",
+                PayloadType = "Admin",
                 Content = null,
-                Message = "Agent Update successful"
+                Message = "Admin Update successful"
             };
         }
         catch (Exception ex)
@@ -155,51 +148,59 @@ public class AgentService : IAgentService
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Agent Update",
+                PayloadType = "Admin Update",
                 Content = null,
-                Message = $"Agent Update become failed because {ex.Message}"
+                Message = $"Admin Update is failed because {ex.Message}"
             };
         }
     }
 
-    public PayloadResponse GetAgentById(string id)
+    private bool IfDuplicateMobileNumber(string mobileNumber)
     {
-        var agent = _userRepository
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.MobileNumber == mobileNumber);
+
+        return user is not null;
+    }
+
+    public PayloadResponse GetAdminById(string id)
+    {
+        var admin = _userRepository
             .GetAll().Where(u => u.Id == id)
             .Include(p => p.Organization)
             .FirstOrDefault();
 
-        if (agent == null)
+        if (admin == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Agent Get",
-                Content = new AgentDto(),
-                Message = "Agent not found!"
+                PayloadType = "Admin",
+                Content = new AdminDto(),
+                Message = "Admin not found!"
             };
         }
 
         return new PayloadResponse()
         {
             IsSuccess = true,
-            PayloadType = "Agent Get",
-            Content = new AgentDto()
+            PayloadType = "Admin",
+            Content = new AdminDto()
             {
-                Id = agent.Id,
-                Name = agent.Name,
-                DateOfBirth = agent.DateOfBirth,
-                MobileNumber = agent.MobileNumber,
-                EmailAddress = agent.EmailAddress,
-                Address = agent.Address,
-                Gender = agent.Gender,
-                UserType = agent.UserType,
-                ImageUrl = agent.ImageUrl,
-                OrganizationId = agent.OrganizationId,
-                Organization = agent.Organization,
-                Code = agent.Code
+                Id = admin.Id,
+                Name = admin.Name,
+                DateOfBirth = admin.DateOfBirth,
+                MobileNumber = admin.MobileNumber,
+                EmailAddress = admin.EmailAddress,
+                Address = admin.Address,
+                Gender = admin.Gender,
+                UserType = admin.UserType,
+                ImageUrl = admin.ImageUrl,
+                OrganizationId = admin.OrganizationId,
+                Organization = admin.Organization
             },
-            Message = "Agent not found!"
+            Message = "Admin not found!"
         };
     }
 
@@ -215,43 +216,42 @@ public class AgentService : IAgentService
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    PayloadType = "Agent",
+                    PayloadType = "Admin",
                     Message = "Current User not found!"
                 };
             }
 
-            List<AgentDto> agentData;
+            List<AdminDto> adminData;
 
             if (currentUser.IsSuperAdmin)
             {
-                agentData = _userRepository
+                adminData = _userRepository
                     .GetAll()
                     .Include(u => u.Organization)
                     .Skip((pageNo - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(agent => new AgentDto()
+                    .Select(u => new AdminDto()
                     {
-                        Id = agent.Id,
-                        Name = agent.Name,
-                        DateOfBirth = agent.DateOfBirth,
-                        MobileNumber = agent.MobileNumber,
-                        EmailAddress = agent.EmailAddress,
-                        Address = agent.Address,
-                        Gender = agent.Gender,
-                        UserType = agent.UserType,
-                        ImageUrl = agent.ImageUrl,
-                        OrganizationId = agent.OrganizationId,
-                        Organization = agent.Organization,
-                        Code = agent.Code
+                        Id = u.Id,
+                        Name = u.Name,
+                        DateOfBirth = u.DateOfBirth,
+                        MobileNumber = u.MobileNumber,
+                        EmailAddress = u.EmailAddress,
+                        Address = u.Address,
+                        Gender = u.Gender,
+                        UserType = u.UserType,
+                        ImageUrl = u.ImageUrl,
+                        OrganizationId = u.OrganizationId,
+                        Organization = u.Organization
                     })
                     .ToList();
 
                 return new PayloadResponse()
                 {
                     IsSuccess = true,
-                    PayloadType = "Agent",
-                    Content = agentData,
-                    Message = "Passenger data fetch is successful"
+                    PayloadType = "Admin",
+                    Content = adminData,
+                    Message = "Admin data fetch is successful"
                 };
             }
 
@@ -260,40 +260,39 @@ public class AgentService : IAgentService
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    PayloadType = "Agent",
+                    PayloadType = "Admin",
                     Message = "Current User is not associated with any organization!"
                 };
             }
 
-            agentData = _userRepository
+            adminData = _userRepository
                 .GetAll()
                 .Where(u => u.OrganizationId == currentUser.OrganizationId)
                 .Include(u => u.Organization)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Select(agent => new AgentDto()
+                .Select(u => new AdminDto()
                 {
-                    Id = agent.Id,
-                    Name = agent.Name,
-                    DateOfBirth = agent.DateOfBirth,
-                    MobileNumber = agent.MobileNumber,
-                    EmailAddress = agent.EmailAddress,
-                    Address = agent.Address,
-                    Gender = agent.Gender,
-                    UserType = agent.UserType,
-                    ImageUrl = agent.ImageUrl,
-                    OrganizationId = agent.OrganizationId,
-                    Organization = agent.Organization,
-                    Code = agent.Code
+                    Id = u.Id,
+                    Name = u.Name,
+                    DateOfBirth = u.DateOfBirth,
+                    MobileNumber = u.MobileNumber,
+                    EmailAddress = u.EmailAddress,
+                    Address = u.Address,
+                    Gender = u.Gender,
+                    UserType = u.UserType,
+                    ImageUrl = u.ImageUrl,
+                    OrganizationId = u.OrganizationId,
+                    Organization = u.Organization
                 })
                 .ToList();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Agent",
-                Content = agentData,
-                Message = "Agent data fetch is successful"
+                PayloadType = "Admin",
+                Content = adminData,
+                Message = "Admin data fetch is successful"
             };
         }
         catch (Exception ex)
@@ -301,8 +300,8 @@ public class AgentService : IAgentService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Agent",
-                Message = $"Agent fetching is failed because {ex.Message}!"
+                PayloadType = "Admin",
+                Message = $"Admin fetching is failed because {ex.Message}!"
             };
         }
     }
@@ -311,27 +310,27 @@ public class AgentService : IAgentService
     {
         try
         {
-            var agent = _userRepository
+            var admin = _userRepository
                 .GetConditional(u => u.Id == id);
 
-            if (agent == null)
+            if (admin == null)
             {
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    PayloadType = "Agent",
-                    Message = "Agent not found"
+                    PayloadType = "Admin",
+                    Message = "Admin not found"
                 };
             }
 
-            _userRepository.Delete(agent);
+            _userRepository.Delete(admin);
             _userRepository.SaveChanges();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Agent",
-                Message = "Agent has been deleted successfully"
+                PayloadType = "Admin",
+                Message = "Admin has been deleted successfully"
             };
         }
         catch (Exception ex)
@@ -339,8 +338,8 @@ public class AgentService : IAgentService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Agent",
-                Message = $"Agent deletion is failed! because {ex.Message}"
+                PayloadType = "Admin",
+                Message = $"Admin deletion is failed! because {ex.Message}"
             };
         }
     }

@@ -1,6 +1,7 @@
 ﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,6 +46,22 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult MapStaffWithBus([FromBody] StaffBusMappingDto staffBusMapping)
         {
             var data = _staffService.MapStaffWithBus(staffBusMapping);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getAll")]
+        public IActionResult GetAll(int pageNo, int pageSize)
+        {
+            var data = _staffService.GetAll(pageNo, pageSize);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpDelete("delete")]
+        public IActionResult Delete(string id)
+        {
+            var data = _staffService.Delete(id);
             return Ok(new { data });
         }
     }

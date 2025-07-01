@@ -43,9 +43,9 @@ public class BusController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("getAll")]
-    public IActionResult GetAll()
+    public IActionResult GetAll(int pageNo, int pageSize)
     {
-        var data = _busService.GetAll();
+        var data = _busService.GetAll(pageNo, pageSize);
         return Ok(new { data });
     }
 
@@ -54,14 +54,6 @@ public class BusController : Controller
     public IActionResult Delete(string id)
     {
         var data = _busService.Delete(id);
-        return Ok(new { data });
-    }
-
-    [GoBangladeshAuth]
-    [HttpGet("getPermittedBus")]
-    public IActionResult GetPermittedBus()
-    {
-        var data = _busService.GetPermittedBus();
         return Ok(new { data });
     }
 }

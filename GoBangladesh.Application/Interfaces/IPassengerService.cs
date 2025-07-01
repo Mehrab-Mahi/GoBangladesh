@@ -9,4 +9,6 @@ public interface IPassengerService
     PayloadResponse UpdatePassenger(PassengerUpdateRequest model);
     PayloadResponse GetPassengerById(string id);
     PayloadResponse UpdateCardNumber(CardNumberUpdateRequest model);
+    PayloadResponse GetAll(int pageNo, int pageSize);
+    PayloadResponse Delete(string id);
 }
