@@ -204,7 +204,7 @@ public class AdminService : IAdminService
         };
     }
 
-    public PayloadResponse GetAll(int pageNo, int pageSize)
+    public PayloadResponse GetAll(AdminDataFilter filter)
     {
         try
         {
@@ -221,69 +221,60 @@ public class AdminService : IAdminService
                 };
             }
 
-            List<AdminDto> adminData;
+            var condition = new List<string> { " UserType = 'Admin'" };
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
 
-            if (currentUser.IsSuperAdmin)
+            if (!currentUser.IsSuperAdmin)
             {
-                adminData = _userRepository
-                    .GetAll()
-                    .Include(u => u.Organization)
-                    .Skip((pageNo - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(u => new AdminDto()
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
                     {
-                        Id = u.Id,
-                        Name = u.Name,
-                        DateOfBirth = u.DateOfBirth,
-                        MobileNumber = u.MobileNumber,
-                        EmailAddress = u.EmailAddress,
-                        Address = u.Address,
-                        Gender = u.Gender,
-                        UserType = u.UserType,
-                        ImageUrl = u.ImageUrl,
-                        OrganizationId = u.OrganizationId,
-                        Organization = u.Organization
-                    })
-                    .ToList();
+                        IsSuccess = false,
+                        PayloadType = "Admin",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
 
-                return new PayloadResponse()
-                {
-                    IsSuccess = true,
-                    PayloadType = "Admin",
-                    Content = adminData,
-                    Message = "Admin data fetch is successful"
-                };
+                filter.OrganizationId = currentUser.OrganizationId;
             }
 
-            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Admin",
-                    Message = "Current User is not associated with any organization!"
-                };
+                condition.Add($" name like '%{filter.SearchQuery}%'");
             }
 
-            adminData = _userRepository
-                .GetAll()
-                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Users", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<User>("Users", whereCondition, extraCondition);
+
+            var userIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var adminData = _userRepository.GetAll()
+                .Where(u => userIds.Contains(u.Id))
                 .Include(u => u.Organization)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .Select(u => new AdminDto()
+                .Select(admin => new AdminDto()
                 {
-                    Id = u.Id,
-                    Name = u.Name,
-                    DateOfBirth = u.DateOfBirth,
-                    MobileNumber = u.MobileNumber,
-                    EmailAddress = u.EmailAddress,
-                    Address = u.Address,
-                    Gender = u.Gender,
-                    UserType = u.UserType,
-                    ImageUrl = u.ImageUrl,
-                    OrganizationId = u.OrganizationId,
-                    Organization = u.Organization
+                    Id = admin.Id,
+                    Name = admin.Name,
+                    DateOfBirth = admin.DateOfBirth,
+                    MobileNumber = admin.MobileNumber,
+                    EmailAddress = admin.EmailAddress,
+                    Address = admin.Address,
+                    Gender = admin.Gender,
+                    UserType = admin.UserType,
+                    ImageUrl = admin.ImageUrl,
+                    OrganizationId = admin.OrganizationId,
+                    Organization = admin.Organization
                 })
                 .ToList();
 
@@ -291,7 +282,7 @@ public class AdminService : IAdminService
             {
                 IsSuccess = true,
                 PayloadType = "Admin",
-                Content = adminData,
+                Content = new { data = adminData, rowCount },
                 Message = "Admin data fetch is successful"
             };
         }

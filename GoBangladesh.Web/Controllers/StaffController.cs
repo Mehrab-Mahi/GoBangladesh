@@ -17,7 +17,7 @@ namespace GoBangladesh.Web.Controllers
             _staffService = staffService;
         }
 
-        [AllowAnonymous]
+        [GoBangladeshAuth]
         [HttpPost("registration")]
         public IActionResult StaffInsert([FromForm] StaffCreateRequest model)
         {

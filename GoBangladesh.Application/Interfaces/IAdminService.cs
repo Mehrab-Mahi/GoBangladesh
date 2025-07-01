@@ -8,6 +8,6 @@ public interface IAdminService
     PayloadResponse AdminInsert(AdminCreateRequest model);
     PayloadResponse UpdateAdmin(AdminUpdateRequest model);
     PayloadResponse GetAdminById(string id);
-    PayloadResponse GetAll(int pageNo, int pageSize);
+    PayloadResponse GetAll(AdminDataFilter filter);
     PayloadResponse Delete(string id);
 }

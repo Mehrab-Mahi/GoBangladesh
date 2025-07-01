@@ -17,7 +17,7 @@ namespace GoBangladesh.Web.Controllers
             _agentService = agentService;
         }
 
-        [AllowAnonymous]
+        [GoBangladeshAuth]
         [HttpPost("registration")]
         public IActionResult AgentInsert([FromForm] AgentCreateRequest model)
         {

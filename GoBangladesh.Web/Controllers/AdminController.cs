@@ -18,7 +18,7 @@ public class AdminController : Controller
         _adminService = adminService;
     }
 
-    [AllowAnonymous]
+    [GoBangladeshAuth]
     [HttpPost("registration")]
     public IActionResult AdminInsert([FromForm] AdminCreateRequest model)
     {
@@ -43,10 +43,10 @@ public class AdminController : Controller
     }
 
     [GoBangladeshAuth]
-    [HttpGet("getAll")]
-    public IActionResult GetAll(int pageNo, int pageSize)
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] AdminDataFilter filter)
     {
-        var data = _adminService.GetAll(pageNo, pageSize);
+        var data = _adminService.GetAll(filter);
         return Ok(new { data });
     }
 
