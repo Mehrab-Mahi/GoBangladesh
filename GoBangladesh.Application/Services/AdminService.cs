@@ -243,7 +243,7 @@ public class AdminService : IAdminService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" name like '%{filter.SearchQuery}%'");
+                condition.Add($" Name like '%{filter.SearchQuery}%'");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))

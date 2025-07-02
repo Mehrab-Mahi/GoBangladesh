@@ -9,6 +9,6 @@ public interface IStaffService
     PayloadResponse UpdateStaff(StaffUpdateRequest model);
     PayloadResponse GetStaffById(string id);
     PayloadResponse MapStaffWithBus(StaffBusMappingDto staffBusMapping);
-    PayloadResponse GetAll(int pageNo, int pageSize);
+    PayloadResponse GetAll(StaffDataFilter filter);
     PayloadResponse Delete(string id);
 }

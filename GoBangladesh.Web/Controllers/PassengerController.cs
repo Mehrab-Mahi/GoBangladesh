@@ -49,10 +49,10 @@ public class PassengerController : Controller
     }
     
     [GoBangladeshAuth]
-    [HttpGet("getAll")]
-    public IActionResult GetAll(int pageNo, int pageSize)
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] PassengerDataFilter filter)
     {
-        var data = _passengerService.GetAll(pageNo, pageSize);
+        var data = _passengerService.GetAll(filter);
         return Ok(new { data });
     }
     

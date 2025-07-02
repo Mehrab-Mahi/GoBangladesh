@@ -1,8 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
@@ -50,10 +48,10 @@ namespace GoBangladesh.Web.Controllers
         }
 
         [GoBangladeshAuth]
-        [HttpGet("getAll")]
-        public IActionResult GetAll(int pageNo, int pageSize)
+        [HttpPost("getAll")]
+        public IActionResult GetAll([FromBody] StaffDataFilter filter)
         {
-            var data = _staffService.GetAll(pageNo, pageSize);
+            var data = _staffService.GetAll(filter);
             return Ok(new { data });
         }
 

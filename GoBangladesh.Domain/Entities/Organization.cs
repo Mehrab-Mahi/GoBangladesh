@@ -7,4 +7,6 @@ public class Organization : Entity
     public string FocalPerson { get; set; }
     public string Email { get; set; }
     public string MobileNumber { get; set; }
+    public decimal PerKmFare { get; set; }
+    public decimal BaseFare { get; set; }
 }

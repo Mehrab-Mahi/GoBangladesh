@@ -42,10 +42,10 @@ namespace GoBangladesh.Web.Controllers
         }
 
         [GoBangladeshAuth]
-        [HttpGet("getAll")]
-        public IActionResult GetAll(int pageNo, int pageSize)
+        [HttpPost("getAll")]
+        public IActionResult GetAll([FromBody] AgentDataFilter filter)
         {
-            var data = _agentService.GetAll(pageNo, pageSize);
+            var data = _agentService.GetAll(filter);
             return Ok(new { data });
         }
 

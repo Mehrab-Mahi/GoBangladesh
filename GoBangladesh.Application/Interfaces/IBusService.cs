@@ -8,6 +8,6 @@ public interface IBusService
     PayloadResponse BusInsert(BusCreateRequest model);
     PayloadResponse BusUpdate(BusUpdateRequest model);
     PayloadResponse GetById(string id);
-    PayloadResponse GetAll(int pageNo, int pageSize);
+    PayloadResponse GetAll(BusDataFilter filter);
     PayloadResponse Delete(string id);
 }

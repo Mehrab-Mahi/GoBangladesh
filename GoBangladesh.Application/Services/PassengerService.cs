@@ -217,7 +217,7 @@ public class PassengerService : IPassengerService
         };
     }
 
-    public PayloadResponse GetAll(int pageNo, int pageSize)
+    public PayloadResponse GetAll(PassengerDataFilter filter)
     {
         try
         {
@@ -234,59 +234,47 @@ public class PassengerService : IPassengerService
                 };
             }
 
-            List<PassengerDto> passengerData;
+            var condition = new List<string> { " UserType = 'Passenger' " };
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
 
-            if (currentUser.IsSuperAdmin)
+            if (!currentUser.IsSuperAdmin)
             {
-                passengerData = _userRepository
-                    .GetAll()
-                    .Include(u => u.Organization)
-                    .Skip((pageNo - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(passenger => new PassengerDto()
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
                     {
-                        Id = passenger.Id,
-                        Name = passenger.Name,
-                        DateOfBirth = passenger.DateOfBirth,
-                        MobileNumber = passenger.MobileNumber,
-                        EmailAddress = passenger.EmailAddress,
-                        Address = passenger.Address,
-                        Gender = passenger.Gender,
-                        UserType = passenger.UserType,
-                        ImageUrl = passenger.ImageUrl,
-                        PassengerId = passenger.PassengerId,
-                        OrganizationId = passenger.OrganizationId,
-                        Organization = passenger.Organization,
-                        CardNumber = passenger.CardNumber,
-                        Balance = passenger.Balance
-                    })
-                    .ToList();
+                        IsSuccess = false,
+                        PayloadType = "Passenger",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
 
-                return new PayloadResponse()
-                {
-                    IsSuccess = true,
-                    PayloadType = "Passenger",
-                    Content = passengerData,
-                    Message = "Passenger data fetch is successful"
-                };
+                filter.OrganizationId = currentUser.OrganizationId;
             }
 
-            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Passenger",
-                    Message = "Current User is not associated with any organization!"
-                };
+                condition.Add($" Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or PassengerId like '%{filter.SearchQuery}%' or CardNumber like '%{filter.SearchQuery}%' ");
             }
 
-            passengerData = _userRepository
-                .GetAll()
-                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Users", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<User>("Users", whereCondition, extraCondition);
+
+            var userIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var passengerData = _userRepository.GetAll()
+                .Where(u => userIds.Contains(u.Id))
                 .Include(u => u.Organization)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
                 .Select(passenger => new PassengerDto()
                 {
                     Id = passenger.Id,
@@ -310,7 +298,7 @@ public class PassengerService : IPassengerService
             {
                 IsSuccess = true,
                 PayloadType = "Passenger",
-                Content = passengerData,
+                Content = new { data = passengerData, rowCount },
                 Message = "Passenger data fetch is successful"
             };
         }

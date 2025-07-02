@@ -44,6 +44,8 @@ public class StaffService : IStaffService
 
         try
         {
+            var serial = GetSerialNumber();
+
             var model = new User()
             {
                 Name = user.Name,
@@ -53,7 +55,9 @@ public class StaffService : IStaffService
                 Address = user.Address,
                 Gender = user.Gender,
                 UserType = UserTypes.Staff,
-                OrganizationId = user.OrganizationId
+                OrganizationId = user.OrganizationId,
+                Serial = serial,
+                Code = $"STF-{serial:D6}"
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -89,6 +93,12 @@ public class StaffService : IStaffService
                 Message = $"Passenger Creation become unsuccessful because {ex.Message}"
             };
         }
+    }
+
+    private int GetSerialNumber()
+    {
+        var maxSerial = _userRepository.GetAll().Max(s => s.Serial);
+        return maxSerial + 1;
     }
 
     private bool IfDuplicateUser(string mobileNumber)
@@ -189,7 +199,8 @@ public class StaffService : IStaffService
                 Gender = staff.Gender,
                 UserType = staff.UserType,
                 ImageUrl = staff.ImageUrl,
-                Organization = staff.Organization
+                Organization = staff.Organization,
+                OrganizationId = staff.OrganizationId
             },
             Message = "Passenger not found!"
         };
@@ -237,7 +248,7 @@ public class StaffService : IStaffService
         }
     }
 
-    public PayloadResponse GetAll(int pageNo, int pageSize)
+    public PayloadResponse GetAll(StaffDataFilter filter)
     {
         try
         {
@@ -254,55 +265,47 @@ public class StaffService : IStaffService
                 };
             }
 
-            List<StaffDto> staffData;
+            var condition = new List<string> { " UserType = 'Staff' " };
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
 
-            if (currentUser.IsSuperAdmin)
+            if (!currentUser.IsSuperAdmin)
             {
-                staffData = _userRepository
-                    .GetAll()
-                    .Include(u => u.Organization)
-                    .Skip((pageNo - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(staff => new StaffDto()
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
                     {
-                        Id = staff.Id,
-                        Name = staff.Name,
-                        DateOfBirth = staff.DateOfBirth,
-                        MobileNumber = staff.MobileNumber,
-                        EmailAddress = staff.EmailAddress,
-                        Address = staff.Address,
-                        Gender = staff.Gender,
-                        UserType = staff.UserType,
-                        ImageUrl = staff.ImageUrl,
-                        Organization = staff.Organization
-                    })
-                    .ToList();
+                        IsSuccess = false,
+                        PayloadType = "Staff",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
 
-                return new PayloadResponse()
-                {
-                    IsSuccess = true,
-                    PayloadType = "Staff",
-                    Content = staffData,
-                    Message = "Staff data fetch is successful"
-                };
+                filter.OrganizationId = currentUser.OrganizationId;
             }
 
-            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Staff",
-                    Message = "Current User is not associated with any organization!"
-                };
+                condition.Add($" Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%' ");
             }
 
-            staffData = _userRepository
-                .GetAll()
-                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Users", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<User>("Users", whereCondition, extraCondition);
+
+            var userIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var staffData = _userRepository.GetAll()
+                .Where(u => userIds.Contains(u.Id))
                 .Include(u => u.Organization)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
                 .Select(staff => new StaffDto()
                 {
                     Id = staff.Id,
@@ -314,7 +317,8 @@ public class StaffService : IStaffService
                     Gender = staff.Gender,
                     UserType = staff.UserType,
                     ImageUrl = staff.ImageUrl,
-                    Organization = staff.Organization
+                    Organization = staff.Organization,
+                    OrganizationId = staff.OrganizationId
                 })
                 .ToList();
 
@@ -322,7 +326,7 @@ public class StaffService : IStaffService
             {
                 IsSuccess = true,
                 PayloadType = "Staff",
-                Content = staffData,
+                Content = new { data = staffData, rowCount },
                 Message = "Staff data fetch is successful"
             };
         }

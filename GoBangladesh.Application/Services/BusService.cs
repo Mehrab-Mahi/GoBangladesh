@@ -14,12 +14,15 @@ public class BusService : IBusService
 {
     private readonly IRepository<Bus> _busRepository;
     private readonly ILoggedInUserService _loggedInUserService;
+    private readonly ICommonService _commonService;
 
     public BusService(IRepository<Bus> busRepository,
-        ILoggedInUserService loggedInUserService)
+        ILoggedInUserService loggedInUserService,
+        ICommonService commonService)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
+        _commonService = commonService;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -161,7 +164,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAll(int pageNo, int pageSize)
+    public PayloadResponse GetAll(BusDataFilter filter)
     {
         try
         {
@@ -178,50 +181,55 @@ public class BusService : IBusService
                 };
             }
 
-            List<Bus> busList;
+            var condition = new List<string>();
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
 
-            if (currentUser.IsSuperAdmin)
+            if (!currentUser.IsSuperAdmin)
             {
-                busList = _busRepository
-                    .GetAll()
-                    .Skip((pageNo-1)*pageSize)
-                    .Take(pageSize)
-                    .Include(b => b.Organization)
-                    .ToList();
-
-                return new PayloadResponse()
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
                 {
-                    IsSuccess = true,
-                    PayloadType = "Bus",
-                    Content = busList,
-                    Message = "Bus has been fetched successfully!"
-                };
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Bus",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
+
+                filter.OrganizationId = currentUser.OrganizationId;
             }
 
-            if (currentUser.OrganizationId == null)
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Bus",
-                    Message = "Staff is not mapped with any organization!"
-                };
+                condition.Add($" BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%' or TripStartPlace like '%{filter.SearchQuery}%' or TripEndPlace like '%{filter.SearchQuery}%' ");
             }
 
-            busList = _busRepository
-                .GetAll()
-                .Where(b => b.OrganizationId == currentUser.OrganizationId)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .Include(b => b.Organization)
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Buses", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<Bus>("Buses", whereCondition, extraCondition);
+
+            var busIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var busData = _busRepository.GetAll()
+                .Where(u => busIds.Contains(u.Id))
+                .Include(u => u.Organization)
                 .ToList();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Bus",
-                Content = busList,
-                Message = "Bus has been fetched successfully!"
+                Content = new { data = busData, rowCount },
+                Message = "Bus data fetch is successful"
             };
         }
         catch (Exception ex)

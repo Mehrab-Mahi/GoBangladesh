@@ -42,10 +42,10 @@ public class BusController : Controller
     }
 
     [GoBangladeshAuth]
-    [HttpGet("getAll")]
-    public IActionResult GetAll(int pageNo, int pageSize)
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] BusDataFilter filter)
     {
-        var data = _busService.GetAll(pageNo, pageSize);
+        var data = _busService.GetAll(filter);
         return Ok(new { data });
     }
 

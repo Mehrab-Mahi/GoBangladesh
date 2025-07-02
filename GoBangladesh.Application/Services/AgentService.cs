@@ -53,7 +53,7 @@ public class AgentService : IAgentService
                 UserType = UserTypes.Agent,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
-                Code = serial.ToString("D6")
+                Code = $"AGT-{serial:D6}"
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -203,7 +203,7 @@ public class AgentService : IAgentService
         };
     }
 
-    public PayloadResponse GetAll(int pageNo, int pageSize)
+    public PayloadResponse GetAll(AgentDataFilter filter)
     {
         try
         {
@@ -220,57 +220,47 @@ public class AgentService : IAgentService
                 };
             }
 
-            List<AgentDto> agentData;
+            var condition = new List<string> { " UserType = 'Agent' " };
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
 
-            if (currentUser.IsSuperAdmin)
+            if (!currentUser.IsSuperAdmin)
             {
-                agentData = _userRepository
-                    .GetAll()
-                    .Include(u => u.Organization)
-                    .Skip((pageNo - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(agent => new AgentDto()
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
                     {
-                        Id = agent.Id,
-                        Name = agent.Name,
-                        DateOfBirth = agent.DateOfBirth,
-                        MobileNumber = agent.MobileNumber,
-                        EmailAddress = agent.EmailAddress,
-                        Address = agent.Address,
-                        Gender = agent.Gender,
-                        UserType = agent.UserType,
-                        ImageUrl = agent.ImageUrl,
-                        OrganizationId = agent.OrganizationId,
-                        Organization = agent.Organization,
-                        Code = agent.Code
-                    })
-                    .ToList();
+                        IsSuccess = false,
+                        PayloadType = "Agent",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
 
-                return new PayloadResponse()
-                {
-                    IsSuccess = true,
-                    PayloadType = "Agent",
-                    Content = agentData,
-                    Message = "Passenger data fetch is successful"
-                };
+                filter.OrganizationId = currentUser.OrganizationId;
             }
-
-            if (string.IsNullOrEmpty(currentUser.OrganizationId))
+            
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Agent",
-                    Message = "Current User is not associated with any organization!"
-                };
+                condition.Add($" Name like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' ");
             }
 
-            agentData = _userRepository
-                .GetAll()
-                .Where(u => u.OrganizationId == currentUser.OrganizationId)
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Users", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<User>("Users", whereCondition, extraCondition);
+
+            var userIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var agentData = _userRepository.GetAll()
+                .Where(u => userIds.Contains(u.Id))
                 .Include(u => u.Organization)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
                 .Select(agent => new AgentDto()
                 {
                     Id = agent.Id,
@@ -292,7 +282,7 @@ public class AgentService : IAgentService
             {
                 IsSuccess = true,
                 PayloadType = "Agent",
-                Content = agentData,
+                Content = new { data = agentData, rowCount },
                 Message = "Agent data fetch is successful"
             };
         }

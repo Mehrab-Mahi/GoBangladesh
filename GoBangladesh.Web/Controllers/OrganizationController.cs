@@ -38,12 +38,20 @@ public class OrganizationController : Controller
         var data = _organizationService.GetById(id);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllForSuperAdmin")]
+    public IActionResult GetAllForSuperAdmin()
+    {
+        var data = _organizationService.GetAllForSuperAdmin();
+        return Ok(new { data });
+    }
 
     [GoBangladeshAuth]
-    [HttpGet("getAll")]
-    public IActionResult GetAll(int pageNo, int pageSize)
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] OrganizationDataFilter filter)
     {
-        var data = _organizationService.GetAll(pageNo, pageSize);
+        var data = _organizationService.GetAll(filter);
         return Ok(new { data });
     }
 
