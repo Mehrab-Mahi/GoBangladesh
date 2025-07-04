@@ -256,7 +256,7 @@ public class PassengerService : IPassengerService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or PassengerId like '%{filter.SearchQuery}%' or CardNumber like '%{filter.SearchQuery}%' ");
+                condition.Add($" (Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or PassengerId like '%{filter.SearchQuery}%' or CardNumber like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))

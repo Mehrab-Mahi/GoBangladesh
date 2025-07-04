@@ -1,11 +1,16 @@
 ﻿using System;
-using System.Data;
+using System.Linq;
+using System.Net.Http;
 using GoBangladesh.Application.DTOs.Transaction;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
+using GoBangladesh.Application.ViewModels.Transaction;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 
 namespace GoBangladesh.Application.Services;
 
@@ -13,21 +18,24 @@ public class TransactionService : ITransactionService
 {
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly IRepository<User> _userRepository;
-    private readonly IRepository<StaffBusMapping> _staffBusMappingRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly IRepository<Trip> _tripRepository;
+    private readonly IRepository<Session> _sessionRepository;
+    private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         IRepository<User> userRepository,
-        IRepository<StaffBusMapping> staffBusMappingRepository, 
         ILoggedInUserService loggedInUserService, 
-        IRepository<Trip> tripRepository)
+        IRepository<Trip> tripRepository,
+        IRepository<Session> sessionRepository, 
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
     {
         _transactionRepository = transactionRepository;
         _userRepository = userRepository;
-        _staffBusMappingRepository = staffBusMappingRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
+        _sessionRepository = sessionRepository;
+        _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse Recharge(RechargeRequest model)
@@ -61,7 +69,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardAmount(model.CardNumber, model.Amount, TransactionOperation.Add);
+            UpdateCardAmount(passenger, model.Amount, TransactionOperation.Add);
 
             return new PayloadResponse()
             {
@@ -83,60 +91,143 @@ public class TransactionService : ITransactionService
         }
     }
 
-    public PayloadResponse BusFare(BusFareRequest model)
+    public PayloadResponse Tap(TapRequest tapRequest)
     {
         var passenger = _userRepository
-            .GetConditional(p => p.CardNumber == model.CardNumber);
+            .GetAll()
+            .Where(p => p.CardNumber == tapRequest.CardNumber)
+            .Include(u => u.Organization)
+            .FirstOrDefault();
 
         if (passenger == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                Message = "Passenger with the card number not found!"
+                PayloadType = "Tap",
+                Message = "Passenger with this card number is not found!"
             };
         }
 
-        var staff = _userRepository
-            .GetConditional(s => s.Id == model.StaffUserId);
+        var minimumBalanceCheck = IsMinimumBalanceAvailable(passenger);
 
-        if (staff == null)
+        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
+
+        var session = _sessionRepository
+            .GetAll()
+            .Where(s => s.Id == tapRequest.SessionId)
+            .Include(s => s.User)
+            .Include(s => s.Bus)
+            .FirstOrDefault();
+
+        if (session == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                Message = "Staff not found!"
+                PayloadType = "Tap",
+                Message = "Session not found!"
             };
         }
 
-        var bus = _staffBusMappingRepository
-            .GetConditional(s => s.UserId == model.StaffUserId);
-
-        if (bus == null)
+        if (passenger.OrganizationId != session.User.OrganizationId)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                Message = "Bus not found!"
+                PayloadType = "Tap",
+                Message = "Organization is not same!"
             };
         }
 
-        Transaction transaction;
-        Trip trip;
+        var trip = _tripRepository
+            .GetAll()
+            .OrderByDescending(t => t.CreateTime)
+            .FirstOrDefault(t => t.PassengerId == passenger.Id && t.SessionId == tapRequest.SessionId);
+
+        if (trip is null)
+        {
+            try
+            {
+                AddTrip(tapRequest, passenger.Id);
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Tap",
+                    Message = "Trip started!"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Tap",
+                    Message = $"Bus fare transaction has been failed because {ex.Message}"
+                };
+            }
+        }
+
+
+        if (!trip.IsRunning)
+        {
+            try
+            {
+                AddTrip(tapRequest, passenger.Id);
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Tap",
+                    Message = "Trip started!"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Tap",
+                    Message = $"Bus fare transaction has been failed because {ex.Message}"
+                };
+            }
+        }
+
+        if (IfTripTimeDifferenceIsLessThanOneMin(trip.TripStartTime))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Card has punched multiple times within one minute!"
+            };
+        }
 
         try
         {
-            trip = AddTrip(model, passenger.Id, bus.BusId);
+            var tripFare = GetTripFareAndDistance(trip.TripStartPoint, tapRequest.Location, passenger);
+
+            trip.TripEndPoint = tapRequest.Location;
+            trip.TripEndTime = DateTime.Now;
+            trip.IsRunning = false;
+            trip.Distance = tripFare.Distance;
+            trip.Amount = tripFare.Fare;
+
+            _tripRepository.Update(trip);
+            _tripRepository.SaveChanges();
         }
         catch (Exception ex)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Bus Fare",
-                Message = $"Bus fare transaction has been failed because {ex.Message}"
+                PayloadType = "Tap",
+                Message = $"Trip fare addition has been failed because {ex.Message}"
             };
         }
+
+        Transaction transaction;
 
         try
         {
@@ -144,47 +235,89 @@ public class TransactionService : ITransactionService
         }
         catch (Exception ex)
         {
-            DeleteTrip(trip);
+            RollBackTrip(trip);
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Bus Fare",
+                PayloadType = "Tap",
                 Message = $"Bus fare transaction has been failed because {ex.Message}"
             };
         }
 
         try
         {
-            UpdateCardAmount(model.CardNumber, trip.Amount, TransactionOperation.Subtract);
+            UpdateCardAmount(passenger, trip.Amount, TransactionOperation.Subtract);
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Bus Fare",
+                PayloadType = "Tap",
                 Message = "Bus fare deduction has been successful!"
             };
         }
         catch (Exception ex)
         {
+            RollBackTrip(trip);
             DeleteTransaction(transaction);
-            DeleteTrip(trip);
 
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Recharge",
+                PayloadType = "Tap",
                 Message = $"Recharge has been failed because {ex.Message}!"
             };
         }
     }
 
-    public PayloadResponse IsMinimumBalanceAvailable(string cardNumber)
+    private TripFareDistanceDto GetTripFareAndDistance(string tripStartPoint, string tripEndPoint, User passenger)
+    {
+        var distance = GetDistance(tripStartPoint, tripEndPoint);
+        var fare = GetCalculatedAmount(distance, passenger.Organization);
+
+        return new TripFareDistanceDto()
+        {
+            Distance = distance,
+            Fare = fare
+        };
+    }
+
+    private decimal GetCalculatedAmount(decimal distance, Organization organization)
+    {
+        var fare = distance * organization.PerKmFare;
+
+        if (fare < organization.BaseFare) return organization.BaseFare;
+
+        return fare;
+    }
+
+    private decimal GetDistance(string tripStartPoint, string tripEndPoint)
+    {
+        var url = $"{_distanceMatrixApiSettings.BaseUrl}?api_key={_distanceMatrixApiSettings.Key}&start={tripStartPoint}&end={tripEndPoint}";
+        var baseAddress = new Uri(url);
+
+        using var httpClient = new HttpClient();
+        httpClient.BaseAddress = baseAddress;
+        httpClient.DefaultRequestHeaders.Clear();
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation("accept", "application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8");
+
+        using var response = httpClient.GetAsync("directions");
+        var responseData = response.Result.Content.ReadAsStringAsync();
+        var data = JsonConvert.DeserializeObject<DistanceApiDto>(responseData.Result);
+
+        return data.Features.FirstOrDefault()!.Properties.Summary.Distance/1000;
+    }
+
+    private static bool IfTripTimeDifferenceIsLessThanOneMin(DateTime tripStartTime)
+    {
+        var timeDifference = (DateTime.Now - tripStartTime).TotalSeconds;
+
+        return Math.Abs(timeDifference) < 60;
+    }
+
+    public PayloadResponse IsMinimumBalanceAvailable(User passenger)
     {
         try
         {
-            var passenger = _userRepository
-                .GetConditional(u => u.CardNumber == cardNumber);
-
             if (passenger == null)
             {
                 return new PayloadResponse()
@@ -227,36 +360,29 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private void DeleteTrip(Trip trip)
+    private void RollBackTrip(Trip trip)
     {
-        _tripRepository.Delete(trip);
+        trip.TripEndPoint = null;
+        trip.TripEndTime = null;
+        trip.IsRunning = false;
+        trip.Distance = 0;
+        trip.Amount = 0;
+
+        _tripRepository.Update(trip);
         _tripRepository.SaveChanges();
     }
 
-    private Trip AddTrip(BusFareRequest model, string passengerId, string busId)
+    private void AddTrip(TapRequest tapRequest, string passengerId)
     {
-        var amount = GetCalculatedAmount();
-
-        var trip = new Trip()
+        _tripRepository.Insert(new Trip()
         {
             PassengerId = passengerId,
-            BusId = busId,
-            TripStartPoint = model.TripStartPoint,
-            TripEndPoint = model.TripEndPoint,
-            TripStartTime = model.TripStartTime,
-            TripEndTime = model.TripEndTime,
-            Amount = amount
-        };
+            SessionId = tapRequest.SessionId,
+            TripStartPoint = tapRequest.Location,
+            TripStartTime = DateTime.Now
+        });
 
-        _tripRepository.Insert(trip);
         _tripRepository.SaveChanges();
-
-        return trip;
-    }
-
-    private decimal GetCalculatedAmount()
-    {
-        return 51.25m;
     }
 
     private Transaction AddBusFareTransaction(string transactionType,
@@ -283,16 +409,8 @@ public class TransactionService : ITransactionService
         _transactionRepository.SaveChanges();
     }
 
-    private void UpdateCardAmount(string cardNumber, decimal amount, string operation)
+    private void UpdateCardAmount(User passenger, decimal amount, string operation)
     {
-        var passenger = _userRepository
-            .GetConditional(u => u.CardNumber == cardNumber);
-
-        if (passenger == null)
-        {
-            throw new DataException("Passenger with this card number is not found");
-        }
-
         if (operation == TransactionOperation.Add)
         {
             passenger.Balance += amount;

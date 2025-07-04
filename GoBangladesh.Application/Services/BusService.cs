@@ -44,7 +44,7 @@ public class BusService : IBusService
                 BusNumber = model.BusNumber,
                 BusName = model.BusName,
                 TripStartPlace = model.TripStartPlace,
-                TripEndPlace = model.TripStartPlace,
+                TripEndPlace = model.TripEndPlace,
                 OrganizationId = model.OrganizationId,
             };
 
@@ -203,7 +203,7 @@ public class BusService : IBusService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%' or TripStartPlace like '%{filter.SearchQuery}%' or TripEndPlace like '%{filter.SearchQuery}%' ");
+                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%' or TripStartPlace like '%{filter.SearchQuery}%' or TripEndPlace like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))

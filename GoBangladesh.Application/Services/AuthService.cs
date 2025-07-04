@@ -102,7 +102,9 @@ namespace GoBangladesh.Application.Services
                     new(type: "UserId", user.Id),
                     new(type: "IsSuperAdmin", user.IsSuperAdmin.ToString()),
                     new(type: "Name", user.Name),
-                    new(type: "UserType", user.UserType)
+                    new(type: "UserType", user.UserType),
+                    new(type: "OrganizationId", user.OrganizationId),
+                    new(type: "OrganizationName", user.Organization.Name)
                 }),
                 SigningCredentials = credentials
             };

@@ -24,18 +24,10 @@ namespace GoBangladesh.Web.Controllers
         }
         
         [GoBangladeshAuth]
-        [HttpPost("busFare")]
-        public IActionResult BusFare([FromBody] BusFareRequest model)
+        [HttpPost("Tap")]
+        public IActionResult Tap([FromBody] TapRequest tapRequest)
         {
-            var data = _transactionService.BusFare(model);
-            return Ok(new { data });
-        }
-        
-        [GoBangladeshAuth]
-        [HttpGet("IsMinimumBalanceAvailable")]
-        public IActionResult IsMinimumBalanceAvailable(string cardNumber)
-        {
-            var data = _transactionService.IsMinimumBalanceAvailable(cardNumber);
+            var data = _transactionService.Tap(tapRequest);
             return Ok(new { data });
         }
     }

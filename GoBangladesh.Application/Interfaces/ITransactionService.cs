@@ -6,6 +6,5 @@ namespace GoBangladesh.Application.Interfaces;
 public interface ITransactionService
 {
     PayloadResponse Recharge(RechargeRequest model);
-    PayloadResponse BusFare(BusFareRequest model);
-    PayloadResponse IsMinimumBalanceAvailable(string cardNumber);
+    PayloadResponse Tap(TapRequest tap);
 }

@@ -4,6 +4,7 @@ using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services
 {
@@ -20,7 +21,11 @@ namespace GoBangladesh.Application.Services
 
         public User Get(AuthRequest model)
         {
-            var user = _userRepo.GetConditional(u => u.MobileNumber == model.MobileNumber || u.EmailAddress == model.Email); 
+            var user = _userRepo
+                .GetAll()
+                .Where(u => u.MobileNumber == model.MobileNumber || u.EmailAddress == model.Email)
+                .Include(u => u.Organization)
+                .FirstOrDefault(); 
 
             return user;
         }

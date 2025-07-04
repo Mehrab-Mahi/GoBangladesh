@@ -16,17 +16,14 @@ public class StaffService : IStaffService
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
-    private readonly IRepository<StaffBusMapping> _staffBusMappingRepository;
 
     public StaffService(IRepository<User> userRepository, 
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService,
-        IRepository<StaffBusMapping> staffBusMappingRepository)
+        ICommonService commonService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
-        _staffBusMappingRepository = staffBusMappingRepository;
     }
 
     public PayloadResponse StaffInsert(StaffCreateRequest user)
@@ -200,52 +197,11 @@ public class StaffService : IStaffService
                 UserType = staff.UserType,
                 ImageUrl = staff.ImageUrl,
                 Organization = staff.Organization,
+                Code = staff.Code,
                 OrganizationId = staff.OrganizationId
             },
             Message = "Passenger not found!"
         };
-    }
-
-    public PayloadResponse MapStaffWithBus(StaffBusMappingDto staffBusMapping)
-    {
-        try
-        {
-            var mapping = _staffBusMappingRepository
-                .GetConditional(b => b.BusId == staffBusMapping.BusId);
-
-            if (mapping == null)
-            {
-                _staffBusMappingRepository.Insert(new StaffBusMapping()
-                {
-                    BusId = staffBusMapping.BusId,
-                    UserId = staffBusMapping.UserId
-                });
-            }
-            else
-            {
-                mapping.UserId = staffBusMapping.UserId;
-
-                _staffBusMappingRepository.Update(mapping);
-            }
-
-            _staffBusMappingRepository.SaveChanges();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Staff Bus Mapping",
-                Message = "Staff has been mapped with bus successfully"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Staff Bus Mapping",
-                Message = $"Staff bus mapping failed because {ex.Message}"
-            };
-        }
     }
 
     public PayloadResponse GetAll(StaffDataFilter filter)
@@ -287,7 +243,7 @@ public class StaffService : IStaffService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%' ");
+                condition.Add($" (Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
@@ -318,6 +274,7 @@ public class StaffService : IStaffService
                     UserType = staff.UserType,
                     ImageUrl = staff.ImageUrl,
                     Organization = staff.Organization,
+                    Code = staff.Code,
                     OrganizationId = staff.OrganizationId
                 })
                 .ToList();

@@ -12,13 +12,10 @@ namespace GoBangladesh.Application.Services;
 public class HistoryService : IHistoryService
 {
     private readonly IRepository<Transaction> _transactionRepository;
-    private readonly IRepository<Trip> _tripRepository;
 
-    public HistoryService(IRepository<Transaction> transactionRepository,
-        IRepository<Trip> tripRepository)
+    public HistoryService(IRepository<Transaction> transactionRepository)
     {
         _transactionRepository = transactionRepository;
-        _tripRepository = tripRepository;
     }
 
     public PayloadResponse PassengerHistory(string id, int pageNo, int pageSize)
@@ -46,7 +43,7 @@ public class HistoryService : IHistoryService
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 PayloadType = "Passenger transaction history",
                 Message = $"Transaction history fetching failed because {ex.Message}"
             };
@@ -77,41 +74,8 @@ public class HistoryService : IHistoryService
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 PayloadType = "Agent transaction history",
-                Message = $"Transaction history fetching failed because {ex.Message}"
-            };
-        }
-    }
-
-    public PayloadResponse BusHistory(string id, int pageNo, int pageSize)
-    {
-        try
-        {
-            var transactionHistory = (from transaction in _transactionRepository.GetAll()
-                    join trip in _tripRepository.GetAll() on transaction.TripId equals trip.Id
-                    where trip.BusId == id
-                    select transaction)
-                .OrderByDescending(t => t.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .Include(t => t.Passenger)
-                .Include(t => t.Trip)
-                .ToList();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Bus transaction history",
-                Content = transactionHistory
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Bus transaction history",
                 Message = $"Transaction history fetching failed because {ex.Message}"
             };
         }

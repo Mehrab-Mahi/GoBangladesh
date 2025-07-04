@@ -7,6 +7,6 @@ public class OrganizationCreateRequest
     public string FocalPerson { get; set; }
     public string Email { get; set; }
     public string MobileNumber { get; set; }
-    public int PerKmFare { get; set; }
-    public int BaseFare { get; set; }
+    public decimal PerKmFare { get; set; }
+    public decimal BaseFare { get; set; }
 }

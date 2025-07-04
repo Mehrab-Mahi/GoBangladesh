@@ -242,7 +242,7 @@ public class AgentService : IAgentService
             
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" Name like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' ");
+                condition.Add($" (Name like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
