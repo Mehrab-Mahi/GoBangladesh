@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.Interfaces;
+﻿using GoBangladesh.Application.DTOs.Otp;
+using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +10,13 @@ namespace GoBangladesh.Web.Controllers
     public class AuthController : Controller
     {
         private readonly IAuthService _authService;
+        private readonly IOtpService _otpService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, 
+            IOtpService otpService)
         {
             _authService = authService;
+            _otpService = otpService;
         }
 
         [AllowAnonymous]
@@ -24,10 +28,10 @@ namespace GoBangladesh.Web.Controllers
         }
         
         [AllowAnonymous]
-        [HttpPost("usertype")]
-        public IActionResult UserType([FromBody] AuthRequest model)
+        [HttpPost("sendOtp")]
+        public IActionResult SendOtp([FromBody] OtpDto otpDto)
         {
-            var response = _authService.UserType(model);
+            var response = _otpService.SendOtp(otpDto.MobileNumber);
             return Ok(new {data = response});
         }
 

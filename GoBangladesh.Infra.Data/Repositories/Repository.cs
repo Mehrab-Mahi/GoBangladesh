@@ -39,7 +39,7 @@ namespace GoBangladesh.Infra.Data.Repositories
         {
             if (model != null)
             {
-                var createdTime = DateTime.Now;
+                var createdTime = DateTime.UtcNow;
                 model.CreateTime = createdTime;
                 model.LastModifiedTime = createdTime;
             }
@@ -83,7 +83,7 @@ namespace GoBangladesh.Infra.Data.Repositories
         public void Update(T entity)
         {
             if (entity != null)
-                entity.LastModifiedTime = DateTime.Now;
+                entity.LastModifiedTime = DateTime.UtcNow;
             entity.LastModifiedBy = LoggedInUserName;
             _dbContext.Entry(entity).State = EntityState.Modified;
         }

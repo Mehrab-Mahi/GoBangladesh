@@ -1,20 +1,25 @@
 ﻿using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace GoBangladesh.Application.Services
 {
     public class CommonService : ICommonService
     {
         private readonly IRepository<Entity> _repo;
-        public CommonService(IRepository<Entity> repo)
+        private readonly IFileService _fileService;
+        private readonly IBaseRepository _baseRepository;
+        public CommonService(IRepository<Entity> repo, 
+            IFileService fileService,
+            IBaseRepository baseRepository)
         {
             _repo = repo;
+            _fileService = fileService;
+            _baseRepository = baseRepository;
         }
         public bool Delete(string id, string table)
         {
@@ -28,6 +33,71 @@ namespace GoBangladesh.Application.Services
             {
                 return false;
             }
+        }
+
+        public string GetPasswordHash(string password)
+        {
+            var defaultPass = Guid.NewGuid().ToString("N");
+            if (!string.IsNullOrEmpty(password))
+            {
+                defaultPass = password;
+            }
+            return BCrypt.Net.BCrypt.HashPassword(defaultPass, workFactor: 12);
+        }
+
+        public string UploadAndGetImageUrl(IFormFile userProfilePicture, string fileSavePath)
+        {
+            if (userProfilePicture is null) return string.Empty;
+
+            var fileName = GetFileName(userProfilePicture.FileName);
+
+            return UploadFile(fileName, fileSavePath, userProfilePicture);
+        }
+
+        public void DeleteFile(string path)
+        {
+            _fileService.DeleteFile(path);
+        }
+
+        public string GenerateWhereConditionFromConditionList(List<string> condition)
+        {
+            var whereCondition = string.Join(" and ", condition);
+
+            return !string.IsNullOrEmpty(whereCondition) ?
+                $"where {whereCondition}" :
+                whereCondition;
+        }
+
+        public int GetRowCountForData(string tableName, string whereCondition)
+        {
+            var query = $"select count(*) from {tableName} {whereCondition}";
+
+            var count = _baseRepository.FirstOrDefault<int>(query);
+
+            return count;
+        }
+
+        public List<T> GetFinalData<T>(string tableName, string whereCondition, string extraCondition)
+        {
+            var query = $"select * from {tableName} {whereCondition} {extraCondition}";
+
+            var data = _baseRepository.Query<T>(query);
+
+            return data;
+        }
+
+        private string GetFileName(string fileName)
+        {
+            return Guid.NewGuid().ToString("N") + "-" + fileName;
+        }
+
+        private string UploadFile(string fileName, string fileSavePath, IFormFile file)
+        {
+            var path = Path.Combine(_fileService.GetRootPath(), fileSavePath);
+            _fileService.CreateDirectoryIfNotExists(path);
+            var filePath = Path.Combine(path, fileName);
+            _fileService.SaveFile(filePath, file);
+            return Path.Combine(fileSavePath, fileName);
         }
     }
 }

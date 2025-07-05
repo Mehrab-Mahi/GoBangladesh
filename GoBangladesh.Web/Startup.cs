@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
 using System.Text;
+using GoBangladesh.Application.ViewModels.Transaction;
 
 namespace GoBangladesh.Web
 {
@@ -75,6 +76,8 @@ namespace GoBangladesh.Web
 
             services.AddMvc(options => options.EnableEndpointRouting = false);
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+            services.Configure<OtpSettings>(Configuration.GetSection("OtpSettings"));
+            services.Configure<DistanceMatrixApiSettings>(Configuration.GetSection("DistanceMatrixApiSettings"));
         }
 
         private void ConfigureAutomapper(IServiceCollection services)

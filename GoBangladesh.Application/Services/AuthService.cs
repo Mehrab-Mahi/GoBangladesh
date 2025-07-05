@@ -22,14 +22,21 @@ namespace GoBangladesh.Application.Services
         private IHttpContextAccessor _httpContextAccessor;
         private readonly IBaseRepository _repo;
         private readonly IRepository<AccessControl> _accessRepo;
+        private readonly IOtpService _otpService;
 
-        public AuthService(IUserService userService, IOptions<AppSettings> appSettings, IHttpContextAccessor httpContextAccessor, IBaseRepository repo, IRepository<AccessControl> accessRepo)
+        public AuthService(IUserService userService,
+            IOptions<AppSettings> appSettings,
+            IHttpContextAccessor httpContextAccessor,
+            IBaseRepository repo,
+            IRepository<AccessControl> accessRepo,
+            IOtpService otpService)
         {
             _userService = userService;
             _appSettings = appSettings.Value;
             _httpContextAccessor = httpContextAccessor;
             _repo = repo;
             _accessRepo = accessRepo;
+            _otpService = otpService;
         }
 
         public PayloadResponse Authenticate(AuthRequest model)
@@ -56,28 +63,28 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
-            if (user.UserType != "Admin" && string.IsNullOrEmpty(model.Password))
-            {
-                model.Password = "123";
-            }
-            var isVerified = VerifyPassword(model.Password, user.PasswordHash);
-            if (!isVerified)
+            var verification = (!string.IsNullOrEmpty(model.MobileNumber) && !string.IsNullOrEmpty(model.Otp)) ?
+                _otpService.VerifyOtp(model.MobileNumber, model.Otp) :
+                VerifyPassword(model.Password, user.PasswordHash);
+
+            if (!verification.IsSuccess)
             {
                 return new PayloadResponse
                 {
                     IsSuccess = false,
                     PayloadType = "authentication",
                     Content = null,
-                    Message = "authentication unsuccessful.Password does not match"
+                    Message = verification.Message
                 };
             }
             var token = GenerateJwtToken(user);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
                 PayloadType = "authentication",
                 Content = new AuthResponse(token),
-                Message = "authentication successful"
+                Message = "Authentication successful"
             };
         }
 
@@ -91,13 +98,15 @@ namespace GoBangladesh.Application.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new(ClaimTypes.Name, (user.FullName)),
+                    new(ClaimTypes.Name, (user.Name)),
                     new(type: "UserId", user.Id),
                     new(type: "IsSuperAdmin", user.IsSuperAdmin.ToString()),
-                    new(type: "FullName", user.FullName),
-                    new(type: "UserType", user.UserType)
+                    new(type: "Name", user.Name),
+                    new(type: "UserType", user.UserType),
+                    new(type: "OrganizationId", user.OrganizationId),
+                    new(type: "OrganizationName", user.Organization.Name)
                 }),
-                Expires = DateTime.UtcNow.AddHours(24),
+                Expires = DateTime.UtcNow.AddYears(1),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);
@@ -148,9 +157,24 @@ namespace GoBangladesh.Application.Services
             }
         }
 
-        private bool VerifyPassword(string password, string passwordHash)
+        private PayloadResponse VerifyPassword(string password, string passwordHash)
         {
-            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            var isVerified = BCrypt.Net.BCrypt.Verify(password, passwordHash);
+
+            if (isVerified)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    Message = "Password has been matched"
+                };
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Password doesn't match!"
+            };
         }
 
         public UserAuthVm GetCurrentUser()
@@ -173,13 +197,6 @@ namespace GoBangladesh.Application.Services
                         join AccessControls ac on mc.AccessControlId = ac.Id where mc.RoleId = '{roleId}'; ";
             }
             return BuildMenuTree(_repo.Query<AccessControlVm>(query));
-        }
-
-        public UserTypeResponse UserType(AuthRequest model)
-        {
-            var response = _userService.GetUserTypeByPhoneNumberAndDob(model);
-            
-            return response;
         }
 
         private List<AccessControlVm> BuildMenuTree(List<AccessControlVm> accessControlVms)

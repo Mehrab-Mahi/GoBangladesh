@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace GoBangladesh.Application.ViewModels
 {
     public class AuthRequest
     {
-        [JsonIgnore]
-        [Display(Name = "UserName")]
+        [Display(Name = "Email")]
         public string Email { get; set; }
 
         [DataType(DataType.Password)]
@@ -20,9 +15,9 @@ namespace GoBangladesh.Application.ViewModels
         
         [Display(Name = "MobileNumber")]
         public string MobileNumber { get; set; }
-
-        [Display(Name = "DateOfBirth")]
-        public string DateOfBirth { get; set; }
+        
+        [Display(Name = "Otp")]
+        public string Otp { get; set; }
     }
 
     public class AuthResponse
