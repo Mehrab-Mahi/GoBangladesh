@@ -30,4 +30,12 @@ public class HistoryController : Controller
         var data = _historyService.AgentHistory(id, pageNo, pageSize);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("session")]
+    public IActionResult SessionHistory(string id, int pageNo, int pageSize)
+    {
+        var data = _historyService.SessionHistory(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
 }

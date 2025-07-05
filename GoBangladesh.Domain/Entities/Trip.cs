@@ -18,4 +18,6 @@ public class Trip : Entity
     public decimal Distance { get; set; }
     [ForeignKey("SessionId")]
     public Session Session { get; set; }
+    [ForeignKey("PassengerId")]
+    public User Passenger { get; set; }
 }

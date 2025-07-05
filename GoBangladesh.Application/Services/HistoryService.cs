@@ -12,10 +12,13 @@ namespace GoBangladesh.Application.Services;
 public class HistoryService : IHistoryService
 {
     private readonly IRepository<Transaction> _transactionRepository;
+    private readonly IRepository<Trip> _tripRepository;
 
-    public HistoryService(IRepository<Transaction> transactionRepository)
+    public HistoryService(IRepository<Transaction> transactionRepository, 
+        IRepository<Trip> tripRepository)
     {
         _transactionRepository = transactionRepository;
+        _tripRepository = tripRepository;
     }
 
     public PayloadResponse PassengerHistory(string id, int pageNo, int pageSize)
@@ -77,6 +80,38 @@ public class HistoryService : IHistoryService
                 IsSuccess = false,
                 PayloadType = "Agent transaction history",
                 Message = $"Transaction history fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse SessionHistory(string id, int pageNo, int pageSize)
+    {
+        try
+        {
+            var tripHistory = _tripRepository
+                .GetAll()
+                .Where(t => t.SessionId == id)
+                .OrderByDescending(t => t.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Include(t => t.Passenger)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Session transaction history",
+                Content = tripHistory,
+                Message = "Session transaction history"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Session transaction history",
+                Message = $"Session transaction history fetching failed because {ex.Message}"
             };
         }
     }
