@@ -206,9 +206,11 @@ public class TransactionService : ITransactionService
 
         try
         {
-            var tripFare = GetTripFareAndDistance(trip.TripStartPoint, tapRequest.Location, passenger);
+            trip.EndingLatitude = tapRequest.Latitude;
+            trip.EndingLongitude = tapRequest.Longitude;
 
-            trip.TripEndPoint = tapRequest.Location;
+            var tripFare = GetTripFareAndDistance(trip, passenger);
+
             trip.TripEndTime = DateTime.Now;
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
@@ -269,9 +271,9 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private TripFareDistanceDto GetTripFareAndDistance(string tripStartPoint, string tripEndPoint, User passenger)
+    private TripFareDistanceDto GetTripFareAndDistance(Trip trip, User passenger)
     {
-        var distance = GetDistance(tripStartPoint, tripEndPoint);
+        var distance = GetDistance(trip);
         var fare = GetCalculatedAmount(distance, passenger.Organization);
 
         return new TripFareDistanceDto()
@@ -290,21 +292,13 @@ public class TransactionService : ITransactionService
         return fare;
     }
 
-    private decimal GetDistance(string tripStartPoint, string tripEndPoint)
+    private decimal GetDistance(Trip trip)
     {
-        var url = $"{_distanceMatrixApiSettings.BaseUrl}?api_key={_distanceMatrixApiSettings.Key}&start={tripStartPoint}&end={tripEndPoint}";
-        var baseAddress = new Uri(url);
-
+        var url = $"{_distanceMatrixApiSettings.BaseUrl}{trip.StartingLongitude},{trip.StartingLatitude};{trip.EndingLongitude},{trip.EndingLatitude}?overview=false";
         using var httpClient = new HttpClient();
-        httpClient.BaseAddress = baseAddress;
-        httpClient.DefaultRequestHeaders.Clear();
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation("accept", "application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8");
-
-        using var response = httpClient.GetAsync("directions");
-        var responseData = response.Result.Content.ReadAsStringAsync();
-        var data = JsonConvert.DeserializeObject<DistanceApiDto>(responseData.Result);
-
-        return data.Features.FirstOrDefault()!.Properties.Summary.Distance/1000;
+        var response = httpClient.GetStringAsync(url).Result;
+        var data = JsonConvert.DeserializeObject<DistanceApiDto>(response);
+        return data.Routes.FirstOrDefault()!.Distance / 1000;
     }
 
     private static bool IfTripTimeDifferenceIsLessThanOneMin(DateTime tripStartTime)
@@ -362,7 +356,8 @@ public class TransactionService : ITransactionService
 
     private void RollBackTrip(Trip trip)
     {
-        trip.TripEndPoint = null;
+        trip.EndingLatitude = null;
+        trip.EndingLongitude = null;
         trip.TripEndTime = null;
         trip.IsRunning = false;
         trip.Distance = 0;
@@ -378,7 +373,8 @@ public class TransactionService : ITransactionService
         {
             PassengerId = passengerId,
             SessionId = tapRequest.SessionId,
-            TripStartPoint = tapRequest.Location,
+            StartingLatitude = tapRequest.Latitude,
+            StartingLongitude = tapRequest.Longitude,
             TripStartTime = DateTime.Now
         });
 

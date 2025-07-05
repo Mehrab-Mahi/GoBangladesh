@@ -6,5 +6,6 @@ public class TapRequest
 {
     public string CardNumber { get; set; }
     public string SessionId { get; set; }
-    public string Location { get; set; }
+    public string Latitude { get; set; }
+    public string Longitude { get; set; }
 }

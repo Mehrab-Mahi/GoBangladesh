@@ -4,21 +4,10 @@ namespace GoBangladesh.Application.DTOs.Transaction;
 
 public class DistanceApiDto
 {
-    public List<Feature> Features { get; set; }
+    public List<Route> Routes { get; set; }
 }
 
-public class Feature
-{
-    public Properties Properties { get; set; }
-}
-
-public class Properties
-{
-    public Summary Summary { get; set; }
-}
-
-public class Summary
+public class Route
 {
     public decimal Distance { get; set; }
-    public decimal Duration { get; set; }
 }

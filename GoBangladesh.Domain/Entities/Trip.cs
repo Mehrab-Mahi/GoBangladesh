@@ -7,8 +7,10 @@ public class Trip : Entity
 {
     public string PassengerId { get; set; }
     public string SessionId { get; set; }
-    public string TripStartPoint { get; set; }
-    public string TripEndPoint { get; set; }
+    public string StartingLatitude { get; set; }
+    public string StartingLongitude { get; set; }
+    public string EndingLatitude { get; set; }
+    public string EndingLongitude { get; set; }
     public DateTime TripStartTime { get; set; }
     public DateTime? TripEndTime { get; set; }
     public decimal Amount { get; set; }

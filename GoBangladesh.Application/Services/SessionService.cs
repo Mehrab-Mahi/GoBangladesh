@@ -146,8 +146,15 @@ public class SessionService : ISessionService
 
     private int GetSerialNumberForSession()
     {
-        var maxSerial = _sessionRepository.GetAll().Max(s => s.Serial);
-        return maxSerial + 1;
+        try
+        {
+            var maxSerial = _sessionRepository.GetAll().Max(s => s.Serial);
+            return maxSerial + 1;
+        }
+        catch
+        {
+            return 1;
+        }
     }
 
     private PayloadResponse VerifyIfAnySessionRunningOnBus(SessionStartDto sessionStartDto)

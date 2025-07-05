@@ -29,6 +29,18 @@ public class OrganizationService : IOrganizationService
     {
         try
         {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "User is not authorized to create an organization!"
+                };
+            }
+
             var duplicateVerification = IfDuplicateOrganizationData(model);
 
             if (!duplicateVerification.IsSuccess)
@@ -118,6 +130,18 @@ public class OrganizationService : IOrganizationService
     {
         try
         {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "User is not authorized to update an organization!"
+                };
+            }
+
             var organization = _organizationRepository
                 .GetConditional(o => o.Id == model.Id);
 
