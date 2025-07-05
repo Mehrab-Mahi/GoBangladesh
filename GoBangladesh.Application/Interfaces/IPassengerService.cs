@@ -11,4 +11,5 @@ public interface IPassengerService
     PayloadResponse UpdateCardNumber(CardNumberUpdateRequest model);
     PayloadResponse GetAll(PassengerDataFilter filter);
     PayloadResponse Delete(string id);
+    PayloadResponse GetOnGoingTrip();
 }

@@ -16,14 +16,17 @@ public class PassengerService : IPassengerService
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IRepository<Trip> _tripRepository;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService, 
+        IRepository<Trip> tripRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _tripRepository = tripRepository;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -347,6 +350,48 @@ public class PassengerService : IPassengerService
                 IsSuccess = false,
                 PayloadType = "Passenger",
                 Message = $"Passenger deletion is failed! because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetOnGoingTrip()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            var trip = _tripRepository
+                .GetAll()
+                .Where(t => t.PassengerId == currentUser.Id && t.IsRunning)
+                .Include(t => t.Session)
+                .Include(t => t.Session.Bus)
+                .FirstOrDefault();
+
+            if (trip == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Passenger",
+                    Message = "No ongoing trip!"
+                };
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Passenger",
+                Content = trip,
+                Message = "Ongoing trip found!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger",
+                Message = $"Ongoing trip fetch failed because {ex.Message}!"
             };
         }
     }

@@ -200,7 +200,7 @@ public class AdminService : IAdminService
                 OrganizationId = admin.OrganizationId,
                 Organization = admin.Organization
             },
-            Message = "Admin not found!"
+            Message = "Admin data has been fetched successfully!"
         };
     }
 

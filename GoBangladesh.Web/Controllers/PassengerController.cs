@@ -63,4 +63,12 @@ public class PassengerController : Controller
         var data = _passengerService.Delete(id);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("getOnGoingTrip")]
+    public IActionResult GetOnGoingTrip()
+    {
+        var data = _passengerService.GetOnGoingTrip();
+        return Ok(new { data });
+    }
 }

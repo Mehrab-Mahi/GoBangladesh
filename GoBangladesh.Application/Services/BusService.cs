@@ -177,7 +177,7 @@ public class BusService : IBusService
                 {
                     IsSuccess = false,
                     PayloadType = "Bus",
-                    Message = "Staff not found"
+                    Message = "Bus not found"
                 };
             }
 

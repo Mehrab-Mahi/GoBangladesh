@@ -140,6 +140,10 @@ public class TransactionService : ITransactionService
             };
         }
 
+        var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(passenger.Id, tapRequest.SessionId);
+
+        if (!cardSessionVerification.IsSuccess) return cardSessionVerification;
+
         var trip = _tripRepository
             .GetAll()
             .OrderByDescending(t => t.CreateTime)
@@ -269,6 +273,28 @@ public class TransactionService : ITransactionService
                 Message = $"Recharge has been failed because {ex.Message}!"
             };
         }
+    }
+
+    private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(string passengerId, string sessionId)
+    {
+        var trip = _tripRepository
+            .GetAll()
+            .Where(t => t.PassengerId == passengerId && t.SessionId != sessionId && t.IsRunning)
+            .Include(t => t.Session)
+            .Include(t => t.Session.Bus)
+            .FirstOrDefault();
+
+        if (trip == null) return new PayloadResponse()
+        {
+            IsSuccess = true
+        };
+
+        return new PayloadResponse()
+        {
+            IsSuccess = false,
+            PayloadType = "Tap",
+            Message = $"Passenger has already ongoing trip on Bus Name: {trip.Session.Bus.BusName}, Bus Number: {trip.Session.Bus.BusNumber}"
+        };
     }
 
     private TripFareDistanceDto GetTripFareAndDistance(Trip trip, User passenger)

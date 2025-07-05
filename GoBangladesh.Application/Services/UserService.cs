@@ -21,11 +21,29 @@ namespace GoBangladesh.Application.Services
 
         public User Get(AuthRequest model)
         {
-            var user = _userRepo
-                .GetAll()
-                .Where(u => u.MobileNumber == model.MobileNumber || u.EmailAddress == model.Email)
-                .Include(u => u.Organization)
-                .FirstOrDefault(); 
+            User user;
+
+            if (!string.IsNullOrEmpty(model.MobileNumber))
+            {
+                user = _userRepo
+                    .GetAll()
+                    .Where(u => u.MobileNumber == model.MobileNumber)
+                    .Include(u => u.Organization)
+                    .FirstOrDefault();
+            }
+
+            else if (!string.IsNullOrEmpty(model.Email))
+            {
+                user = _userRepo
+                    .GetAll()
+                    .Where(u => u.EmailAddress == model.Email)
+                    .Include(u => u.Organization)
+                    .FirstOrDefault();
+            }
+            else
+            {
+                user = null;
+            }
 
             return user;
         }
