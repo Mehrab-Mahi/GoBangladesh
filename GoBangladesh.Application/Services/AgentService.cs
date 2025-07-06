@@ -16,14 +16,16 @@ public class AgentService : IAgentService
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IBaseRepository _baseRepository;
 
     public AgentService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService, IBaseRepository baseRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _baseRepository = baseRepository;
     }
     public PayloadResponse AgentInsert(AgentCreateRequest user)
     {
@@ -125,6 +127,7 @@ public class AgentService : IAgentService
                 }
             }
 
+            model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
             model.EmailAddress = user.EmailAddress;
@@ -334,4 +337,64 @@ public class AgentService : IAgentService
             };
         }
     }
+
+    public PayloadResponse GetRechargeData(string id)
+    {
+        try{
+            var query = $@"SELECT SUM(CASE
+                                   WHEN CreateTime >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETUTCDATE()), 0)
+                                       AND CreateTime < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETUTCDATE()) + 1, 0)
+                                       THEN 1
+                                   ELSE 0 END) AS ThisMonthTransactionCount,
+                           SUM(CASE
+                                   WHEN CreateTime >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETUTCDATE()), 0)
+                                       AND CreateTime < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETUTCDATE()) + 1, 0)
+                                       THEN Amount
+                                   ELSE 0 END) AS ThisMonthTotalAmount,
+                           SUM(CASE
+                                   WHEN CreateTime >= CAST(GETUTCDATE() AS DATE)
+                                       AND CreateTime < DATEADD(DAY, 1, CAST(GETUTCDATE() AS DATE))
+                                       THEN 1
+                                   ELSE 0 END) AS TodayTransactionCount,
+                           SUM(CASE
+                                   WHEN CreateTime >= CAST(GETUTCDATE() AS DATE)
+                                       AND CreateTime < DATEADD(DAY, 1, CAST(GETUTCDATE() AS DATE))
+                                       THEN Amount
+                                   ELSE 0 END) AS TodayTotalAmount
+                    FROM Transactions
+                    WHERE TransactionType = 'Recharge'
+                      AND CreatedBy = '{id}'";
+
+        var rechargeData = _baseRepository
+            .Query<RechargeInfo>(query)
+            .FirstOrDefault();
+
+        if (rechargeData == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "Organization not found"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Agent",
+            Content = rechargeData,
+            Message = "Agent recharge data has been sent!"
+        };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Agent",
+                Message = $"Agent recharge data fetching has been failed because {ex.Message}"
+            };
+        }
+    } 
 }

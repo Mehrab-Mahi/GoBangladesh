@@ -15,14 +15,17 @@ public class OrganizationService : IOrganizationService
     private readonly IRepository<Organization> _organizationRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IBaseRepository _baseRepository;
 
     public OrganizationService(IRepository<Organization> organizationRepository, 
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IBaseRepository baseRepository)
     {
         _organizationRepository = organizationRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse OrganizationInsert(OrganizationCreateRequest model)
@@ -255,10 +258,26 @@ public class OrganizationService : IOrganizationService
     {
         try
         {
-            var organization = _organizationRepository
-                .GetConditional(o => o.Id == id);
+            var query = $@"
+                        select o.*,
+                               count(b.Id)  as TotalBus,
+                               count(u.Id)  as TotalStaff,
+                               count(u1.Id) as TotalAgent,
+                               count(u2.Id) as TotalPassenger
+                        from Organizations o
+                                 left join Buses b on o.Id = b.OrganizationId
+                                 left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
+                                 left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
+                                 left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'Passenger'
+                        where o.Id = '{id}'
+                        group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
+                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.BaseFare, o.PerKmFare, o.Designation";
 
-            if (organization == null)
+            var organizationData = _baseRepository
+                .Query<OrganizationDataDto>(query)
+                .FirstOrDefault();
+
+            if (organizationData == null)
             {
                 return new PayloadResponse()
                 {
@@ -272,7 +291,7 @@ public class OrganizationService : IOrganizationService
             {
                 IsSuccess = true,
                 PayloadType = "Organization",
-                Content = organization,
+                Content = organizationData,
                 Message = "Organization has been found"
             };
         }

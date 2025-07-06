@@ -1,8 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
@@ -54,6 +52,14 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult Delete(string id)
         {
             var data = _agentService.Delete(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getRechargeData")]
+        public IActionResult GetRechargeData(string id)
+        {
+            var data = _agentService.GetRechargeData(id);
             return Ok(new { data });
         }
     }

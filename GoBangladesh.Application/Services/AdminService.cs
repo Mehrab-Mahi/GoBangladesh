@@ -118,6 +118,7 @@ public class AdminService : IAdminService
                 }
             }
 
+            model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
             model.EmailAddress = user.EmailAddress;
