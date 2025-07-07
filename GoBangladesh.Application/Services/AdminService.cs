@@ -199,7 +199,9 @@ public class AdminService : IAdminService
                 UserType = admin.UserType,
                 ImageUrl = admin.ImageUrl,
                 OrganizationId = admin.OrganizationId,
-                Organization = admin.Organization
+                Organization = admin.Organization,
+                CreateTime = admin.CreateTime,
+                LastModifiedTime = admin.LastModifiedTime
             },
             Message = "Admin data has been fetched successfully!"
         };
@@ -275,7 +277,9 @@ public class AdminService : IAdminService
                     UserType = admin.UserType,
                     ImageUrl = admin.ImageUrl,
                     OrganizationId = admin.OrganizationId,
-                    Organization = admin.Organization
+                    Organization = admin.Organization,
+                    CreateTime = admin.CreateTime,
+                    LastModifiedTime = admin.LastModifiedTime
                 })
                 .ToList();
 

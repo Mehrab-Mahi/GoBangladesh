@@ -200,7 +200,9 @@ public class AgentService : IAgentService
                 ImageUrl = agent.ImageUrl,
                 OrganizationId = agent.OrganizationId,
                 Organization = agent.Organization,
-                Code = agent.Code
+                Code = agent.Code,
+                CreateTime = agent.CreateTime,
+                LastModifiedTime = agent.LastModifiedTime
             },
             Message = "Agent not found!"
         };
@@ -277,7 +279,9 @@ public class AgentService : IAgentService
                     ImageUrl = agent.ImageUrl,
                     OrganizationId = agent.OrganizationId,
                     Organization = agent.Organization,
-                    Code = agent.Code
+                    Code = agent.Code,
+                    CreateTime = agent.CreateTime,
+                    LastModifiedTime = agent.LastModifiedTime
                 })
                 .ToList();
 

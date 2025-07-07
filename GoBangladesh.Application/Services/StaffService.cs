@@ -199,7 +199,9 @@ public class StaffService : IStaffService
                 ImageUrl = staff.ImageUrl,
                 Organization = staff.Organization,
                 Code = staff.Code,
-                OrganizationId = staff.OrganizationId
+                OrganizationId = staff.OrganizationId,
+                CreateTime = staff.CreateTime,
+                LastModifiedTime = staff.LastModifiedTime
             },
             Message = "Passenger not found!"
         };
@@ -276,7 +278,9 @@ public class StaffService : IStaffService
                     ImageUrl = staff.ImageUrl,
                     Organization = staff.Organization,
                     Code = staff.Code,
-                    OrganizationId = staff.OrganizationId
+                    OrganizationId = staff.OrganizationId,
+                    CreateTime = staff.CreateTime,
+                    LastModifiedTime = staff.LastModifiedTime
                 })
                 .ToList();
 

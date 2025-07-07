@@ -1,4 +1,6 @@
-﻿namespace GoBangladesh.Application.DTOs.Organization;
+﻿using System;
+
+namespace GoBangladesh.Application.DTOs.Organization;
 
 public class OrganizationDataDto
 {
@@ -11,6 +13,8 @@ public class OrganizationDataDto
     public string MobileNumber { get; set; }
     public decimal PerKmFare { get; set; }
     public decimal BaseFare { get; set; }
+    public DateTime CreateTime { get; set; }
+    public DateTime LastModifiedTime { get; set; }
     public int TotalBus { get; set; } = 0;
     public int TotalDriver { get; set; } = 0;
     public int TotalAgent { get; set; } = 0;

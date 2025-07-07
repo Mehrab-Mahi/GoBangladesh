@@ -188,7 +188,9 @@ public class PassengerService : IPassengerService
                 OrganizationId = passenger.OrganizationId,
                 Organization = passenger.Organization,
                 CardNumber = passenger.CardNumber,
-                Balance = passenger.Balance
+                Balance = passenger.Balance,
+                CreateTime = passenger.CreateTime,
+                LastModifiedTime = passenger.LastModifiedTime
             },
             Message = "Passenger not found!"
         };
@@ -294,7 +296,9 @@ public class PassengerService : IPassengerService
                     OrganizationId = passenger.OrganizationId,
                     Organization = passenger.Organization,
                     CardNumber = passenger.CardNumber,
-                    Balance = passenger.Balance
+                    Balance = passenger.Balance,
+                    CreateTime = passenger.CreateTime,
+                    LastModifiedTime = passenger.LastModifiedTime
                 })
                 .ToList();
 
