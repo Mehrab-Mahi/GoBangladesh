@@ -16,4 +16,5 @@ public class AdminUpdateRequest
     public string UserType { get; set; } = "Admin";
     public IFormFile ProfilePicture { get; set; }
     public string OrganizationId { get; set; }
+    public string Designation { get; set; }
 }

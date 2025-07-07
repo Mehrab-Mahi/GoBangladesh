@@ -56,4 +56,12 @@ public class BusController : Controller
         var data = _busService.Delete(id);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpPost("UpdateLocation")]
+    public IActionResult UpdateLocation([FromBody] LocationUpdateDto locationData)
+    {
+        var data = _busService.UpdateLocation(locationData);
+        return Ok(new { data });
+    }
 }

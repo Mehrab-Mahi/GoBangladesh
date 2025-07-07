@@ -7,4 +7,5 @@ public interface ISessionService
 {
     PayloadResponse StartSession(SessionStartDto sessionStartDto);
     PayloadResponse StopSession(SessionStopDto sessionStopDto);
+    PayloadResponse GetSessionStatistics(string sessionId);
 }

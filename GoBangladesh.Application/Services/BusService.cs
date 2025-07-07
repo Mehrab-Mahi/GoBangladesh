@@ -281,6 +281,46 @@ public class BusService : IBusService
         }
     }
 
+    public PayloadResponse UpdateLocation(LocationUpdateDto locationData)
+    {
+        try
+        {
+            var bus = _busRepository.GetConditional(b => b.Id == locationData.BusId);
+
+            if (bus == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Bus not found"
+                };
+            }
+
+            bus.PresentLatitude = locationData.Latitude;
+            bus.PresentLongitude = locationData.Longitude;
+
+            _busRepository.Update(bus);
+            _busRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Message = "Bus location updated!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus location update failed because {ex.Message}!"
+            };
+        }
+    }
+
     private bool IfDuplicateBusNumber(string busNumber)
     {
         var bus = _busRepository.GetConditional(b => b.BusName == busNumber);

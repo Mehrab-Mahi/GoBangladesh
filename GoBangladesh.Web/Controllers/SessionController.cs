@@ -31,4 +31,12 @@ public class SessionController : Controller
         var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("GetSessionStatistics")]
+    public IActionResult GetSessionStatistics(string sessionId)
+    {
+        var data = _sessionService.GetSessionStatistics(sessionId);
+        return Ok(new { data });
+    }
 }

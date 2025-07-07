@@ -64,7 +64,8 @@ public class OrganizationService : IOrganizationService
                 Email = model.Email,
                 MobileNumber = model.MobileNumber,
                 PerKmFare = model.PerKmFare,
-                BaseFare = model.BaseFare
+                BaseFare = model.BaseFare,
+                Designation = model.Designation
             };
 
             _organizationRepository.Insert(organization);
@@ -182,6 +183,7 @@ public class OrganizationService : IOrganizationService
             organization.MobileNumber = model.MobileNumber;
             organization.PerKmFare = model.PerKmFare;
             organization.BaseFare = model.BaseFare;
+            organization.Designation = model.Designation;
 
             _organizationRepository.Update(organization);
             _organizationRepository.SaveChanges();
@@ -260,10 +262,10 @@ public class OrganizationService : IOrganizationService
         {
             var query = $@"
                         select o.*,
-                               count(b.Id)  as TotalBus,
-                               count(u.Id)  as TotalStaff,
-                               count(u1.Id) as TotalAgent,
-                               count(u2.Id) as TotalPassenger
+                               count(distinct b.Id)  as TotalBus,
+                               count(distinct u.Id)  as TotalStaff,
+                               count(distinct u1.Id) as TotalAgent,
+                               count(distinct u2.Id) as TotalPassenger
                         from Organizations o
                                  left join Buses b on o.Id = b.OrganizationId
                                  left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'

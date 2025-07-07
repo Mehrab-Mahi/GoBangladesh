@@ -13,14 +13,17 @@ public class SessionService : ISessionService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly IRepository<Session> _sessionRepository;
     private readonly IRepository<User> _userRepository;
+    private readonly IRepository<Trip> _tripRepository;
 
     public SessionService(ILoggedInUserService loggedInUserService,
         IRepository<Session> sessionRepository, 
-        IRepository<User> userRepository)
+        IRepository<User> userRepository,
+        IRepository<Trip> tripRepository)
     {
         _loggedInUserService = loggedInUserService;
         _sessionRepository = sessionRepository;
         _userRepository = userRepository;
+        _tripRepository = tripRepository;
     }
 
     public PayloadResponse StartSession(SessionStartDto sessionStartDto)
@@ -140,6 +143,52 @@ public class SessionService : ISessionService
             {
                 IsSuccess = false,
                 Message = $"Session stop failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetSessionStatistics(string sessionId)
+    {
+        try
+        {
+            var session = _sessionRepository.GetConditional(s => s.Id == sessionId);
+
+            if (session == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Session",
+                    Message = "Session not found!"
+                };
+            }
+
+            var tripList = _tripRepository
+                .GetAll()
+                .Where(s => s.SessionId == sessionId);
+
+            var sessionStat = new SessionStatisticsDto()
+            {
+                TapIn = tripList.Count(),
+                TapOut = tripList.Count(t => !t.IsRunning),
+                TotalFare = tripList.Sum(t => t.Amount)
+            };
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Session",
+                Content = sessionStat,
+                Message = "Session stat returned successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Session",
+                Message = $"Session stat fetching failed because {ex.Message}!"
             };
         }
     }

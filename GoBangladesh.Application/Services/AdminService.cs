@@ -50,7 +50,8 @@ public class AdminService : IAdminService
                 Address = user.Address,
                 Gender = user.Gender,
                 UserType = UserTypes.Admin,
-                OrganizationId = user.OrganizationId
+                OrganizationId = user.OrganizationId,
+                Designation = user.Designation
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -125,6 +126,7 @@ public class AdminService : IAdminService
             model.Address = user.Address;
             model.Gender = user.Gender;
             model.OrganizationId = user.OrganizationId;
+            model.Designation = user.Designation;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -201,7 +203,8 @@ public class AdminService : IAdminService
                 OrganizationId = admin.OrganizationId,
                 Organization = admin.Organization,
                 CreateTime = admin.CreateTime,
-                LastModifiedTime = admin.LastModifiedTime
+                LastModifiedTime = admin.LastModifiedTime,
+                Designation = admin.Designation
             },
             Message = "Admin data has been fetched successfully!"
         };
@@ -279,7 +282,8 @@ public class AdminService : IAdminService
                     OrganizationId = admin.OrganizationId,
                     Organization = admin.Organization,
                     CreateTime = admin.CreateTime,
-                    LastModifiedTime = admin.LastModifiedTime
+                    LastModifiedTime = admin.LastModifiedTime,
+                    Designation = admin.Designation
                 })
                 .ToList();
 

@@ -11,4 +11,6 @@ public class Bus : Entity
     public string OrganizationId { get; set; }
     [ForeignKey("OrganizationId")]
     public Organization Organization { get; set; }
+    public string PresentLatitude { get; set; }
+    public string PresentLongitude { get; set; }
 }
