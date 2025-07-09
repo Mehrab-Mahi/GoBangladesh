@@ -215,7 +215,7 @@ public class TransactionService : ITransactionService
 
             var tripFare = GetTripFareAndDistance(trip, passenger);
 
-            trip.TripEndTime = DateTime.Now;
+            trip.TripEndTime = DateTime.UtcNow;
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
@@ -329,7 +329,7 @@ public class TransactionService : ITransactionService
 
     private static bool IfTripTimeDifferenceIsLessThanOneMin(DateTime tripStartTime)
     {
-        var timeDifference = (DateTime.Now - tripStartTime).TotalSeconds;
+        var timeDifference = (DateTime.UtcNow - tripStartTime).TotalSeconds;
 
         return Math.Abs(timeDifference) < 60;
     }
@@ -401,7 +401,7 @@ public class TransactionService : ITransactionService
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
-            TripStartTime = DateTime.Now
+            TripStartTime = DateTime.UtcNow
         });
 
         _tripRepository.SaveChanges();

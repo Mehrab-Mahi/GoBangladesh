@@ -1,6 +1,7 @@
 ﻿using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
@@ -60,6 +61,14 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult GetRechargeData(string id)
         {
             var data = _agentService.GetRechargeData(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getAllForDropDown")]
+        public IActionResult GetAllForDropDown()
+        {
+            var data = _agentService.GetAllForDropDown();
             return Ok(new { data });
         }
     }

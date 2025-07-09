@@ -60,7 +60,7 @@ public class SessionService : ISessionService
             {
                 BusId = sessionStartDto.BusId,
                 UserId = sessionStartDto.UserId,
-                StartTime = DateTime.Now,
+                StartTime = DateTime.UtcNow,
                 Serial = serialNumber,
                 SessionCode = $"SSN-{serialNumber:D6}"
             };
@@ -126,7 +126,7 @@ public class SessionService : ISessionService
             }
 
             session.IsRunning = false;
-            session.EndTime = DateTime.Now;
+            session.EndTime = DateTime.UtcNow;
 
             _sessionRepository.Update(session);
             _sessionRepository.SaveChanges();

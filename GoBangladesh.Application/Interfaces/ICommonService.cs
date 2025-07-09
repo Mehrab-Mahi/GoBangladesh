@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using GoBangladesh.Application.DTOs.Dashboard;
 using Microsoft.AspNetCore.Http;
 
 namespace GoBangladesh.Application.Interfaces
@@ -12,5 +14,6 @@ namespace GoBangladesh.Application.Interfaces
         string GenerateWhereConditionFromConditionList(List<string> condition);
         int GetRowCountForData(string tableName, string whereCondition);
         List<T> GetFinalData<T>(string tableName, string whereCondition, string extraCondition);
+        DateTimeFilter GetDateTimeFilterData(DateTime? startDate, DateTime? endDate);
     }
 }

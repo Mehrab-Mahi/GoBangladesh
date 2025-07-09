@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Agent;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
@@ -400,5 +401,67 @@ public class AgentService : IAgentService
                 Message = $"Agent recharge data fetching has been failed because {ex.Message}"
             };
         }
-    } 
+    }
+
+    public PayloadResponse GetAllForDropDown()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Agent",
+                    Message = "Current user not found"
+                };
+            }
+
+            if (currentUser.IsSuperAdmin)
+            {
+                var agentData = _userRepository.GetAll().Select(a => new ValueLabel()
+                {
+                    Value = a.Id,
+                    Label = a.Name
+                }).ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Agent",
+                    Content = agentData,
+                    Message = "Agent data for dropdown has been fetched successfully!"
+                };
+            }
+
+            var data = _userRepository
+                .GetAll()
+                .Where(a => a.OrganizationId == currentUser.OrganizationId)
+                .Select(u => new ValueLabel()
+                {
+                    Value = u.Id,
+                    Label = u.Name
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Agent",
+                Content = data,
+                Message = "Agent data for dropdown has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Agent",
+                Message = $"Agent data for dropdown fetch has been failed because {ex.Message}!"
+            };
+        }
+    }
 }

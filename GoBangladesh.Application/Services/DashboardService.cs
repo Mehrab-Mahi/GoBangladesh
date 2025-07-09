@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs.Dashboard;
+using GoBangladesh.Application.DTOs.Dashboard.Recharge;
+using GoBangladesh.Application.DTOs.Dashboard.Session;
+using GoBangladesh.Application.DTOs.Dashboard.Trip;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
@@ -12,12 +16,15 @@ public class DashboardService : IDashboardService
 {
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly IBaseRepository _baseRepository;
+    private readonly ICommonService _commonService;
 
     public DashboardService(ILoggedInUserService loggedInUserService,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        ICommonService commonService)
     {
         _loggedInUserService = loggedInUserService;
         _baseRepository = baseRepository;
+        _commonService = commonService;
     }
 
     public PayloadResponse GetDashboardData()
@@ -71,6 +78,369 @@ public class DashboardService : IDashboardService
                 Message = $"Dashboard data fetch failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse GetTripDashboardData(TripDashboardFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            var condition = new List<string>();
+            var extraCondition = $@" order by t.CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
+            }
+
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($@" (t.TripStartTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}'
+                                or t.TripEndTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.BusId))
+            {
+                condition.Add($" b.Id = '{filter.BusId}' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var tripDashboardData = new TripDashboardData()
+            {
+                CardData = GetTripDashboardCardData(whereCondition),
+                TableData = GetTripDashboardTableData(whereCondition, extraCondition),
+                RowCount = GetTripDashboardTableRowCount(whereCondition)
+            };
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Trip Dashboard",
+                Content = tripDashboardData,
+                Message = "Trip dashboard data has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip Dashboard",
+                Message = $"Trip dashboard data fetching has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetSessionDashboardData(SessionFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            var condition = new List<string>();
+            var extraCondition = $@" order by s.CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
+            }
+
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($@" (s.StartTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}'
+                                or s.EndTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.BusId))
+            {
+                condition.Add($" b.Id = '{filter.BusId}' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var tripDashboardData = new SessionDashboardData()
+            {
+                CardData = GetSessionDashboardCardData(whereCondition),
+                TableData = GetSessionDashboardTableData(whereCondition, extraCondition),
+                RowCount = GetSessionDashboardTableRowCount(whereCondition)
+            };
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Session Dashboard",
+                Content = tripDashboardData,
+                Message = "Session dashboard data has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Session Dashboard",
+                Message = $"Session dashboard data fetching has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetRechargeDashboardData(RechargeFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            var condition = new List<string> { " t.TransactionType = 'Recharge' " };
+            var extraCondition = $@" order by t.CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
+            }
+
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($@" (t.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}'
+                                or t.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.AgentId))
+            {
+                condition.Add($" a.Id = '{filter.AgentId}' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rechargeDashboardData = new RechargeDashboardData()
+            {
+                CardData = GetRechargeDashboardCardData(whereCondition),
+                TableData = GetRechargeDashboardTableData(whereCondition, extraCondition),
+                RowCount = GetRechargeDashboardTableRowCount(whereCondition)
+            };
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Recharge Dashboard",
+                Content = rechargeDashboardData,
+                Message = "Recharge dashboard data has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Recharge Dashboard",
+                Message = $"Recharge dashboard data fetching has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    private int GetRechargeDashboardTableRowCount(string whereCondition)
+    {
+        var query = $@"
+                        select count(t.Id)
+                        from Transactions t
+                                 left join Users p on t.PassengerId = p.Id
+                                 left join Users a on t.AgentId = a.Id
+                                 left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
+
+
+        var rowCount = _baseRepository
+            .Query<int>(query)
+            .FirstOrDefault();
+
+        return rowCount;
+    }
+
+    private List<RechargeDashboardTableData> GetRechargeDashboardTableData(string whereCondition, string extraCondition)
+    {
+        var query = $@"
+                       select t.Id                           as TransactionId,
+                               o.Name                         as OrganizationName,
+                               DATEADD(hour, 6, t.CreateTime) as TransactionTime,
+                               p.PassengerId,
+                               p.Name                         as PassengerName,
+                               'Agent'                        as RechargeMedium,
+                               a.Name                         as RechargerName,
+                               t.Amount
+                        from Transactions t
+                                 left join Users p on t.PassengerId = p.Id
+                                 left join Users a on t.AgentId = a.Id
+                                 left join Organizations o on a.OrganizationId = o.Id {whereCondition} {extraCondition}";
+
+
+        var rechargeDashboardTableData = _baseRepository
+            .Query<RechargeDashboardTableData>(query);
+
+        return rechargeDashboardTableData;
+    }
+
+    private RechargeDashboardCardData GetRechargeDashboardCardData(string whereCondition)
+    {
+        var query = $@"
+                       select count(distinct a.Id) as TotalAgent,
+                               count(distinct p.Id) as TotalPassenger,
+                               count(t.Id) as TotalRecharge,
+                               sum(t.Amount) as TotalAmount
+                        from Transactions t
+                                 left join Users p on t.PassengerId = p.Id
+                                 left join Users a on t.AgentId = a.Id
+                                 left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
+
+        var rechargeDashboardCardData = _baseRepository
+            .Query<RechargeDashboardCardData>(query)
+            .FirstOrDefault();
+
+        return rechargeDashboardCardData;
+    }
+
+    private int GetSessionDashboardTableRowCount(string whereCondition)
+    {
+        var query = $@"
+                        select count(s.Id)
+                        from Sessions s
+                                 left join Buses b on s.BusId = b.Id
+                                 left join Organizations o on b.OrganizationId = o.Id
+                                 left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition}";
+
+
+        var rowCount = _baseRepository
+            .Query<int>(query)
+            .FirstOrDefault();
+
+        return rowCount;
+    }
+
+    private List<SessionDashboardTableData> GetSessionDashboardTableData(string whereCondition, string extraCondition)
+    {
+        var query = $@"
+                       select s.Id as SessionId,
+                       s.SessionCode,
+                       o.Name                                    as OrganizationName,
+                       b.BusNumber,
+                       b.BusName,
+                       b.TripStartPlace + ' - ' + b.TripEndPlace as Route,
+                       u.Name                                    as StaffName,
+                       u.MobileNumber,
+                       s.StartTime,
+                       s.EndTime,
+                       case
+                           when s.IsRunning = 1 then 'Running'
+                           else 'Complete' end                   as Status
+                from Sessions s
+                         left join Buses b on s.BusId = b.Id
+                         left join Organizations o on b.OrganizationId = o.Id
+                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition} {extraCondition}";
+
+
+        var sessionDashboardTableData = _baseRepository
+            .Query<SessionDashboardTableData>(query);
+
+        return sessionDashboardTableData;
+    }
+
+    private SessionDashboardCardData GetSessionDashboardCardData(string whereCondition)
+    {
+        var query = $@"
+                       select count(s.Id) as TotalSession,
+                       sum(case when s.IsRunning = 1 then 1 else 0 end) as TotalRunningSession,
+                       count(distinct b.Id) as TotalBus,
+                       count(distinct u.Id) as TotalStaff
+                from Sessions s
+                         left join Buses b on s.BusId = b.Id
+                         left join Organizations o on b.OrganizationId = o.Id
+                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition}";
+
+        var sessionDashboardCardData = _baseRepository
+            .Query<SessionDashboardCardData>(query)
+            .FirstOrDefault();
+
+        return sessionDashboardCardData;
+    }
+
+    private int GetTripDashboardTableRowCount(string whereCondition)
+    {
+        var query = $@"
+                        select count(t.Id)
+                        from Trips t
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Organizations o on u.OrganizationId = o.Id
+                                 left join Sessions s on t.SessionId = s.Id
+                                 left join Buses b on s.BusId = b.Id {whereCondition}";
+
+
+        var rowCount = _baseRepository
+            .Query<int>(query)
+            .FirstOrDefault();
+
+        return rowCount;
+    }
+
+    private List<TripDashBoardTableData> GetTripDashboardTableData(string whereCondition, string extraCondition)
+    {
+        var query = $@"
+                        select t.Id                                      as TripId,
+                               o.Name                                    as OrganizationName,
+                               b.TripStartPlace + ' - ' + b.TripEndPlace as Route,
+                               b.BusNumber,
+                               u.CardNumber,
+                               t.TripStartTime,
+                               t.TripEndTime,
+                               t.StartingLatitude,
+                               t.StartingLongitude,
+                               t.EndingLatitude,
+                               t.EndingLongitude,
+                               t.Distance,
+                               t.Amount as Fare,
+                               case when t.IsRunning = 1 then 'Running'
+                                else 'Complete' end as Status
+                        from Trips t
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Organizations o on u.OrganizationId = o.Id
+                                 left join Sessions s on t.SessionId = s.Id
+                                 left join Buses b on s.BusId = b.Id {whereCondition} {extraCondition}";
+
+
+        var tripDashBoardTableData = _baseRepository
+            .Query<TripDashBoardTableData>(query);
+
+        return tripDashBoardTableData; 
+    }
+
+    private TripDashboardCardData GetTripDashboardCardData(string whereCondition)
+    {
+        var query = $@"
+                        select count(distinct t.Id) as TotalTrips,
+                               count(distinct u.Id) as TotalPassengers,
+                               sum(t.Amount) as TotalFare,
+                               count(distinct b.Id) as TotalBus
+                        from Trips t
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Organizations o on u.OrganizationId = o.Id
+                                 left join Sessions s on t.SessionId = s.Id
+                                 left join Buses b on s.BusId = b.Id {whereCondition}";
+
+        var tripDashBoardTableData = _baseRepository
+            .Query<TripDashboardCardData>(query)
+            .FirstOrDefault();
+
+        return tripDashBoardTableData;
     }
 
     private DashboardCommonData GetDataForallTime(User currentUser)

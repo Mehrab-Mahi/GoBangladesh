@@ -1,4 +1,7 @@
-﻿using GoBangladesh.Application.Helper;
+﻿using GoBangladesh.Application.DTOs.Dashboard.Recharge;
+using GoBangladesh.Application.DTOs.Dashboard.Session;
+using GoBangladesh.Application.DTOs.Dashboard.Trip;
+using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +22,30 @@ public class DashboardController : Controller
     public IActionResult GetDashboardData()
     {
         var data = _dashboardService.GetDashboardData();
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("GetTripDashboardData")]
+    public IActionResult GetTripDashboardData([FromBody] TripDashboardFilter filter)
+    {
+        var data = _dashboardService.GetTripDashboardData(filter);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("GetSessionDashboardData")]
+    public IActionResult GetSessionDashboardData([FromBody] SessionFilter filter)
+    {
+        var data = _dashboardService.GetSessionDashboardData(filter);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("GetRechargeDashboardData")]
+    public IActionResult GetRechargeDashboardData([FromBody] RechargeFilter filter)
+    {
+        var data = _dashboardService.GetRechargeDashboardData(filter);
         return Ok(new { data });
     }
 }

@@ -43,7 +43,7 @@ public class OtpService : IOtpService
         {
             Otp = otp,
             MobileNumber = mobileNumber,
-            ValidationTime = DateTime.Now.AddMinutes(_otpSettings.ExpireTime)
+            ValidationTime = DateTime.UtcNow.AddMinutes(_otpSettings.ExpireTime)
         });
         _oneTimePasswordRepository.SaveChanges();
 
@@ -77,7 +77,7 @@ public class OtpService : IOtpService
             };
         }
 
-        if (otpData.ValidationTime < DateTime.Now || !otpData.IsValid)
+        if (otpData.ValidationTime < DateTime.UtcNow || !otpData.IsValid)
         {
             return new PayloadResponse()
             {

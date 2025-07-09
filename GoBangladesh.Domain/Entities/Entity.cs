@@ -14,7 +14,7 @@ namespace GoBangladesh.Domain.Entities
         public Entity()
         {
             Id = Guid.NewGuid().ToString("N");
-            CreateTime = DateTime.Now;
+            CreateTime = DateTime.UtcNow;
         }
     }
 }

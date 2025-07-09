@@ -64,4 +64,12 @@ public class BusController : Controller
         var data = _busService.UpdateLocation(locationData);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("getAllForDropDown")]
+    public IActionResult GetAllForDropDown()
+    {
+        var data = _busService.GetAllForDropDown();
+        return Ok(new { data });
+    }
 }

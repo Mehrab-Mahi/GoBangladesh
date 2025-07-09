@@ -6,6 +6,7 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GoBangladesh.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
@@ -317,6 +318,68 @@ public class BusService : IBusService
                 IsSuccess = false,
                 PayloadType = "Bus",
                 Message = $"Bus location update failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetAllForDropDown()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Current user not found"
+                };
+            }
+
+            if (currentUser.IsSuperAdmin)
+            {
+                var busData = _busRepository.GetAll().Select(b => new ValueLabel()
+                {
+                    Value = b.Id,
+                    Label = b.BusNumber
+                }).ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Bus",
+                    Content = busData,
+                    Message = "Bus data for dropdown has been fetched successfully!"
+                };
+            }
+
+            var data = _busRepository
+                .GetAll()
+                .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                .Select(b => new ValueLabel()
+                {
+                    Value = b.Id,
+                    Label = b.BusNumber
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Content = data,
+                Message = "Bus data for dropdown has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus data for dropdown fetch has been failed because {ex.Message}!"
             };
         }
     }
