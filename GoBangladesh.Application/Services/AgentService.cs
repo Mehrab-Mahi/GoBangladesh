@@ -403,7 +403,7 @@ public class AgentService : IAgentService
         }
     }
 
-    public PayloadResponse GetAllForDropDown()
+    public PayloadResponse GetAllForDropDown(string organizationId)
     {
         try
         {
@@ -419,13 +419,24 @@ public class AgentService : IAgentService
                 };
             }
 
+            var agentList = _userRepository
+                .GetAll()
+                .Where(u => u.UserType == UserTypes.Agent);
+
             if (currentUser.IsSuperAdmin)
             {
-                var agentData = _userRepository.GetAll().Select(a => new ValueLabel()
+                if (!string.IsNullOrEmpty(organizationId))
                 {
-                    Value = a.Id,
-                    Label = a.Name
-                }).ToList();
+                    agentList = agentList.Where(o => o.OrganizationId == organizationId);
+                }
+
+                var agentData = agentList
+                    .Select(a => new ValueLabel()
+                    {
+                        Value = a.Id,
+                        Label = a.Name
+                    })
+                    .ToList();
 
                 return new PayloadResponse()
                 {
@@ -436,8 +447,7 @@ public class AgentService : IAgentService
                 };
             }
 
-            var data = _userRepository
-                .GetAll()
+            var data = agentList
                 .Where(a => a.OrganizationId == currentUser.OrganizationId)
                 .Select(u => new ValueLabel()
                 {

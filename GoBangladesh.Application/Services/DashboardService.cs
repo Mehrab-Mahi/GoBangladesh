@@ -95,6 +95,13 @@ public class DashboardService : IDashboardService
             {
                 condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
             }
+            else
+            {
+                if (!string.IsNullOrEmpty(filter.OrganizationId))
+                {
+                    condition.Add($" o.Id = '{filter.OrganizationId}' ");
+                }
+            }
 
             if (filter.StartDate != null || filter.EndDate != null)
             {
@@ -152,6 +159,13 @@ public class DashboardService : IDashboardService
             {
                 condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
             }
+            else
+            {
+                if (!string.IsNullOrEmpty(filter.OrganizationId))
+                {
+                    condition.Add($" o.Id = '{filter.OrganizationId}' ");
+                }
+            }
 
             if (filter.StartDate != null || filter.EndDate != null)
             {
@@ -208,6 +222,13 @@ public class DashboardService : IDashboardService
             if (!currentUser.IsSuperAdmin)
             {
                 condition.Add($" o.Id = '{currentUser.OrganizationId}' ");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(filter.OrganizationId))
+                {
+                    condition.Add($" o.Id = '{filter.OrganizationId}' ");
+                }
             }
 
             if (filter.StartDate != null || filter.EndDate != null)

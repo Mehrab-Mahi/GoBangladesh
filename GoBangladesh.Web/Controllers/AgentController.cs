@@ -66,9 +66,9 @@ namespace GoBangladesh.Web.Controllers
 
         [GoBangladeshAuth]
         [HttpGet("getAllForDropDown")]
-        public IActionResult GetAllForDropDown()
+        public IActionResult GetAllForDropDown(string organizationId)
         {
-            var data = _agentService.GetAllForDropDown();
+            var data = _agentService.GetAllForDropDown(organizationId);
             return Ok(new { data });
         }
     }

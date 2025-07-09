@@ -67,9 +67,9 @@ public class BusController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("getAllForDropDown")]
-    public IActionResult GetAllForDropDown()
+    public IActionResult GetAllForDropDown(string organizationId)
     {
-        var data = _busService.GetAllForDropDown();
+        var data = _busService.GetAllForDropDown(organizationId);
         return Ok(new { data });
     }
 }

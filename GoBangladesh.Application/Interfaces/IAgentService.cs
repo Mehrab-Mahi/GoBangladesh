@@ -11,5 +11,5 @@ public interface IAgentService
     PayloadResponse GetAll(AgentDataFilter filter);
     PayloadResponse Delete(string id);
     PayloadResponse GetRechargeData(string id);
-    PayloadResponse GetAllForDropDown();
+    PayloadResponse GetAllForDropDown(string organizationId);
 }

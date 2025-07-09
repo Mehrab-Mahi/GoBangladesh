@@ -322,7 +322,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllForDropDown()
+    public PayloadResponse GetAllForDropDown(string organizationId)
     {
         try
         {
@@ -338,9 +338,16 @@ public class BusService : IBusService
                 };
             }
 
+            var allBus = _busRepository.GetAll();
+
             if (currentUser.IsSuperAdmin)
             {
-                var busData = _busRepository.GetAll().Select(b => new ValueLabel()
+                if (!string.IsNullOrEmpty(organizationId))
+                {
+                    allBus = allBus.Where(b => b.OrganizationId == organizationId);
+                }
+
+                var busData = allBus.Select(b => new ValueLabel()
                 {
                     Value = b.Id,
                     Label = b.BusNumber
@@ -355,8 +362,7 @@ public class BusService : IBusService
                 };
             }
 
-            var data = _busRepository
-                .GetAll()
+            var data = allBus
                 .Where(b => b.OrganizationId == currentUser.OrganizationId)
                 .Select(b => new ValueLabel()
                 {
