@@ -63,9 +63,8 @@ public class OrganizationService : IOrganizationService
                 FocalPerson = model.FocalPerson,
                 Email = model.Email,
                 MobileNumber = model.MobileNumber,
-                PerKmFare = model.PerKmFare,
-                BaseFare = model.BaseFare,
-                Designation = model.Designation
+                Designation = model.Designation,
+                OrganizationType = model.OrganizationType
             };
 
             _organizationRepository.Insert(organization);
@@ -181,9 +180,8 @@ public class OrganizationService : IOrganizationService
             organization.FocalPerson = model.FocalPerson;
             organization.Email = model.Email;
             organization.MobileNumber = model.MobileNumber;
-            organization.PerKmFare = model.PerKmFare;
-            organization.BaseFare = model.BaseFare;
             organization.Designation = model.Designation;
+            organization.OrganizationType = model.OrganizationType;
 
             _organizationRepository.Update(organization);
             _organizationRepository.SaveChanges();
@@ -270,7 +268,7 @@ public class OrganizationService : IOrganizationService
                                  left join Buses b on o.Id = b.OrganizationId
                                  left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
                                  left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
-                                 left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'Passenger'
+                                 left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
                         where o.Id = '{id}'
                         group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
                                  o.LastModifiedBy, o.IsDeleted, o.Code, o.BaseFare, o.PerKmFare, o.Designation";

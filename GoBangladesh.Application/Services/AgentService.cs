@@ -53,7 +53,7 @@ public class AgentService : IAgentService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Agent,
+                UserType = user.UserType,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
                 Code = $"AGT-{serial:D6}"

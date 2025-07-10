@@ -36,6 +36,8 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<ISessionService, SessionService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IRouteService, RouteService>();
+            services.AddScoped<ICardService, CardService>();
         }
     }
 }

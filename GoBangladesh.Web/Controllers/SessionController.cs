@@ -1,7 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Session;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -37,6 +36,14 @@ public class SessionController : Controller
     public IActionResult GetSessionStatistics(string sessionId)
     {
         var data = _sessionService.GetSessionStatistics(sessionId);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("ForceStopSession")]
+    public IActionResult ForceStopSession([FromBody] SessionStopDto sessionStopDto)
+    {
+        var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }
 }

@@ -9,6 +9,5 @@ public class OrganizationUpdateRequest
     public string Email { get; set; }
     public string Designation { get; set; }
     public string MobileNumber { get; set; }
-    public decimal PerKmFare { get; set; }
-    public decimal BaseFare { get; set; }
+    public string OrganizationType { get; set; }
 }

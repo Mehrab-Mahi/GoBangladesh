@@ -50,7 +50,7 @@ public class DashboardService : IDashboardService
                                          left join Buses b on o.Id = b.OrganizationId
                                          left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
                                          left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
-                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'Passenger'
+                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
                                 {whereCondition}";
 
             var dashboardData = _baseRepository
@@ -400,7 +400,7 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id {whereCondition}";
@@ -432,7 +432,7 @@ public class DashboardService : IDashboardService
                                case when t.IsRunning = 1 then 'Running'
                                 else 'Complete' end as Status
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id {whereCondition} {extraCondition}";
@@ -452,7 +452,7 @@ public class DashboardService : IDashboardService
                                sum(t.Amount) as TotalFare,
                                count(distinct b.Id) as TotalBus
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Passenger', 'Public', 'Private')
+                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id {whereCondition}";

@@ -11,8 +11,6 @@ public class OrganizationDataDto
     public string Designation { get; set; }
     public string Email { get; set; }
     public string MobileNumber { get; set; }
-    public decimal PerKmFare { get; set; }
-    public decimal BaseFare { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime LastModifiedTime { get; set; }
     public int TotalBus { get; set; } = 0;

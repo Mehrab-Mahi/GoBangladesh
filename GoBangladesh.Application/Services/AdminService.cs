@@ -1,6 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs.Admin;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -49,7 +48,7 @@ public class AdminService : IAdminService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Admin,
+                UserType = user.UserType,
                 OrganizationId = user.OrganizationId,
                 Designation = user.Designation
             };
@@ -227,7 +226,7 @@ public class AdminService : IAdminService
                 };
             }
 
-            var condition = new List<string> { " UserType = 'Admin'" };
+            var condition = new List<string> {{ " UserType in ('Admin', 'User')" }, {$" Id != {currentUser.Id} "}};
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";

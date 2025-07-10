@@ -2,6 +2,7 @@
 
 public class Card : Entity
 {
+    public string CardId { get; set; }
     public string CardNumber { get; set; }
-    public int Balance { get; set; } = 0;
+    public string Status { get; set; }
 }

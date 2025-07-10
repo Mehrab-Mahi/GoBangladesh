@@ -154,6 +154,53 @@ namespace GoBangladesh.Application.Services
             }
         }
 
+        public PayloadResponse ForgotPassword(ForgotPassword forgotPassword)
+        {
+            try
+            {
+                var user = _userRepo.GetConditional(u => u.MobileNumber == forgotPassword.MobileNumber);
+
+                if (user == null)
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "User with this mobile number is not found!"
+                    };
+                }
+
+                if (forgotPassword.NewPassword != forgotPassword.ConfirmNewPassword)
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "Password not matched!"
+                    };
+                }
+
+                var newPasswordHash = GeneratePassword(forgotPassword.NewPassword);
+
+                user.PasswordHash = newPasswordHash;
+
+                _userRepo.Update(user);
+                _userRepo.SaveChanges();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    Message = "Password has been changed!"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = $"Exception {ex.Message}"
+                };
+            }
+        }
+
         private bool IfNewPasswordNotSame(string newPassword, string confirmNewPassword)
         {
             if (newPassword != confirmNewPassword) return true;

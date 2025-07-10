@@ -1,6 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -51,7 +50,7 @@ public class StaffService : IStaffService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Staff,
+                UserType = user.UserType,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
                 Code = $"STF-{serial:D6}"

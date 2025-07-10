@@ -1,8 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Bus;
-using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -70,6 +68,14 @@ public class BusController : Controller
     public IActionResult GetAllForDropDown(string organizationId)
     {
         var data = _busService.GetAllForDropDown(organizationId);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllBusMapData")]
+    public IActionResult GetAllBusMapData(string organizationId)
+    {
+        var data = _busService.GetAllBusMapData(organizationId);
         return Ok(new { data });
     }
 }
