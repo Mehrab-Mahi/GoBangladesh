@@ -45,7 +45,7 @@ public class RouteService : IRouteService
             {
                 TripStartPlace = model.TripStartPlace,
                 TripEndPlace = model.TripEndPlace,
-                OrganizationId = currentUser.OrganizationId,
+                OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ? currentUser.OrganizationId : model.OrganizationId,
                 PerKmFare = model.PerKmFare,
                 BaseFare = model.BaseFare,
                 MinimumBalance = model.MinimumBalance,
