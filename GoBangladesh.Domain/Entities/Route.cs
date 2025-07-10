@@ -1,4 +1,6 @@
-﻿namespace GoBangladesh.Domain.Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace GoBangladesh.Domain.Entities;
 
 public class Route : Entity
 {
@@ -9,4 +11,6 @@ public class Route : Entity
     public decimal BaseFare { get; set; }
     public decimal MinimumBalance { get; set; }
     public decimal PenaltyAmount { get; set; }
+    [ForeignKey("OrganizationId")]
+    public Organization Organization { get; set; }
 }

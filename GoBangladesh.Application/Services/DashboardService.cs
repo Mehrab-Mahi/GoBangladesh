@@ -297,6 +297,7 @@ public class DashboardService : IDashboardService
                                DATEADD(hour, 6, t.CreateTime) as TransactionTime,
                                p.PassengerId,
                                p.Name                         as PassengerName,
+                               p.CardNumber                   as CardNumber,
                                'Agent'                        as RechargeMedium,
                                a.Name                         as RechargerName,
                                t.Amount

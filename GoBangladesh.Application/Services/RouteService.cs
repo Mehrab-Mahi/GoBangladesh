@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
 
@@ -122,7 +123,9 @@ public class RouteService : IRouteService
         try
         {
             var route = _routeRepository.GetAll()
-                .FirstOrDefault(r => r.Id == id);
+                .Where(r => r.Id == id)
+                .Include(r => r.Organization)
+                .FirstOrDefault();
 
             if (route == null)
             {
@@ -210,6 +213,7 @@ public class RouteService : IRouteService
 
             var routeData = _routeRepository.GetAll()
                 .Where(u => routeIds.Contains(u.Id))
+                .Include(r => r.Organization)
                 .ToList();
 
             return new PayloadResponse()
