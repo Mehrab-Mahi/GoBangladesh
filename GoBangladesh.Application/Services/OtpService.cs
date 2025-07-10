@@ -49,7 +49,7 @@ public class OtpService : IOtpService
             {
                 IsSuccess = false,
                 PayloadType = "Otp",
-                Message = $"Otp sending has been failed because {ex.Message}!"
+                Message = $"Otp sending has been failed because {ex.Message}, {ex.InnerException}!"
             };
         }
     }
