@@ -76,6 +76,11 @@ public class PassengerService : IPassengerService
             _userRepository.InsertWithUserData(model);
             _userRepository.SaveChanges();
 
+            if (user.UserType == UserTypes.Public)
+            {
+                _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+            }
+
             return new PayloadResponse
             {
                 IsSuccess = true,

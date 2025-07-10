@@ -1,6 +1,7 @@
 ﻿using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
@@ -31,7 +32,7 @@ namespace GoBangladesh.Web.Controllers
             return Ok(new { data = response });
         }
 
-        [GoBangladeshAuth]
+        [AllowAnonymous]
         [HttpPost("ForgotPassword")]
         public IActionResult ForgotPassword([FromBody] ForgotPassword forgotPassword)
         {

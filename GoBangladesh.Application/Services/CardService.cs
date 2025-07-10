@@ -112,4 +112,21 @@ public class CardService : ICardService
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
     }
+
+    public void UpdateCardStatus(string cardNumber, string status)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || string.IsNullOrEmpty(status))
+        {
+            return;
+        }
+
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+
+        if(card == null) return;
+
+        card.Status = status;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
+    }
 }

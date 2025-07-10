@@ -128,6 +128,16 @@ public class TransactionService : ITransactionService
             };
         }
 
+        if (session.Bus.Route == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "No route is assigned to this bus!"
+            };
+        }
+
         var minimumBalanceCheck = IsMinimumBalanceAvailable(passenger, session.Bus.Route.MinimumBalance);
 
         if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;

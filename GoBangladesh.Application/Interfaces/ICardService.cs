@@ -10,4 +10,5 @@ public interface ICardService
     PayloadResponse CheckCardValidity(string cardNumber);
     Card GetCardDetailByCardNumber(string cardNumber);
     void UpdateCard(Card card);
+    void UpdateCardStatus(string cardNumber, string status);
 }
