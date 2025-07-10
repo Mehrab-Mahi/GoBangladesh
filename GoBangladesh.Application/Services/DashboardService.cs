@@ -356,7 +356,7 @@ public class DashboardService : IDashboardService
                        o.Name                                    as OrganizationName,
                        b.BusNumber,
                        b.BusName,
-                       b.TripStartPlace + ' - ' + b.TripEndPlace as Route,
+                       r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                        u.Name                                    as StaffName,
                        u.MobileNumber,
                        s.StartTime,
@@ -367,7 +367,9 @@ public class DashboardService : IDashboardService
                 from Sessions s
                          left join Buses b on s.BusId = b.Id
                          left join Organizations o on b.OrganizationId = o.Id
-                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition} {extraCondition}";
+                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff')
+                         left join Routes r on b.RouteId = r.Id
+                         {whereCondition} {extraCondition}";
 
 
         var sessionDashboardTableData = _baseRepository
@@ -418,7 +420,7 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select t.Id                                      as TripId,
                                o.Name                                    as OrganizationName,
-                               b.TripStartPlace + ' - ' + b.TripEndPlace as Route,
+                               r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                                b.BusNumber,
                                u.CardNumber,
                                t.TripStartTime,
@@ -435,7 +437,9 @@ public class DashboardService : IDashboardService
                                  left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
-                                 left join Buses b on s.BusId = b.Id {whereCondition} {extraCondition}";
+                                 left join Buses b on s.BusId = b.Id
+                                 left join Routes r on b.RouteId = r.Id
+                                 {whereCondition} {extraCondition}";
 
 
         var tripDashBoardTableData = _baseRepository

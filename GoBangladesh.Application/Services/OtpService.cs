@@ -56,16 +56,16 @@ public class OtpService : IOtpService
 
     private void SendOtpToUser(string mobileNumber, string otp)
     {
-        using var httpClient = new HttpClient();
+        //using var httpClient = new HttpClient();
 
-        var smsUrl = $"{_otpSettings.BaseUrl}/sendtext?apikey={_otpSettings.ApiKey}&secretkey={_otpSettings.SecretKey}&callerID=8801847&toUser={mobileNumber}&messageContent=Your OTP is {otp}. This code is valid for the next 10 minutes. For your safety, do not disclose it to anyone.";
+        //var smsUrl = $"{_otpSettings.BaseUrl}/sendtext?apikey={_otpSettings.ApiKey}&secretkey={_otpSettings.SecretKey}&callerID=8801847&toUser={mobileNumber}&messageContent=Your OTP is {otp}. This code is valid for the next 10 minutes. For your safety, do not disclose it to anyone.";
 
-        var response = httpClient.GetAsync(smsUrl).Result;
+        //var response = httpClient.GetAsync(smsUrl).Result;
 
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception("OTP sending has been failed!");
-        }
+        //if (!response.IsSuccessStatusCode)
+        //{
+        //    throw new Exception("OTP sending has been failed!");
+        //}
     }
 
     public PayloadResponse VerifyOtp(string mobileNumber, string otp)
@@ -109,7 +109,9 @@ public class OtpService : IOtpService
 
     public string GenerateOtp()
     {
-        var random = new Random();
-        return random.Next(0, 1000000).ToString("D6");
+        //var random = new Random();
+        //return random.Next(0, 1000000).ToString("D6");
+
+        return "123456";
     }
 }

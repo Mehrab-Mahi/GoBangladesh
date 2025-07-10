@@ -226,7 +226,7 @@ public class AdminService : IAdminService
                 };
             }
 
-            var condition = new List<string> {{ " UserType in ('Admin', 'User')" }, {$" Id != {currentUser.Id} "}};
+            var condition = new List<string> {{ " UserType in ('Admin', 'User')" }, {$" Id != '{currentUser.Id}' "}};
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";

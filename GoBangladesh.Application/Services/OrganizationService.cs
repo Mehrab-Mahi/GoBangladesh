@@ -271,7 +271,7 @@ public class OrganizationService : IOrganizationService
                                  left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
                         where o.Id = '{id}'
                         group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
-                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.BaseFare, o.PerKmFare, o.Designation";
+                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType";
 
             var organizationData = _baseRepository
                 .Query<OrganizationDataDto>(query)
