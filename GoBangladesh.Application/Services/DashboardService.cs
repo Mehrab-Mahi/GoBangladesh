@@ -292,9 +292,9 @@ public class DashboardService : IDashboardService
     private List<RechargeDashboardTableData> GetRechargeDashboardTableData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                       select t.Id                           as TransactionId,
+                       select  t.Id                           as TransactionId,
                                o.Name                         as OrganizationName,
-                               DATEADD(hour, 6, t.CreateTime) as TransactionTime,
+                               t.CreateTime                   as TransactionTime,
                                p.PassengerId,
                                p.Name                         as PassengerName,
                                p.CardNumber                   as CardNumber,
