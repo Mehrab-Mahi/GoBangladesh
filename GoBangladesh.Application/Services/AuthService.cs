@@ -104,7 +104,8 @@ namespace GoBangladesh.Application.Services
                     new(type: "Name", user.Name),
                     new(type: "UserType", user.UserType),
                     new(type: "OrganizationId", user.OrganizationId),
-                    new(type: "OrganizationName", user.Organization.Name)
+                    new(type: "OrganizationName", user.Organization.Name),
+                    new(type: "OrganizationType", user.Organization.OrganizationType)
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = credentials
