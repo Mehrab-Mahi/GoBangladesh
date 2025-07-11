@@ -10,4 +10,5 @@ public interface ISessionService
     PayloadResponse GetSessionStatistics(string sessionId);
     PayloadResponse CheckIfSessionRunning(string sessionId);
     PayloadResponse GetStatistics(string sessionId);
+    PayloadResponse CheckIfSessionRunningForLoggedInUser(string userId);
 }

@@ -63,4 +63,12 @@ public class SessionController : Controller
         var data = _sessionService.GetStatistics(sessionId);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("CheckIfSessionRunningForLoggedInUser")]
+    public IActionResult CheckIfSessionRunningForLoggedInUser(string userId)
+    {
+        var data = _sessionService.CheckIfSessionRunningForLoggedInUser(userId);
+        return Ok(new { data });
+    }
 }

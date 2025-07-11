@@ -45,6 +45,13 @@ public class PassengerService : IPassengerService
             };
         }
 
+        if (string.IsNullOrEmpty(user.UserType))
+        {
+            var card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+            user.CardNumber = card.CardNumber;
+            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
+        }
+
         try
         {
             var model = new User()
@@ -128,6 +135,7 @@ public class PassengerService : IPassengerService
             model.Gender = user.Gender;
             model.PassengerId = user.PassengerId;
             model.OrganizationId = user.OrganizationId;
+            model.UserType = user.UserType;
 
             if (user.ProfilePicture is { Length: > 0 })
             {

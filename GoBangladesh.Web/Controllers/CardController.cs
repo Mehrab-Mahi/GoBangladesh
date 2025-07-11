@@ -16,7 +16,7 @@ public class CardController : Controller
         _cardService = cardService;
     }
 
-    [AllowAnonymous]
+    [GoBangladeshAuth]
     [HttpPost("insert")]
     public IActionResult CardInsert([FromBody] CardCreateRequest model)
     {
@@ -24,6 +24,30 @@ public class CardController : Controller
         return Ok(new { data });
     }
     
+    [GoBangladeshAuth]
+    [HttpPost("update")]
+    public IActionResult CardUpdate([FromBody] CardUpdateRequest model)
+    {
+        var data = _cardService.CardUpdate(model);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getById")]
+    public IActionResult GetById(string id)
+    {
+        var data = _cardService.GetById(id);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpDelete("delete")]
+    public IActionResult Delete(string id)
+    {
+        var data = _cardService.Delete(id);
+        return Ok(new { data });
+    }
+
     [AllowAnonymous]
     [HttpGet("CheckCardValidity")]
     public IActionResult CheckCardValidity(string cardNumber)

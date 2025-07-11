@@ -126,6 +126,7 @@ public class AdminService : IAdminService
             model.Gender = user.Gender;
             model.OrganizationId = user.OrganizationId;
             model.Designation = user.Designation;
+            model.UserType = user.UserType;
 
             if (user.ProfilePicture is { Length: > 0 })
             {

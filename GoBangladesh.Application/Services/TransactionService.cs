@@ -23,24 +23,29 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Trip> _tripRepository;
     private readonly IRepository<Session> _sessionRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
+    private readonly IRepository<Card> _cardRepository;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService, 
         IRepository<Trip> tripRepository,
         IRepository<Session> sessionRepository, 
-        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
+        IRepository<Card> cardRepository)
     {
         _transactionRepository = transactionRepository;
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
         _sessionRepository = sessionRepository;
+        _cardRepository = cardRepository;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse Recharge(RechargeRequest model)
     {
+        UpdateCardDatabase(model);
+
         var passenger = _userRepository
             .GetConditional(p => p.CardNumber == model.CardNumber);
 
@@ -90,6 +95,19 @@ public class TransactionService : ITransactionService
                 Message = $"Recharge has been failed because {ex.Message}!"
             };
         }
+    }
+
+    private void UpdateCardDatabase(RechargeRequest model)
+    {
+        var card = _cardRepository
+            .GetConditional(c => c.CardNumber == model.CardNumber);
+
+        if (card == null) { return; }
+
+        card.Balance += model.Amount;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
     }
 
     public PayloadResponse Tap(TapRequest tapRequest)

@@ -12,4 +12,7 @@ public interface ICardService
     void UpdateCard(Card card);
     void UpdateCardStatus(string cardNumber, string status);
     PayloadResponse CheckCardAvailability(string cardNumber);
+    PayloadResponse CardUpdate(CardUpdateRequest model);
+    PayloadResponse GetById(string id);
+    PayloadResponse Delete(string id);
 }
