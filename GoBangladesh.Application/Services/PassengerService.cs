@@ -17,16 +17,19 @@ public class PassengerService : IPassengerService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IRepository<Trip> _tripRepository;
+    private readonly ICardService _cardService;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService, 
-        IRepository<Trip> tripRepository)
+        IRepository<Trip> tripRepository,
+        ICardService cardService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _tripRepository = tripRepository;
+        _cardService = cardService;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -42,6 +45,13 @@ public class PassengerService : IPassengerService
             };
         }
 
+        if (string.IsNullOrEmpty(user.UserType))
+        {
+            var card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+            user.CardNumber = card.CardNumber;
+            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
+        }
+
         try
         {
             var model = new User()
@@ -52,7 +62,7 @@ public class PassengerService : IPassengerService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Passenger,
+                UserType = user.UserType,
                 PassengerId = user.PassengerId,
                 OrganizationId = user.OrganizationId,
                 CardNumber = user.CardNumber
@@ -72,6 +82,11 @@ public class PassengerService : IPassengerService
 
             _userRepository.InsertWithUserData(model);
             _userRepository.SaveChanges();
+
+            if (user.UserType == UserTypes.Public)
+            {
+                _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+            }
 
             return new PayloadResponse
             {
@@ -112,6 +127,7 @@ public class PassengerService : IPassengerService
                 }
             }
 
+            model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
             model.EmailAddress = user.EmailAddress;
@@ -119,6 +135,7 @@ public class PassengerService : IPassengerService
             model.Gender = user.Gender;
             model.PassengerId = user.PassengerId;
             model.OrganizationId = user.OrganizationId;
+            model.UserType = user.UserType;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -187,7 +204,9 @@ public class PassengerService : IPassengerService
                 OrganizationId = passenger.OrganizationId,
                 Organization = passenger.Organization,
                 CardNumber = passenger.CardNumber,
-                Balance = passenger.Balance
+                Balance = passenger.Balance,
+                CreateTime = passenger.CreateTime,
+                LastModifiedTime = passenger.LastModifiedTime
             },
             Message = "Passenger not found!"
         };
@@ -207,8 +226,31 @@ public class PassengerService : IPassengerService
             };
         }
 
-        passenger.CardNumber = model.CardNumber;
+        if (passenger.UserType == UserTypes.Private)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Passenger is not allowed to change his card number! Please contact with the administrator!"
+            };
+        }
 
+        var cardValidity = _cardService.CheckCardValidity(model.CardNumber);
+
+        if (!cardValidity.IsSuccess)
+        {
+            return cardValidity;
+        }
+
+        var previousCard = _cardService.GetCardDetailByCardNumber(passenger.CardNumber);
+        previousCard.Status = CardStatus.Obsolete;
+        _cardService.UpdateCard(previousCard);
+
+        var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
+        newCard.Status = CardStatus.InUse;
+        _cardService.UpdateCard(newCard);
+
+        passenger.CardNumber = model.CardNumber;
         _userRepository.Update(passenger);
         _userRepository.SaveChanges();
 
@@ -237,7 +279,7 @@ public class PassengerService : IPassengerService
                 };
             }
 
-            var condition = new List<string> { " UserType = 'Passenger' " };
+            var condition = new List<string> { " UserType in ('Public', 'Private') " };
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -293,8 +335,11 @@ public class PassengerService : IPassengerService
                     OrganizationId = passenger.OrganizationId,
                     Organization = passenger.Organization,
                     CardNumber = passenger.CardNumber,
-                    Balance = passenger.Balance
+                    Balance = passenger.Balance,
+                    CreateTime = passenger.CreateTime,
+                    LastModifiedTime = passenger.LastModifiedTime
                 })
+                .OrderByDescending(p => p.CreateTime)
                 .ToList();
 
             return new PayloadResponse()
@@ -365,6 +410,7 @@ public class PassengerService : IPassengerService
                 .Where(t => t.PassengerId == currentUser.Id && t.IsRunning)
                 .Include(t => t.Session)
                 .Include(t => t.Session.Bus)
+                .Include(t => t.Session.Bus.Route)
                 .FirstOrDefault();
 
             if (trip == null)

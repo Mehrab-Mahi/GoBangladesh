@@ -13,7 +13,7 @@ public class Trip : Entity
     public string EndingLongitude { get; set; }
     public DateTime TripStartTime { get; set; }
     public DateTime? TripEndTime { get; set; }
-    public decimal Amount { get; set; }
+    public decimal Amount { get; set; } = 0;
     public bool IsRunning { get; set; } = true;
     public decimal Distance { get; set; }
     [ForeignKey("SessionId")]

@@ -1,6 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs.Admin;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -49,8 +48,9 @@ public class AdminService : IAdminService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Admin,
-                OrganizationId = user.OrganizationId
+                UserType = user.UserType,
+                OrganizationId = user.OrganizationId,
+                Designation = user.Designation
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -118,12 +118,15 @@ public class AdminService : IAdminService
                 }
             }
 
+            model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
             model.EmailAddress = user.EmailAddress;
             model.Address = user.Address;
             model.Gender = user.Gender;
             model.OrganizationId = user.OrganizationId;
+            model.Designation = user.Designation;
+            model.UserType = user.UserType;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -198,7 +201,10 @@ public class AdminService : IAdminService
                 UserType = admin.UserType,
                 ImageUrl = admin.ImageUrl,
                 OrganizationId = admin.OrganizationId,
-                Organization = admin.Organization
+                Organization = admin.Organization,
+                CreateTime = admin.CreateTime,
+                LastModifiedTime = admin.LastModifiedTime,
+                Designation = admin.Designation
             },
             Message = "Admin data has been fetched successfully!"
         };
@@ -221,7 +227,7 @@ public class AdminService : IAdminService
                 };
             }
 
-            var condition = new List<string> { " UserType = 'Admin'" };
+            var condition = new List<string> {{ " UserType in ('Admin', 'User')" }, {$" Id != '{currentUser.Id}' "}};
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -274,8 +280,12 @@ public class AdminService : IAdminService
                     UserType = admin.UserType,
                     ImageUrl = admin.ImageUrl,
                     OrganizationId = admin.OrganizationId,
-                    Organization = admin.Organization
+                    Organization = admin.Organization,
+                    CreateTime = admin.CreateTime,
+                    LastModifiedTime = admin.LastModifiedTime,
+                    Designation = admin.Designation
                 })
+                .OrderByDescending(a => a.CreateTime)
                 .ToList();
 
             return new PayloadResponse()

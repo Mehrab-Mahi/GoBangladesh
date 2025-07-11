@@ -6,6 +6,7 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GoBangladesh.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
@@ -43,8 +44,7 @@ public class BusService : IBusService
             {
                 BusNumber = model.BusNumber,
                 BusName = model.BusName,
-                TripStartPlace = model.TripStartPlace,
-                TripEndPlace = model.TripEndPlace,
+                RouteId = model.RouteId,
                 OrganizationId = model.OrganizationId,
             };
 
@@ -101,8 +101,7 @@ public class BusService : IBusService
 
             bus.BusName = model.BusName;
             bus.BusNumber = model.BusNumber;
-            bus.TripStartPlace = model.TripStartPlace;
-            bus.TripEndPlace = model.TripEndPlace;
+            bus.RouteId = model.RouteId;
             bus.OrganizationId = model.OrganizationId;
 
             _busRepository.Update(bus);
@@ -133,6 +132,7 @@ public class BusService : IBusService
             var bus = _busRepository.GetAll()
                 .Where(o => o.Id == id)
                 .Include(o => o.Organization)
+                .Include(o => o.Route)
                 .FirstOrDefault();
 
             if (bus == null)
@@ -222,6 +222,7 @@ public class BusService : IBusService
             var busData = _busRepository.GetAll()
                 .Where(u => busIds.Contains(u.Id))
                 .Include(u => u.Organization)
+                .Include(u => u.Route)
                 .ToList();
 
             return new PayloadResponse()
@@ -277,6 +278,190 @@ public class BusService : IBusService
                 IsSuccess = false,
                 PayloadType = "Bus",
                 Message = $"Bus deletion is failed! because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse UpdateLocation(LocationUpdateDto locationData)
+    {
+        try
+        {
+            var bus = _busRepository.GetConditional(b => b.Id == locationData.BusId);
+
+            if (bus == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Bus not found"
+                };
+            }
+
+            bus.PresentLatitude = locationData.Latitude;
+            bus.PresentLongitude = locationData.Longitude;
+
+            _busRepository.Update(bus);
+            _busRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Message = "Bus location updated!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus location update failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetAllForDropDown(string organizationId)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Current user not found"
+                };
+            }
+
+            var allBus = _busRepository.GetAll();
+
+            if (currentUser.IsSuperAdmin)
+            {
+                if (!string.IsNullOrEmpty(organizationId))
+                {
+                    allBus = allBus.Where(b => b.OrganizationId == organizationId);
+                }
+
+                var busData = allBus.Select(b => new ValueLabel()
+                {
+                    Value = b.Id,
+                    Label = b.BusNumber
+                }).ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Bus",
+                    Content = busData,
+                    Message = "Bus data for dropdown has been fetched successfully!"
+                };
+            }
+
+            var data = allBus
+                .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                .Select(b => new ValueLabel()
+                {
+                    Value = b.Id,
+                    Label = b.BusNumber
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Content = data,
+                Message = "Bus data for dropdown has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus data for dropdown fetch has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetAllBusMapData(string organizationId)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Current user not found"
+                };
+            }
+
+            var allBus = _busRepository.GetAll();
+
+            if (currentUser.IsSuperAdmin)
+            {
+                if (!string.IsNullOrEmpty(organizationId))
+                {
+                    allBus = allBus.Where(b => b.OrganizationId == organizationId);
+                }
+
+                var busData = allBus
+                    .Select(b => new BusMapDataDto()
+                    {
+                        Id = b.Id,
+                        BusNumber = b.BusNumber,
+                        BusName = b.BusName,
+                        PresentLatitude = b.PresentLatitude,
+                        PresentLongitude = b.PresentLongitude
+                    })
+                    .ToList();
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true,
+                    PayloadType = "Bus",
+                    Content = busData,
+                    Message = "Bus map data has been fetched successfully!"
+                };
+            }
+
+            var data = allBus
+                .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                .Select(b => new BusMapDataDto()
+                {
+                    Id = b.Id,
+                    BusNumber = b.BusNumber,
+                    BusName = b.BusName,
+                    PresentLatitude = b.PresentLatitude,
+                    PresentLongitude = b.PresentLongitude
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Content = data,
+                Message = "Bus map data has been fetched successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus map data fetch has been failed because {ex.Message}!"
             };
         }
     }

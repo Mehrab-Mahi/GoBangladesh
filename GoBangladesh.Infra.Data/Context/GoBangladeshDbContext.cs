@@ -24,6 +24,7 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<OneTimePassword> OneTimePasswords { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Session> Sessions { get; set; }
+        public DbSet<Route> Routes { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {

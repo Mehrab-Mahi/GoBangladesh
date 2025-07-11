@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GoBangladesh.Application.ViewModels
 {
@@ -15,7 +11,7 @@ namespace GoBangladesh.Application.ViewModels
         public string Message { get; set; }
         public PayloadResponse()
         {
-            TimeStamp = DateTime.Now.ToString("[dd/MM/yyyy#HHmmss]");
+            TimeStamp = DateTime.UtcNow.ToString("[dd/MM/yyyy#HHmmss]");
         }
     }
 }

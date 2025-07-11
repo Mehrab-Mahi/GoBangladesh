@@ -1,6 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -51,7 +50,7 @@ public class StaffService : IStaffService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.Staff,
+                UserType = user.UserType,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
                 Code = $"STF-{serial:D6}"
@@ -126,6 +125,7 @@ public class StaffService : IStaffService
                 }
             }
 
+            model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
             model.EmailAddress = user.EmailAddress;
@@ -198,7 +198,9 @@ public class StaffService : IStaffService
                 ImageUrl = staff.ImageUrl,
                 Organization = staff.Organization,
                 Code = staff.Code,
-                OrganizationId = staff.OrganizationId
+                OrganizationId = staff.OrganizationId,
+                CreateTime = staff.CreateTime,
+                LastModifiedTime = staff.LastModifiedTime
             },
             Message = "Passenger not found!"
         };
@@ -275,8 +277,11 @@ public class StaffService : IStaffService
                     ImageUrl = staff.ImageUrl,
                     Organization = staff.Organization,
                     Code = staff.Code,
-                    OrganizationId = staff.OrganizationId
+                    OrganizationId = staff.OrganizationId,
+                    CreateTime = staff.CreateTime,
+                    LastModifiedTime = staff.LastModifiedTime
                 })
+                .OrderByDescending(s => s.CreateTime)
                 .ToList();
 
             return new PayloadResponse()

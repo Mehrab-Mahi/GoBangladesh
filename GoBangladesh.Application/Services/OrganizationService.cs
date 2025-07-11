@@ -15,14 +15,17 @@ public class OrganizationService : IOrganizationService
     private readonly IRepository<Organization> _organizationRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IBaseRepository _baseRepository;
 
     public OrganizationService(IRepository<Organization> organizationRepository, 
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IBaseRepository baseRepository)
     {
         _organizationRepository = organizationRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse OrganizationInsert(OrganizationCreateRequest model)
@@ -60,8 +63,8 @@ public class OrganizationService : IOrganizationService
                 FocalPerson = model.FocalPerson,
                 Email = model.Email,
                 MobileNumber = model.MobileNumber,
-                PerKmFare = model.PerKmFare,
-                BaseFare = model.BaseFare
+                Designation = model.Designation,
+                OrganizationType = model.OrganizationType
             };
 
             _organizationRepository.Insert(organization);
@@ -177,8 +180,8 @@ public class OrganizationService : IOrganizationService
             organization.FocalPerson = model.FocalPerson;
             organization.Email = model.Email;
             organization.MobileNumber = model.MobileNumber;
-            organization.PerKmFare = model.PerKmFare;
-            organization.BaseFare = model.BaseFare;
+            organization.Designation = model.Designation;
+            organization.OrganizationType = model.OrganizationType;
 
             _organizationRepository.Update(organization);
             _organizationRepository.SaveChanges();
@@ -255,10 +258,26 @@ public class OrganizationService : IOrganizationService
     {
         try
         {
-            var organization = _organizationRepository
-                .GetConditional(o => o.Id == id);
+            var query = $@"
+                        select o.*,
+                               count(distinct b.Id)  as TotalBus,
+                               count(distinct u.Id)  as TotalStaff,
+                               count(distinct u1.Id) as TotalAgent,
+                               count(distinct u2.Id) as TotalPassenger
+                        from Organizations o
+                                 left join Buses b on o.Id = b.OrganizationId
+                                 left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
+                                 left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
+                                 left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
+                        where o.Id = '{id}'
+                        group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
+                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType";
 
-            if (organization == null)
+            var organizationData = _baseRepository
+                .Query<OrganizationDataDto>(query)
+                .FirstOrDefault();
+
+            if (organizationData == null)
             {
                 return new PayloadResponse()
                 {
@@ -272,7 +291,7 @@ public class OrganizationService : IOrganizationService
             {
                 IsSuccess = true,
                 PayloadType = "Organization",
-                Content = organization,
+                Content = organizationData,
                 Message = "Organization has been found"
             };
         }
@@ -420,16 +439,18 @@ public class OrganizationService : IOrganizationService
                 };
             }
 
-            List<ValueLabel> organizationData;
+            List<OrganizationDropdownDto> organizationData;
 
             if (currentUser.IsSuperAdmin)
             {
                 organizationData = _organizationRepository
                     .GetAll()
-                    .Select(o => new ValueLabel()
+                    .Select(o => new OrganizationDropdownDto()
                     {
-                        Value = o.Id,
-                        Label = o.Name
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
                     })
                     .ToList();
             }
@@ -448,10 +469,12 @@ public class OrganizationService : IOrganizationService
                 organizationData = _organizationRepository
                     .GetAll()
                     .Where(org => org.Id == currentUser.OrganizationId)
-                    .Select(o => new ValueLabel()
+                    .Select(o => new OrganizationDropdownDto()
                     {
-                        Value = o.Id,
-                        Label = o.Name
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
                     })
                     .ToList();
             }

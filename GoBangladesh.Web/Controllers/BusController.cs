@@ -1,8 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Bus;
-using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -54,6 +52,30 @@ public class BusController : Controller
     public IActionResult Delete(string id)
     {
         var data = _busService.Delete(id);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("UpdateLocation")]
+    public IActionResult UpdateLocation([FromBody] LocationUpdateDto locationData)
+    {
+        var data = _busService.UpdateLocation(locationData);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpGet("getAllForDropDown")]
+    public IActionResult GetAllForDropDown(string organizationId)
+    {
+        var data = _busService.GetAllForDropDown(organizationId);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllBusMapData")]
+    public IActionResult GetAllBusMapData(string organizationId)
+    {
+        var data = _busService.GetAllBusMapData(organizationId);
         return Ok(new { data });
     }
 }

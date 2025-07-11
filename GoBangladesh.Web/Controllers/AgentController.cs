@@ -2,7 +2,6 @@
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers
@@ -54,6 +53,30 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult Delete(string id)
         {
             var data = _agentService.Delete(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getRechargeData")]
+        public IActionResult GetRechargeData(string id)
+        {
+            var data = _agentService.GetRechargeData(id);
+            return Ok(new { data });
+        }
+
+        [GoBangladeshAuth]
+        [HttpGet("getAllForDropDown")]
+        public IActionResult GetAllForDropDown(string organizationId)
+        {
+            var data = _agentService.GetAllForDropDown(organizationId);
+            return Ok(new { data });
+        }
+        
+        [GoBangladeshAuth]
+        [HttpGet("getStatistics")]
+        public IActionResult GetStatistics()
+        {
+            var data = _agentService.GetStatistics();
             return Ok(new { data });
         }
     }

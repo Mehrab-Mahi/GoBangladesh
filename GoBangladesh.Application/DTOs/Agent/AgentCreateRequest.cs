@@ -12,7 +12,7 @@ public class AgentCreateRequest
     public string EmailAddress { get; set; }
     public string Address { get; set; }
     public string Gender { get; set; }
-    public string UserType { get; set; } = "Agent";
+    public string UserType { get; set; }
     public IFormFile ProfilePicture { get; set; }
     public string OrganizationId { get; set; }
 }

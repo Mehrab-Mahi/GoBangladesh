@@ -13,5 +13,6 @@ namespace GoBangladesh.Application.Interfaces
         public bool Delete(string id, string table);
         PayloadResponse DeleteUser(string id);
         PayloadResponse ChangePassword(ChangePassword changePassword);
+        PayloadResponse ForgotPassword(ForgotPassword forgotPassword);
     }
 }

@@ -14,5 +14,8 @@ public class AdminDto
     public string UserType { get; set; }
     public string ImageUrl { get; set; }
     public string OrganizationId { get; set; }
+    public string Designation { get; set; }
+    public DateTime CreateTime { get; set; }
+    public DateTime LastModifiedTime { get; set; }
     public Domain.Entities.Organization Organization { get; set; }
 }

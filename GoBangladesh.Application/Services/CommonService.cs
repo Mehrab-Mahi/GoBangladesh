@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using GoBangladesh.Application.DTOs.Dashboard;
 
 namespace GoBangladesh.Application.Services
 {
@@ -84,6 +85,41 @@ namespace GoBangladesh.Application.Services
             var data = _baseRepository.Query<T>(query);
 
             return data;
+        }
+
+        public DateTimeFilter GetDateTimeFilterData(DateTime? startDate, DateTime? endDate)
+        {
+            if (startDate != null && endDate != null)
+            {
+                if (startDate.Value > endDate.Value)
+                    throw new Exception("End date can't be earlier than start date!");
+
+                startDate = startDate.Value.AddHours(-6);
+                endDate = endDate.Value.AddHours(17).AddMinutes(59).AddSeconds(59);
+            }
+            else if (startDate == null && endDate != null)
+            {
+                startDate = DateTime.MinValue;
+                endDate = endDate.Value.AddHours(17).AddMinutes(59).AddSeconds(59);
+            }
+            else if (startDate != null && endDate == null)
+            {
+                startDate = startDate.Value.AddHours(-6);
+                endDate = DateTime.Today.AddHours(17).AddMinutes(59).AddSeconds(59);
+            }
+            else
+            {
+                startDate = DateTime.MinValue;
+                endDate = DateTime.Today.AddHours(17).AddMinutes(59).AddSeconds(59);
+            }
+
+            var dateTimeFilter = new DateTimeFilter()
+            {
+                StartDate = startDate!.Value,
+                EndDate = endDate.Value
+            };
+
+            return dateTimeFilter;
         }
 
         private string GetFileName(string fileName)

@@ -16,7 +16,7 @@ public class PassengerController : Controller
         _passengerService = passengerService;
     }
 
-    [GoBangladeshAuth]
+    [AllowAnonymous]
     [HttpPost("registration")]
     public IActionResult PassengerInsert([FromForm] PassengerCreateRequest model)
     {

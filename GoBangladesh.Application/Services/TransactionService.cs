@@ -11,6 +11,7 @@ using GoBangladesh.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Route = GoBangladesh.Domain.Entities.Route;
 
 namespace GoBangladesh.Application.Services;
 
@@ -22,24 +23,29 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Trip> _tripRepository;
     private readonly IRepository<Session> _sessionRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
+    private readonly IRepository<Card> _cardRepository;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService, 
         IRepository<Trip> tripRepository,
         IRepository<Session> sessionRepository, 
-        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
+        IRepository<Card> cardRepository)
     {
         _transactionRepository = transactionRepository;
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
         _sessionRepository = sessionRepository;
+        _cardRepository = cardRepository;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse Recharge(RechargeRequest model)
     {
+        UpdateCardDatabase(model);
+
         var passenger = _userRepository
             .GetConditional(p => p.CardNumber == model.CardNumber);
 
@@ -91,6 +97,19 @@ public class TransactionService : ITransactionService
         }
     }
 
+    private void UpdateCardDatabase(RechargeRequest model)
+    {
+        var card = _cardRepository
+            .GetConditional(c => c.CardNumber == model.CardNumber);
+
+        if (card == null) { return; }
+
+        card.Balance += model.Amount;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
+    }
+
     public PayloadResponse Tap(TapRequest tapRequest)
     {
         var passenger = _userRepository
@@ -109,15 +128,12 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var minimumBalanceCheck = IsMinimumBalanceAvailable(passenger);
-
-        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
-
         var session = _sessionRepository
             .GetAll()
             .Where(s => s.Id == tapRequest.SessionId)
             .Include(s => s.User)
             .Include(s => s.Bus)
+            .Include(s => s.Bus.Route)
             .FirstOrDefault();
 
         if (session == null)
@@ -129,6 +145,20 @@ public class TransactionService : ITransactionService
                 Message = "Session not found!"
             };
         }
+
+        if (session.Bus.Route == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "No route is assigned to this bus!"
+            };
+        }
+
+        var minimumBalanceCheck = IsMinimumBalanceAvailable(passenger, session.Bus.Route.MinimumBalance);
+
+        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
         if (passenger.OrganizationId != session.User.OrganizationId)
         {
@@ -213,9 +243,9 @@ public class TransactionService : ITransactionService
             trip.EndingLatitude = tapRequest.Latitude;
             trip.EndingLongitude = tapRequest.Longitude;
 
-            var tripFare = GetTripFareAndDistance(trip, passenger);
+            var tripFare = GetTripFareAndDistance(trip, session.Bus.Route);
 
-            trip.TripEndTime = DateTime.Now;
+            trip.TripEndTime = DateTime.UtcNow;
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
@@ -275,6 +305,111 @@ public class TransactionService : ITransactionService
         }
     }
 
+    public PayloadResponse ForceTripStop(ForceStopTripDto forceStop)
+    {
+        var passenger = _userRepository.GetConditional(p => p.Id == forceStop.PassengerId);
+
+        if (passenger == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = "Passenger not found!"
+            };
+        }
+        
+        var trip = _tripRepository.GetConditional(t => t.Id == forceStop.TripId);
+
+        if (trip == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = "Trip not found!"
+            };
+        }
+
+        var session = _sessionRepository
+            .GetAll()
+            .Where(s => s.Id == forceStop.SessionId)
+            .Include(s => s.Bus)
+            .Include(r => r.Bus.Route)
+            .FirstOrDefault();
+
+        if (session == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = "Session not found!"
+            };
+        }
+
+        try
+        {
+            trip.TripEndTime = DateTime.UtcNow;
+            trip.IsRunning = false;
+            trip.Distance = 0;
+            trip.Amount = session.Bus.Route.PenaltyAmount;
+
+            _tripRepository.Update(trip);
+            _tripRepository.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = $"Force stop failed because {ex.Message}!"
+            };
+        }
+
+        Transaction transaction;
+
+        try
+        {
+            transaction = AddBusFareTransaction(TransactionType.BusFare, forceStop.PassengerId, trip);
+        }
+        catch (Exception ex)
+        {
+            RollBackTrip(trip);
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = $"Force stop failed because {ex.Message}"
+            };
+        }
+
+        try
+        {
+            UpdateCardAmount(passenger, trip.Amount, TransactionOperation.Subtract);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Trip",
+                Message = "Bus fare deduction has been successful!"
+            };
+        }
+        catch (Exception ex)
+        {
+            RollBackTrip(trip);
+            DeleteTransaction(transaction);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Trip",
+                Message = $"Force stop failed because {ex.Message}!"
+            };
+        }
+    }
+
     private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(string passengerId, string sessionId)
     {
         var trip = _tripRepository
@@ -297,10 +432,10 @@ public class TransactionService : ITransactionService
         };
     }
 
-    private TripFareDistanceDto GetTripFareAndDistance(Trip trip, User passenger)
+    private TripFareDistanceDto GetTripFareAndDistance(Trip trip, Route route)
     {
         var distance = GetDistance(trip);
-        var fare = GetCalculatedAmount(distance, passenger.Organization);
+        var fare = GetCalculatedAmount(distance, route);
 
         return new TripFareDistanceDto()
         {
@@ -309,13 +444,11 @@ public class TransactionService : ITransactionService
         };
     }
 
-    private decimal GetCalculatedAmount(decimal distance, Organization organization)
+    private decimal GetCalculatedAmount(decimal distance, Route route)
     {
-        var fare = distance * organization.PerKmFare;
+        var fare = distance * route.PerKmFare;
 
-        if (fare < organization.BaseFare) return organization.BaseFare;
-
-        return fare;
+        return fare < route.BaseFare ? route.BaseFare : fare;
     }
 
     private decimal GetDistance(Trip trip)
@@ -329,16 +462,16 @@ public class TransactionService : ITransactionService
 
     private static bool IfTripTimeDifferenceIsLessThanOneMin(DateTime tripStartTime)
     {
-        var timeDifference = (DateTime.Now - tripStartTime).TotalSeconds;
+        var timeDifference = (DateTime.UtcNow - tripStartTime).TotalSeconds;
 
         return Math.Abs(timeDifference) < 60;
     }
 
-    public PayloadResponse IsMinimumBalanceAvailable(User passenger)
+    public PayloadResponse IsMinimumBalanceAvailable(User passenger, decimal minimumBalance)
     {
         try
         {
-            if (passenger == null)
+            if (passenger == null) 
             {
                 return new PayloadResponse()
                 {
@@ -349,7 +482,7 @@ public class TransactionService : ITransactionService
                 };
             }
 
-            if (passenger.Balance < 20)
+            if (passenger.Balance < minimumBalance)
             {
                 return new PayloadResponse()
                 {
@@ -401,7 +534,7 @@ public class TransactionService : ITransactionService
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
-            TripStartTime = DateTime.Now
+            TripStartTime = DateTime.UtcNow
         });
 
         _tripRepository.SaveChanges();

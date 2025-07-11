@@ -94,15 +94,20 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("OrganizationId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("TripEndPlace")
+                    b.Property<string>("PresentLatitude")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("TripStartPlace")
+                    b.Property<string>("PresentLongitude")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RouteId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId");
+
+                    b.HasIndex("RouteId");
 
                     b.ToTable("Buses");
                 });
@@ -112,8 +117,8 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("Balance")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CardNumber")
                         .HasColumnType("nvarchar(max)");
@@ -133,7 +138,15 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<DateTime>("LastModifiedTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("OrganizationId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Cards");
                 });
@@ -266,9 +279,6 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<decimal>("BaseFare")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Code")
                         .HasColumnType("nvarchar(max)");
 
@@ -302,8 +312,8 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("PerKmFare")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("OrganizationType")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -371,6 +381,54 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.Route", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("BaseFare")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MinimumBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OrganizationId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("PenaltyAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PerKmFare")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TripEndPlace")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TripStartPlace")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("Routes");
                 });
 
             modelBuilder.Entity("GoBangladesh.Domain.Entities.Session", b =>
@@ -592,6 +650,9 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Designation")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("EmailAddress")
                         .HasColumnType("nvarchar(max)");
 
@@ -656,6 +717,21 @@ namespace GoBangladesh.Infra.Data.Migrations
                         .WithMany()
                         .HasForeignKey("OrganizationId");
 
+                    b.HasOne("GoBangladesh.Domain.Entities.Route", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Route");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.Card", b =>
+                {
+                    b.HasOne("GoBangladesh.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId");
+
                     b.Navigation("Organization");
                 });
 
@@ -672,6 +748,15 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Navigation("Card");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("GoBangladesh.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("GoBangladesh.Domain.Entities.Session", b =>

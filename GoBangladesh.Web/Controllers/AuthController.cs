@@ -26,14 +26,6 @@ namespace GoBangladesh.Web.Controllers
             var response = _authService.Authenticate(model);
             return Ok(new {data = response});
         }
-        
-        [AllowAnonymous]
-        [HttpPost("sendOtp")]
-        public IActionResult SendOtp([FromBody] OtpDto otpDto)
-        {
-            var response = _otpService.SendOtp(otpDto.MobileNumber);
-            return Ok(new {data = response});
-        }
 
         [Authorize]
         [ApiExplorerSettings(IgnoreApi = true)]

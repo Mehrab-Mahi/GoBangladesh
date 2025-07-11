@@ -7,4 +7,5 @@ public interface ITransactionService
 {
     PayloadResponse Recharge(RechargeRequest model);
     PayloadResponse Tap(TapRequest tap);
+    PayloadResponse ForceTripStop(ForceStopTripDto forceStop);
 }

@@ -10,4 +10,7 @@ public interface IAgentService
     PayloadResponse GetAgentById(string id);
     PayloadResponse GetAll(AgentDataFilter filter);
     PayloadResponse Delete(string id);
+    PayloadResponse GetRechargeData(string id);
+    PayloadResponse GetAllForDropDown(string organizationId);
+    PayloadResponse GetStatistics();
 }

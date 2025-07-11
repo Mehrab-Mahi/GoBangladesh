@@ -16,5 +16,7 @@ public class AgentDto
     public string ImageUrl { get; set; }
     public string Code { get; set; }
     public string OrganizationId { get; set; }
+    public DateTime CreateTime { get; set; }
+    public DateTime LastModifiedTime { get; set; }
     public Domain.Entities.Organization Organization { get; set; }
 }

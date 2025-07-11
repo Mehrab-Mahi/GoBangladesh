@@ -31,4 +31,44 @@ public class SessionController : Controller
         var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("GetSessionStatistics")]
+    public IActionResult GetSessionStatistics(string sessionId)
+    {
+        var data = _sessionService.GetSessionStatistics(sessionId);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("ForceStopSession")]
+    public IActionResult ForceStopSession([FromBody] SessionStopDto sessionStopDto)
+    {
+        var data = _sessionService.StopSession(sessionStopDto);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("CheckIfSessionRunning")]
+    public IActionResult CheckIfSessionRunning(string sessionId)
+    {
+        var data = _sessionService.CheckIfSessionRunning(sessionId);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpGet("getStatistics")]
+    public IActionResult GetStatistics(string sessionId)
+    {
+        var data = _sessionService.GetStatistics(sessionId);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpGet("CheckIfSessionRunningForLoggedInUser")]
+    public IActionResult CheckIfSessionRunningForLoggedInUser(string userId)
+    {
+        var data = _sessionService.CheckIfSessionRunningForLoggedInUser(userId);
+        return Ok(new { data });
+    }
 }

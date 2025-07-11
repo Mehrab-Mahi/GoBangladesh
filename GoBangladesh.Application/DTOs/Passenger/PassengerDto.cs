@@ -18,4 +18,6 @@ public class PassengerDto
     public Domain.Entities.Organization Organization { get; set; }
     public string CardNumber { get; set; }
     public decimal Balance { get; set; } = 0;
+    public DateTime CreateTime { get; set; }
+    public DateTime LastModifiedTime { get; set; }
 }
