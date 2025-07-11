@@ -71,5 +71,13 @@ namespace GoBangladesh.Web.Controllers
             var data = _agentService.GetAllForDropDown(organizationId);
             return Ok(new { data });
         }
+        
+        [GoBangladeshAuth]
+        [HttpGet("getStatistics")]
+        public IActionResult GetStatistics()
+        {
+            var data = _agentService.GetStatistics();
+            return Ok(new { data });
+        }
     }
 }

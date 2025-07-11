@@ -15,7 +15,7 @@ public class OrganizationDataDto
     public DateTime CreateTime { get; set; }
     public DateTime LastModifiedTime { get; set; }
     public int TotalBus { get; set; } = 0;
-    public int TotalDriver { get; set; } = 0;
+    public int TotalStaff { get; set; } = 0;
     public int TotalAgent { get; set; } = 0;
     public int TotalPassenger { get; set; } = 0;
 }

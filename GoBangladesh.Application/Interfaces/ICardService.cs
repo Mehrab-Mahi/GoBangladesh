@@ -11,4 +11,5 @@ public interface ICardService
     Card GetCardDetailByCardNumber(string cardNumber);
     void UpdateCard(Card card);
     void UpdateCardStatus(string cardNumber, string status);
+    PayloadResponse CheckCardAvailability(string cardNumber);
 }

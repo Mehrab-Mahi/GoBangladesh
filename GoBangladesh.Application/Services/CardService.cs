@@ -129,4 +129,38 @@ public class CardService : ICardService
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
     }
+
+    public PayloadResponse CheckCardAvailability(string cardNumber)
+    {
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber && c.Status == CardStatus.InUse);
+
+        if (card != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Message = "Card is available"
+            };
+        }
+
+        var passenger = _userRepository.GetConditional(p => p.CardNumber == cardNumber);
+
+        if (passenger != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Message = "Card is available"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = false,
+            PayloadType = "Card",
+            Message = "Card is not valid!"
+        };
+    }
 }

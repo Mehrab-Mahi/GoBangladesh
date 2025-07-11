@@ -439,16 +439,18 @@ public class OrganizationService : IOrganizationService
                 };
             }
 
-            List<ValueLabel> organizationData;
+            List<OrganizationDropdownDto> organizationData;
 
             if (currentUser.IsSuperAdmin)
             {
                 organizationData = _organizationRepository
                     .GetAll()
-                    .Select(o => new ValueLabel()
+                    .Select(o => new OrganizationDropdownDto()
                     {
-                        Value = o.Id,
-                        Label = o.Name
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
                     })
                     .ToList();
             }
@@ -467,10 +469,12 @@ public class OrganizationService : IOrganizationService
                 organizationData = _organizationRepository
                     .GetAll()
                     .Where(org => org.Id == currentUser.OrganizationId)
-                    .Select(o => new ValueLabel()
+                    .Select(o => new OrganizationDropdownDto()
                     {
-                        Value = o.Id,
-                        Label = o.Name
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
                     })
                     .ToList();
             }

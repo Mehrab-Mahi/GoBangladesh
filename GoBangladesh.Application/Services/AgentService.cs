@@ -475,4 +475,59 @@ public class AgentService : IAgentService
             };
         }
     }
+
+    public PayloadResponse GetStatistics()
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null || currentUser.UserType != UserTypes.Agent)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Agent",
+                Message = currentUser == null ?
+                    "No user found" :
+                    "User is not an agent!"
+            };
+        }
+
+        var query = $@"SELECT
+                        SUM(CASE
+                                WHEN CreateTime >= CAST(GETUTCDATE() AS DATE)
+                                     AND CreateTime < DATEADD(DAY, 1, CAST(GETUTCDATE() AS DATE))
+                                THEN 1 ELSE 0
+                            END) AS TotalTransactionsToday,
+                        SUM(CASE
+                                WHEN CreateTime >= CAST(GETUTCDATE() AS DATE)
+                                     AND CreateTime < DATEADD(DAY, 1, CAST(GETUTCDATE() AS DATE))
+                                THEN Amount ELSE 0
+                            END) AS TotalAmountToday,
+                        SUM(CASE
+                                WHEN CreateTime >= DATEADD(DAY, 1 - DAY(GETUTCDATE()), CAST(GETUTCDATE() AS DATE))
+                                     AND CreateTime < DATEADD(MONTH, 1, DATEADD(DAY, 1 - DAY(GETUTCDATE()), CAST(GETUTCDATE() AS DATE)))
+                                THEN 1 ELSE 0
+                            END) AS TotalTransactionsThisMonth,
+                        SUM(CASE
+                                WHEN CreateTime >= DATEADD(DAY, 1 - DAY(GETUTCDATE()), CAST(GETUTCDATE() AS DATE))
+                                     AND CreateTime < DATEADD(MONTH, 1, DATEADD(DAY, 1 - DAY(GETUTCDATE()), CAST(GETUTCDATE() AS DATE)))
+                                THEN Amount ELSE 0
+                            END) AS TotalAmountThisMonth
+                    FROM Transactions
+                    WHERE
+                        TransactionType = 'Recharge'
+                        AND CreatedBy = '{currentUser.Id}'
+                        AND CreateTime >= DATEADD(MONTH, -1, CAST(GETUTCDATE() AS DATE));";
+
+        var statData = _baseRepository
+            .Query<AgentStatistics>(query);
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Agent",
+            Content = statData,
+            Message = "Agent stat found"
+        };
+    }
 }

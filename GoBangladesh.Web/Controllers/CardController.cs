@@ -1,4 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs.Card;
+using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,14 @@ public class CardController : Controller
     public IActionResult CheckCardValidity(string cardNumber)
     {
         var data = _cardService.CheckCardValidity(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("CheckCardAvailability")]
+    public IActionResult CheckCardAvailability(string cardNumber)
+    {
+        var data = _cardService.CheckCardAvailability(cardNumber);
         return Ok(new { data });
     }
 }

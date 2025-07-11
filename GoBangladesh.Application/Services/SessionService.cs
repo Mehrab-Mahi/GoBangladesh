@@ -1,5 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Session;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -14,16 +15,19 @@ public class SessionService : ISessionService
     private readonly IRepository<Session> _sessionRepository;
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Trip> _tripRepository;
+    private readonly IBaseRepository _baseRepository;
 
     public SessionService(ILoggedInUserService loggedInUserService,
         IRepository<Session> sessionRepository, 
         IRepository<User> userRepository,
-        IRepository<Trip> tripRepository)
+        IRepository<Trip> tripRepository,
+        IBaseRepository baseRepository)
     {
         _loggedInUserService = loggedInUserService;
         _sessionRepository = sessionRepository;
         _userRepository = userRepository;
         _tripRepository = tripRepository;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse StartSession(SessionStartDto sessionStartDto)
@@ -191,6 +195,64 @@ public class SessionService : ISessionService
                 Message = $"Session stat fetching failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse CheckIfSessionRunning(string sessionId)
+    {
+        var session = _sessionRepository.GetConditional(s => s.Id == sessionId && s.IsRunning);
+
+        if (session == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Session",
+                Message = "No running session found!"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Session",
+            Message = "Session is running!"
+        };
+    }
+
+    public PayloadResponse GetStatistics(string sessionId)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser is not { UserType: UserTypes.Staff })
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Staff",
+                Message = currentUser == null ?
+                    "No user found" :
+                    "User is not a staff!"
+            };
+        }
+
+        var query = $@"select count(distinct t.PassengerId)                       TotalPassenger,
+                           count(t.Id)                                      as TotalTapIn,
+                           sum(case when t.IsRunning = 0 then 1 else 0 end) as TotalTapOut,
+                           sum(t.Amount)                                    as TotalRevenue
+                    from Sessions s
+                             left join Trips t on s.Id = t.SessionId
+                    where s.Id = '{sessionId}'";
+
+        var statData = _baseRepository
+            .Query<SessionStatistics>(query);
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Agent",
+            Content = statData,
+            Message = "Agent stat found"
+        };
     }
 
     private int GetSerialNumberForSession()

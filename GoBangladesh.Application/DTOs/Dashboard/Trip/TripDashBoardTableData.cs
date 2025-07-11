@@ -9,6 +9,7 @@ public class TripDashBoardTableData
     public string Route { get; set; }
     public string BusNumber { get; set; }
     public string CardNumber { get; set; }
+    public string PassengerName { get; set; }
     public DateTime TripStartTime { get; set; }
     public DateTime? TripEndTime { get; set; }
     public string StartingLatitude { get; set; }

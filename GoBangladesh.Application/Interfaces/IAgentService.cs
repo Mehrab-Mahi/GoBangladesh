@@ -12,4 +12,5 @@ public interface IAgentService
     PayloadResponse Delete(string id);
     PayloadResponse GetRechargeData(string id);
     PayloadResponse GetAllForDropDown(string organizationId);
+    PayloadResponse GetStatistics();
 }

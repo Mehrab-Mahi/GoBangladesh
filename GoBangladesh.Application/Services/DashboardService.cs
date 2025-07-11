@@ -424,6 +424,7 @@ public class DashboardService : IDashboardService
                                r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                                b.BusNumber,
                                u.CardNumber,
+                               u.Name as PassengerName,
                                t.TripStartTime,
                                t.TripEndTime,
                                t.StartingLatitude,
