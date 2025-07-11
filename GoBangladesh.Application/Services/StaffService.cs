@@ -281,6 +281,7 @@ public class StaffService : IStaffService
                     CreateTime = staff.CreateTime,
                     LastModifiedTime = staff.LastModifiedTime
                 })
+                .OrderByDescending(s => s.CreateTime)
                 .ToList();
 
             return new PayloadResponse()

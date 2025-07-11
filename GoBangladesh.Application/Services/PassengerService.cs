@@ -331,6 +331,7 @@ public class PassengerService : IPassengerService
                     CreateTime = passenger.CreateTime,
                     LastModifiedTime = passenger.LastModifiedTime
                 })
+                .OrderByDescending(p => p.CreateTime)
                 .ToList();
 
             return new PayloadResponse()
@@ -401,6 +402,7 @@ public class PassengerService : IPassengerService
                 .Where(t => t.PassengerId == currentUser.Id && t.IsRunning)
                 .Include(t => t.Session)
                 .Include(t => t.Session.Bus)
+                .Include(t => t.Session.Bus.Route)
                 .FirstOrDefault();
 
             if (trip == null)

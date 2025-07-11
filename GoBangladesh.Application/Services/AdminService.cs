@@ -284,6 +284,7 @@ public class AdminService : IAdminService
                     LastModifiedTime = admin.LastModifiedTime,
                     Designation = admin.Designation
                 })
+                .OrderByDescending(a => a.CreateTime)
                 .ToList();
 
             return new PayloadResponse()

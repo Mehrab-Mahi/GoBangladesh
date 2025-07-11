@@ -284,6 +284,7 @@ public class AgentService : IAgentService
                     CreateTime = agent.CreateTime,
                     LastModifiedTime = agent.LastModifiedTime
                 })
+                .OrderByDescending(a => a.CreateTime)
                 .ToList();
 
             return new PayloadResponse()
