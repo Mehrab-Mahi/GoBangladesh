@@ -1,6 +1,8 @@
-﻿using GoBangladesh.Application.DTOs.Card;
+﻿using GoBangladesh.Application.DTOs.Bus;
+using GoBangladesh.Application.DTOs.Card;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,6 +39,14 @@ public class CardController : Controller
     public IActionResult GetById(string id)
     {
         var data = _cardService.GetById(id);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] CardDataFilter filter)
+    {
+        var data = _cardService.GetAll(filter);
         return Ok(new { data });
     }
 

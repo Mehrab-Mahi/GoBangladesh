@@ -96,6 +96,7 @@ public class RouteService : IRouteService
             route.BaseFare = model.BaseFare;
             route.MinimumBalance = model.MinimumBalance;
             route.PenaltyAmount = model.PenaltyAmount;
+            route.OrganizationId = model.OrganizationId;
 
             _routeRepository.Update(route);
             _routeRepository.SaveChanges();

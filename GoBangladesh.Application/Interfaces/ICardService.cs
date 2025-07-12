@@ -15,4 +15,5 @@ public interface ICardService
     PayloadResponse CardUpdate(CardUpdateRequest model);
     PayloadResponse GetById(string id);
     PayloadResponse Delete(string id);
+    PayloadResponse GetAll(CardDataFilter filter);
 }

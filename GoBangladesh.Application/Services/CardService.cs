@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs.Card;
 using GoBangladesh.Application.Interfaces;
@@ -15,14 +16,17 @@ public class CardService : ICardService
     private readonly IRepository<Card> _cardRepository;
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
+    private readonly ICommonService _commonService;
 
     public CardService(IRepository<Card> cardRepository,
         IRepository<User> userRepository,
-        ILoggedInUserService loggedInUserService)
+        ILoggedInUserService loggedInUserService,
+        ICommonService commonService)
     {
         _cardRepository = cardRepository;
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
+        _commonService = commonService;
     }
 
     public PayloadResponse CardInsert(CardCreateRequest model)
@@ -299,6 +303,85 @@ public class CardService : ICardService
                 IsSuccess = false,
                 PayloadType = "Card",
                 Message = $"Card deletion has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetAll(CardDataFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Card",
+                    Message = "Card not found"
+                };
+            }
+
+            var condition = new List<string>();
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Card",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
+
+                filter.OrganizationId = currentUser.OrganizationId;
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" (CardNumber like '%{filter.SearchQuery}%' or Status like '%{filter.SearchQuery}%') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Cards", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<Bus>("Cards", whereCondition, extraCondition);
+
+            var cardIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var cardData = _cardRepository.GetAll()
+                .Where(u => cardIds.Contains(u.Id))
+                .Include(u => u.Organization)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Content = new { data = cardData, rowCount },
+                Message = "Card data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"Card fetching is failed because {ex.Message}!"
             };
         }
     }
