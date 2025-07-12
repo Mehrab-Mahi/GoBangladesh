@@ -228,6 +228,18 @@ public class CardService : ICardService
                 };
             }
 
+            if (card.CardNumber != model.CardNumber)
+            {
+                if (IfDuplicateCard(model.CardNumber))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "Duplicate card number!"
+                    };
+                }
+            }
+
             card.CardNumber = model.CardNumber;
 
             _cardRepository.Update(card);
