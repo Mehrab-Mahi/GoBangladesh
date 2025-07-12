@@ -17,16 +17,19 @@ public class BusService : IBusService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IRepository<Session> _sessionRepository;
+    private readonly IBaseRepository _baseRepository;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
-        IRepository<Session> sessionRepository)
+        IRepository<Session> sessionRepository,
+        IBaseRepository baseRepository)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _sessionRepository = sessionRepository;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -138,6 +141,26 @@ public class BusService : IBusService
                 .Include(o => o.Route)
                 .FirstOrDefault();
 
+            var busDataQuery = $@"select b.*,
+                                       count(distinct s.Id) as TotalSession,
+                                       count(distinct u.Id) as TotalPassenger,
+                                       sum(t.Amount)        as TotalRevenue
+                                from Buses b
+                                         left join Sessions s on b.id = s.BusId
+                                         left join Trips t on s.Id = t.SessionId
+                                         left join Users u on t.PassengerId = u.Id and u.UserType in ('Public', 'Private')
+                                where b.Id = '{id}'
+                                group by b.Id, b.BusNumber, b.BusName, b.OrganizationId, b.CreateTime, b.LastModifiedTime, b.CreatedBy,
+                                         b.LastModifiedBy, b.IsDeleted, b.PresentLatitude, b.PresentLongitude, b.RouteId";
+
+            var busData = _baseRepository.Query<BusDataDto>(busDataQuery).FirstOrDefault();
+
+            if (busData != null && bus != null)
+            {
+                busData.Route = bus.Route;
+                busData.Organization = bus.Organization;
+            }
+
             if (bus == null)
             {
                 return new PayloadResponse()
@@ -152,7 +175,7 @@ public class BusService : IBusService
             {
                 IsSuccess = true,
                 PayloadType = "Bus",
-                Content = bus,
+                Content = busData,
                 Message = "Bus has been found"
             };
         }

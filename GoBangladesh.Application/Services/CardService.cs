@@ -242,6 +242,11 @@ public class CardService : ICardService
 
             card.CardNumber = model.CardNumber;
 
+            if (!string.IsNullOrEmpty(model.OrganizationId))
+            {
+                card.OrganizationId = model.OrganizationId;
+            }
+
             _cardRepository.Update(card);
             _cardRepository.SaveChanges();
 
