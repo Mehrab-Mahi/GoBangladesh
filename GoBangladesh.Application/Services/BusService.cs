@@ -16,14 +16,17 @@ public class BusService : IBusService
     private readonly IRepository<Bus> _busRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IRepository<Session> _sessionRepository;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IRepository<Session> sessionRepository)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _sessionRepository = sessionRepository;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -406,7 +409,11 @@ public class BusService : IBusService
                 };
             }
 
-            var allBus = _busRepository.GetAll();
+            var allBus = _sessionRepository
+                .GetAll()
+                .Where(s => s.IsRunning)
+                .Include(s => s.Bus)
+                .Select(b => b.Bus);
 
             if (currentUser.IsSuperAdmin)
             {

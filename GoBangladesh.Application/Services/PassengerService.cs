@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.Util;
 using Microsoft.EntityFrameworkCore;
+using GoBangladesh.Application.DTOs.Card;
 
 namespace GoBangladesh.Application.Services;
 
@@ -52,6 +53,22 @@ public class PassengerService : IPassengerService
             user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
             user.UserType = card.Organization.OrganizationType;
             user.Balance = card.Balance;
+        }
+
+        if (user.UserType == UserTypes.Private)
+        {
+            var card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+
+            if (card is null)
+            {
+                var cardInsertRequest = new CardCreateRequest()
+                {
+                    CardNumber = user.CardNumber,
+                    OrganizationId = user.OrganizationId,
+                    Status = CardStatus.InUse
+                };
+                _cardService.CardInsert(cardInsertRequest);
+            }
         }
 
         try

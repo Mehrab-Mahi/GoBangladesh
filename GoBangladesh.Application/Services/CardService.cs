@@ -65,9 +65,9 @@ public class CardService : ICardService
             var card = new Card()
             {
                 CardNumber = model.CardNumber,
-                Status = CardStatus.NotUsed,
+                Status = string.IsNullOrEmpty(model.Status) ? CardStatus.NotUsed : model.Status,
                 Balance = 0,
-                OrganizationId = currentUser.OrganizationId
+                OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ? currentUser.OrganizationId : model.OrganizationId
             };
 
             _cardRepository.Insert(card);
@@ -180,7 +180,7 @@ public class CardService : ICardService
 
     public PayloadResponse CheckCardAvailability(string cardNumber)
     {
-        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber && c.Status == CardStatus.InUse);
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
 
         if (card != null)
         {
