@@ -51,6 +51,7 @@ public class PassengerService : IPassengerService
             user.CardNumber = card.CardNumber;
             user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
             user.UserType = card.Organization.OrganizationType;
+            user.Balance = card.Balance;
         }
 
         try
@@ -66,7 +67,8 @@ public class PassengerService : IPassengerService
                 UserType = user.UserType,
                 PassengerId = user.PassengerId,
                 OrganizationId = user.OrganizationId,
-                CardNumber = user.CardNumber
+                CardNumber = user.CardNumber,
+                Balance = user.Balance
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();

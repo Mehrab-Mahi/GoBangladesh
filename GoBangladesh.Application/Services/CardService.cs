@@ -53,6 +53,15 @@ public class CardService : ICardService
                 };
             }
 
+            if(IfDuplicateCard(model.CardNumber))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Duplicate card number!"
+                };
+            }
+
             var card = new Card()
             {
                 CardNumber = model.CardNumber,
@@ -80,6 +89,13 @@ public class CardService : ICardService
                 Message = $"Card insertion has been failed because {ex.Message}!"
             };
         }
+    }
+
+    private bool IfDuplicateCard(string cardNumber)
+    {
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+
+        return card != null;
     }
 
     public PayloadResponse CheckCardValidity(string cardNumber)
@@ -259,6 +275,7 @@ public class CardService : ICardService
             {
                 IsSuccess = true,
                 PayloadType = "Card",
+                Content = card,
                 Message = "Card data has been fetched successfully!"
             };
         }
