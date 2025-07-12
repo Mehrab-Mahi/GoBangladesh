@@ -50,6 +50,7 @@ public class PassengerService : IPassengerService
             var card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
             user.CardNumber = card.CardNumber;
             user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
+            user.UserType = card.Organization.OrganizationType;
         }
 
         try

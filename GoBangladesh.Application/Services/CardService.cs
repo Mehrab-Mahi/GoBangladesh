@@ -131,7 +131,10 @@ public class CardService : ICardService
     public Card GetCardDetailByCardNumber(string cardNumber)
     {
         var card = _cardRepository
-            .GetConditional(c => c.CardNumber == cardNumber);
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c =>c.Organization)
+            .FirstOrDefault();
 
         return card;
     }
