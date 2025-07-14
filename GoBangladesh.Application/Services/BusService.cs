@@ -229,7 +229,7 @@ public class BusService : IBusService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%' or TripStartPlace like '%{filter.SearchQuery}%' or TripEndPlace like '%{filter.SearchQuery}%') ");
+                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
