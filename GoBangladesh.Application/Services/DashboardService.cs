@@ -277,7 +277,10 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
 
@@ -295,14 +298,17 @@ public class DashboardService : IDashboardService
                        select  t.Id                           as TransactionId,
                                o.Name                         as OrganizationName,
                                t.CreateTime                   as TransactionTime,
-                               p.PassengerId,
-                               p.Name                         as PassengerName,
-                               p.CardNumber                   as CardNumber,
+                               u.PassengerId,
+                               u.Name                         as PassengerName,
+                               c.CardNumber                   as CardNumber,
                                'Agent'                        as RechargeMedium,
                                a.Name                         as RechargerName,
                                t.Amount
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition} {extraCondition}";
 
@@ -317,11 +323,14 @@ public class DashboardService : IDashboardService
     {
         var query = $@"
                        select count(distinct a.Id) as TotalAgent,
-                               count(distinct p.Id) as TotalPassenger,
+                               count(distinct u.Id) as TotalPassenger,
                                count(t.Id) as TotalRecharge,
                                sum(t.Amount) as TotalAmount
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
 
@@ -403,10 +412,15 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
-                                 left join Buses b on s.BusId = b.Id {whereCondition}";
+                                 left join Buses b on s.BusId = b.Id
+                                 left join Routes r on b.RouteId = r.Id
+                                 {whereCondition}";
 
 
         var rowCount = _baseRepository
@@ -423,7 +437,7 @@ public class DashboardService : IDashboardService
                                o.Name                                    as OrganizationName,
                                r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                                b.BusNumber,
-                               u.CardNumber,
+                               c.CardNumber,
                                u.Name as PassengerName,
                                t.TripStartTime,
                                t.TripEndTime,
@@ -436,7 +450,10 @@ public class DashboardService : IDashboardService
                                case when t.IsRunning = 1 then 'Running'
                                 else 'Complete' end as Status
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id
@@ -458,7 +475,10 @@ public class DashboardService : IDashboardService
                                sum(t.Amount) as TotalFare,
                                count(distinct b.Id) as TotalBus
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on t.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id {whereCondition}";

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using GoBangladesh.Application.DTOs.Dashboard;
+using GoBangladesh.Application.DTOs;
 
 namespace GoBangladesh.Application.Services
 {
@@ -120,6 +121,54 @@ namespace GoBangladesh.Application.Services
             };
 
             return dateTimeFilter;
+        }
+
+        public List<PassengerCardMappingDto> GetUserListByCardIds(List<string> cardIds)
+        {
+            var query = $@"select u.*,c.Id as CardId, c.CardNumber as CardNumber from Cards c
+                        left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                        left join PassengerCardHistory pch on c.Id = pch.CardId
+                        left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                        where c.Id in ('{string.Join("','", cardIds)}')";
+            var userList = _baseRepository.Query<PassengerCardMappingDto>(query);
+
+            return userList;
+        }
+
+        public User GetPassengerDataFromMappingDto(PassengerCardMappingDto passengerCardMappingDto)
+        {
+            if (passengerCardMappingDto == null)
+            {
+                return null;
+            }
+
+            return new User()
+            {
+                Id = passengerCardMappingDto.Id,
+                Name = passengerCardMappingDto.Name,
+                EmailAddress = passengerCardMappingDto.EmailAddress,
+                MobileNumber = passengerCardMappingDto.MobileNumber,
+                DateOfBirth = passengerCardMappingDto.DateOfBirth,
+                Gender = passengerCardMappingDto.Gender,
+                UserType = passengerCardMappingDto.UserType,
+                PassengerId = passengerCardMappingDto.PassengerId,
+                OrganizationId = passengerCardMappingDto.OrganizationId,
+                Code = passengerCardMappingDto.Code,
+                Designation = passengerCardMappingDto.Designation,
+                CreateTime = passengerCardMappingDto.CreateTime,
+            };
+        }
+
+        public List<string> GetCardIdsFromPassengerId(string passengerId)
+        {
+            var query = $@"select c.Id as CardId from Cards c
+                        left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                        left join PassengerCardHistory pch on c.Id = pch.CardId
+                        left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                        where U.Id '{passengerId}'";
+            var cardIds = _baseRepository.Query<string>(query);
+
+            return cardIds;
         }
 
         private string GetFileName(string fileName)

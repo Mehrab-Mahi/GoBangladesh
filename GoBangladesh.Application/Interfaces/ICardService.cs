@@ -16,4 +16,7 @@ public interface ICardService
     PayloadResponse GetById(string id);
     PayloadResponse Delete(string id);
     PayloadResponse GetAll(CardDataFilter filter);
+    void MapUserWithCard(string passengerId, string cardId);
+    Card GetCardDataFromPassengerId(string id);
+    void MapUserWithCardHistory(string passengerId, string cardId);
 }

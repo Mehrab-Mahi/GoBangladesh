@@ -14,19 +14,22 @@ namespace GoBangladesh.Application.Services;
 public class CardService : ICardService
 {
     private readonly IRepository<Card> _cardRepository;
-    private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IRepository<PassengerCardMapping> _passengerCardMappingRepository;
+    private readonly IRepository<PassengerCardHistory> _passengerCardHistoryRepository;
 
     public CardService(IRepository<Card> cardRepository,
-        IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IRepository<PassengerCardMapping> passengerCardMappingRepository,
+        IRepository<PassengerCardHistory> passengerCardHistoryRepository)
     {
         _cardRepository = cardRepository;
-        _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _passengerCardMappingRepository = passengerCardMappingRepository;
+        _passengerCardHistoryRepository = passengerCardHistoryRepository;
     }
 
     public PayloadResponse CardInsert(CardCreateRequest model)
@@ -77,6 +80,7 @@ public class CardService : ICardService
             {
                 IsSuccess = true,
                 PayloadType = "Card",
+                Content = card,
                 Message = "Card has been inserted successfully!"
             };
         }
@@ -109,20 +113,6 @@ public class CardService : ICardService
                 IsSuccess = false,
                 PayloadType = "Card",
                 Message = "Card not found!"
-            };
-        }
-
-        var passenger = _userRepository
-            .GetAll()
-            .FirstOrDefault(u => u.CardNumber == cardNumber);
-
-        if (passenger != null)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Card",
-                Message = "This card is already in use!"
             };
         }
 
@@ -183,18 +173,6 @@ public class CardService : ICardService
         var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
 
         if (card != null)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Card",
-                Message = "Card is available"
-            };
-        }
-
-        var passenger = _userRepository.GetConditional(p => p.CardNumber == cardNumber);
-
-        if (passenger != null)
         {
             return new PayloadResponse()
             {
@@ -421,5 +399,38 @@ public class CardService : ICardService
                 Message = $"Card fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    public void MapUserWithCard(string passengerId, string cardId)
+    {
+        _passengerCardMappingRepository.Insert(new PassengerCardMapping()
+        {
+            UserId = passengerId,
+            CardId = cardId
+        });
+
+        _passengerCardMappingRepository.SaveChanges();
+    }
+
+    public Card GetCardDataFromPassengerId(string id)
+    {
+        var data = _passengerCardMappingRepository
+            .GetAll()
+            .Where(c => c.UserId == id)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        return data?.Card;
+    }
+
+    public void MapUserWithCardHistory(string passengerId, string cardId)
+    {
+        _passengerCardHistoryRepository.Insert(new PassengerCardHistory()
+        {
+            UserId = passengerId,
+            CardId = cardId
+        });
+
+        _passengerCardHistoryRepository.SaveChanges();
     }
 }

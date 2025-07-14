@@ -13,21 +13,26 @@ public class HistoryService : IHistoryService
 {
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly IRepository<Trip> _tripRepository;
+    private readonly ICommonService _commonService;
 
     public HistoryService(IRepository<Transaction> transactionRepository, 
-        IRepository<Trip> tripRepository)
+        IRepository<Trip> tripRepository,
+        ICommonService commonService)
     {
         _transactionRepository = transactionRepository;
         _tripRepository = tripRepository;
+        _commonService = commonService;
     }
 
     public PayloadResponse PassengerHistory(string id, int pageNo, int pageSize)
     {
         try
         {
+            var cardIds = _commonService.GetCardIdsFromPassengerId(id);
+
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => p.PassengerId == id)
+                .Where(p => cardIds.Contains(p.CardId))
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
@@ -55,6 +60,75 @@ public class HistoryService : IHistoryService
             };
         }
     }
+    
+    public PayloadResponse PassengerRechargeHistory(string id, int pageNo, int pageSize)
+    {
+        try
+        {
+            var cardIds = _commonService.GetCardIdsFromPassengerId(id);
+
+            var transactionHistory = _transactionRepository
+                .GetAll()
+                .Where(p => cardIds.Contains(p.CardId) && p.TransactionType == TransactionType.Recharge)
+                .OrderByDescending(t => t.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Include(t => t.Trip)
+                .Include(t => t.Trip.Session)
+                .Include(t => t.Trip.Session.Bus)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Passenger recharge transaction history",
+                Content = transactionHistory
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger recharge transaction history",
+                Message = $"Transaction history fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse PassengerTripHistory(string id, int pageNo, int pageSize)
+    {
+        try
+        {
+            var cardIds = _commonService.GetCardIdsFromPassengerId(id);
+
+            var transactionHistory = _transactionRepository
+                .GetAll()
+                .Where(p => cardIds.Contains(p.CardId) && p.TransactionType == TransactionType.BusFare)
+                .OrderByDescending(t => t.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Include(t => t.Agent)
+                .Include(t => t.Agent.Organization)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Passenger recharge transaction history",
+                Content = transactionHistory
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger recharge transaction history",
+                Message = $"Transaction history fetching failed because {ex.Message}"
+            };
+        }
+    }
 
     public PayloadResponse AgentHistory(string id, int pageNo, int pageSize)
     {
@@ -66,8 +140,17 @@ public class HistoryService : IHistoryService
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Passenger)
+                .Include(t => t.Card)
                 .ToList();
+
+            var userList = _commonService.GetUserListByCardIds(transactionHistory.Select(t => t.CardId).ToList());
+
+            foreach (var history in transactionHistory)
+            {
+                var passenger = userList.FirstOrDefault(u => u.CardId == history.CardId);
+                history.Passenger = _commonService.GetPassengerDataFromMappingDto(passenger);
+                history.PassengerId = history.Passenger?.Id;
+            }
 
             return new PayloadResponse()
             {
@@ -97,8 +180,17 @@ public class HistoryService : IHistoryService
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Passenger)
+                .Include(t => t.Card)
                 .ToList();
+
+            var userList = _commonService.GetUserListByCardIds(tripHistory.Select(t => t.CardId).ToList());
+
+            foreach (var history in tripHistory)
+            {
+                var passenger = userList.FirstOrDefault(u => u.CardId == history.CardId);
+                history.Passenger = _commonService.GetPassengerDataFromMappingDto(passenger);
+                history.PassengerId = history.Passenger?.Id;
+            }
 
             return new PayloadResponse()
             {
