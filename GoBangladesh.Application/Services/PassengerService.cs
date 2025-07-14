@@ -74,7 +74,7 @@ public class PassengerService : IPassengerService
                     OrganizationId = user.OrganizationId,
                     Status = CardStatus.InUse
                 };
-                card = _cardService.CardInsert(cardInsertRequest).Content;
+                card = _cardService.CardInsertForPrivatePassenger(cardInsertRequest).Content;
             }
         }
 

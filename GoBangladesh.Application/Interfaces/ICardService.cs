@@ -19,4 +19,5 @@ public interface ICardService
     void MapUserWithCard(string passengerId, string cardId);
     Card GetCardDataFromPassengerId(string id);
     void MapUserWithCardHistory(string passengerId, string cardId);
+    PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model);
 }

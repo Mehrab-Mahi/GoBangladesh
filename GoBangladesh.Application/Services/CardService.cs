@@ -433,4 +433,47 @@ public class CardService : ICardService
 
         _passengerCardHistoryRepository.SaveChanges();
     }
+
+    public PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model)
+    {
+        try
+        {
+            if (IfDuplicateCard(model.CardNumber))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Duplicate card number!"
+                };
+            }
+
+            var card = new Card()
+            {
+                CardNumber = model.CardNumber,
+                Status = string.IsNullOrEmpty(model.Status) ? CardStatus.NotUsed : model.Status,
+                Balance = 0,
+                OrganizationId = model.OrganizationId
+            };
+
+            _cardRepository.Insert(card);
+            _cardRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Content = card,
+                Message = "Card has been inserted successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"Card insertion has been failed because {ex.Message}!"
+            };
+        }
+    }
 }
