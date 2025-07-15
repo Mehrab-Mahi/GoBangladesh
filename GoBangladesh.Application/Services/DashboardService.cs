@@ -454,10 +454,10 @@ public class DashboardService : IDashboardService
                                  left join PassengerCardHistory pch on c.Id = pch.CardId
                                  left join PassengerCardMappings pcm on c.Id = pcm.CardId
                                  left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
-                                 left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id
                                  left join Routes r on b.RouteId = r.Id
+                                 left join Organizations o on b.OrganizationId = o.Id
                                  {whereCondition} {extraCondition}";
 
 

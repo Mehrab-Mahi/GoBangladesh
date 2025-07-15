@@ -426,6 +426,20 @@ public class PassengerService : IPassengerService
                 .Include(t => t.Session)
                 .Include(t => t.Session.Bus)
                 .Include(t => t.Session.Bus.Route)
+                .Select(t => new OnGoingTripDto()
+                {
+                    BusName = t.Session.Bus.BusName,
+                    BusNumber = t.Session.Bus.BusNumber,
+                    CardId = t.CardId,
+                    IsRunning = t.IsRunning,
+                    PenaltyAmount = t.Session.Bus.Route.PenaltyAmount,
+                    SessionId = t.SessionId,
+                    StartingLatitude = t.StartingLatitude,
+                    StartingLongitude = t.StartingLongitude,
+                    TripStartPlace = t.Session.Bus.Route.TripStartPlace,
+                    TripEndPlace = t.Session.Bus.Route.TripEndPlace,
+                    TripStartTime = t.TripStartTime
+                })
                 .FirstOrDefault();
 
             if (trip == null)
@@ -459,7 +473,19 @@ public class PassengerService : IPassengerService
 
     private bool IfDuplicateUser(PassengerCreateRequest model)
     {
-        var user = _userRepository
+        User user;
+
+        if (!string.IsNullOrEmpty(model.EmailAddress))
+        {
+            user = _userRepository
+                .GetAll()
+                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress);
+
+            return user is not null;
+        }
+
+        user = _userRepository
             .GetAll()
             .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
 

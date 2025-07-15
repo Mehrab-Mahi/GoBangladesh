@@ -141,14 +141,18 @@ public class BusService : IBusService
                 .Include(o => o.Route)
                 .FirstOrDefault();
 
-            var busDataQuery = $@"select b.*,
+            var busDataQuery = $@"
+                                select b.*,
                                        count(distinct s.Id) as TotalSession,
                                        count(distinct u.Id) as TotalPassenger,
                                        sum(t.Amount)        as TotalRevenue
                                 from Buses b
                                          left join Sessions s on b.id = s.BusId
                                          left join Trips t on s.Id = t.SessionId
-                                         left join Users u on t.PassengerId = u.Id and u.UserType in ('Public', 'Private')
+                                         left join Cards c on t.CardId = c.Id
+                                         left join PassengerCardHistory pch on c.Id = pch.CardId
+                                         left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                         left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                 where b.Id = '{id}'
                                 group by b.Id, b.BusNumber, b.BusName, b.OrganizationId, b.CreateTime, b.LastModifiedTime, b.CreatedBy,
                                          b.LastModifiedBy, b.IsDeleted, b.PresentLatitude, b.PresentLongitude, b.RouteId";

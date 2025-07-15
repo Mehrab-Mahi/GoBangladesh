@@ -116,21 +116,35 @@ public class CardService : ICardService
             };
         }
 
-        if (card.Status == CardStatus.NotUsed)
+        var cardPassengerMapping = _passengerCardMappingRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerMapping != null)
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 PayloadType = "Card",
-                Message = "This card is available!"
+                Message = "Card is already registered!"
+            };
+        }
+
+        var cardPassengerHistory = _passengerCardHistoryRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerHistory != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card is already registered!"
             };
         }
 
         return new PayloadResponse()
         {
-            IsSuccess = false,
+            IsSuccess = true,
             PayloadType = "Card",
-            Message = "This card is not available!"
+            Message = "This card is available!"
         };
     }
 

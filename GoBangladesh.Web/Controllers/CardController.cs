@@ -56,6 +56,7 @@ public class CardController : Controller
         return Ok(new { data });
     }
 
+    //while registration
     [AllowAnonymous]
     [HttpGet("CheckCardValidity")]
     public IActionResult CheckCardValidity(string cardNumber)
