@@ -87,6 +87,10 @@ public class TransactionService : ITransactionService
     {
         if (card == null) { return; }
 
+        if (card.Status == CardStatus.NotUsed)
+        {
+            card.Status = CardStatus.InUse;
+        }
         card.Balance += model.Amount;
 
         _cardRepository.Update(card);
