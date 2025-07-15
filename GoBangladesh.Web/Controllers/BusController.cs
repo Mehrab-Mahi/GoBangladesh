@@ -73,9 +73,9 @@ public class BusController : Controller
     
     [GoBangladeshAuth]
     [HttpGet("getAllBusMapData")]
-    public IActionResult GetAllBusMapData(string organizationId)
+    public IActionResult GetAllBusMapData(string organizationId, string busId)
     {
-        var data = _busService.GetAllBusMapData(organizationId);
+        var data = _busService.GetAllBusMapData(organizationId, busId);
         return Ok(new { data });
     }
 }

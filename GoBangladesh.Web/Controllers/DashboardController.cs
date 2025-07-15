@@ -19,9 +19,9 @@ public class DashboardController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("GetDashboardData")]
-    public IActionResult GetDashboardData()
+    public IActionResult GetDashboardData(string organizationId)
     {
-        var data = _dashboardService.GetDashboardData();
+        var data = _dashboardService.GetDashboardData(organizationId);
         return Ok(new { data });
     }
     

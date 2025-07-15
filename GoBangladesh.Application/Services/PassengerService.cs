@@ -155,6 +155,11 @@ public class PassengerService : IPassengerService
                 }
             }
 
+            if (!string.IsNullOrEmpty(user.OrganizationId) && (user.OrganizationId != model.OrganizationId))
+            {
+                _cardService.UpdateCardOrganization(user.Id, user.OrganizationId);
+            }
+
             model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;

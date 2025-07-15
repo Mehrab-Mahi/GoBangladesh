@@ -27,7 +27,7 @@ public class DashboardService : IDashboardService
         _commonService = commonService;
     }
 
-    public PayloadResponse GetDashboardData()
+    public PayloadResponse GetDashboardData(string organizationId)
     {
         try
         {
@@ -38,6 +38,13 @@ public class DashboardService : IDashboardService
             if (!currentUser.IsSuperAdmin)
             {
                 whereCondition = $" where o.Id = '{currentUser.OrganizationId}'";
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(organizationId))
+                {
+                    whereCondition = $" where o.Id = '{currentUser.OrganizationId}'";
+                }
             }
 
             var dashboardQuery = $@"

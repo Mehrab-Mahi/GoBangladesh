@@ -420,7 +420,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllBusMapData(string organizationId)
+    public PayloadResponse GetAllBusMapData(string organizationId, string busId)
     {
         try
         {
@@ -441,6 +441,11 @@ public class BusService : IBusService
                 .Where(s => s.IsRunning)
                 .Include(s => s.Bus)
                 .Select(b => b.Bus);
+
+            if (!string.IsNullOrEmpty(busId))
+            {
+                allBus = allBus.Where(b => b.Id == busId);
+            }
 
             if (currentUser.IsSuperAdmin)
             {

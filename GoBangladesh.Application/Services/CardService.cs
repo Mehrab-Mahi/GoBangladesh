@@ -18,18 +18,27 @@ public class CardService : ICardService
     private readonly ICommonService _commonService;
     private readonly IRepository<PassengerCardMapping> _passengerCardMappingRepository;
     private readonly IRepository<PassengerCardHistory> _passengerCardHistoryRepository;
+    private readonly IBaseRepository _baseRepository;
+    private readonly IRepository<Organization> _organizationRepository;
+    private readonly IRepository<User> _userRepository;
 
     public CardService(IRepository<Card> cardRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
         IRepository<PassengerCardMapping> passengerCardMappingRepository,
-        IRepository<PassengerCardHistory> passengerCardHistoryRepository)
+        IRepository<PassengerCardHistory> passengerCardHistoryRepository, 
+        IBaseRepository baseRepository,
+        IRepository<Organization> organizationRepository, 
+        IRepository<User> userRepository)
     {
         _cardRepository = cardRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _passengerCardMappingRepository = passengerCardMappingRepository;
         _passengerCardHistoryRepository = passengerCardHistoryRepository;
+        _baseRepository = baseRepository;
+        _organizationRepository = organizationRepository;
+        _userRepository = userRepository;
     }
 
     public PayloadResponse CardInsert(CardCreateRequest model)
@@ -236,6 +245,11 @@ public class CardService : ICardService
 
             if (!string.IsNullOrEmpty(model.OrganizationId))
             {
+                if (!string.IsNullOrEmpty(model.OrganizationId) && (model.OrganizationId != card.OrganizationId))
+                {
+                    UpdateAllPassengersOrg(card.Id, model.OrganizationId);
+                }
+
                 card.OrganizationId = model.OrganizationId;
             }
 
@@ -257,6 +271,30 @@ public class CardService : ICardService
                 PayloadType = "Card",
                 Message = $"Card update has been failed because {ex.Message}!"
             };
+        }
+    }
+
+    private void UpdateAllPassengersOrg(string cardId, string organizationId)
+    {
+        var passengerIds = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.CardId == cardId)
+            .Select(p => p.UserId)
+            .ToList();
+
+        var passengerList = _userRepository.GetAll();
+
+        if (passengerIds.Any())
+        {
+            foreach (var passenger in passengerList)
+            {
+                var passengerData = passengerList.FirstOrDefault(p => p.Id == passenger.Id);
+                passengerData!.OrganizationId = organizationId;
+
+                _userRepository.Update(passengerData);
+            }
+
+            _userRepository.SaveChanges();
         }
     }
 
@@ -354,7 +392,7 @@ public class CardService : ICardService
             }
 
             var condition = new List<string>();
-            var extraCondition = $@"ORDER BY CreateTime desc
+            var extraCondition = $@"ORDER BY c.LastModifiedTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
@@ -375,26 +413,26 @@ public class CardService : ICardService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (CardNumber like '%{filter.SearchQuery}%' or Status like '%{filter.SearchQuery}%') ");
+                condition.Add($" (c.CardNumber like '%{filter.SearchQuery}%' or c.Status like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
             {
-                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+                condition.Add($" c.OrganizationId = '{filter.OrganizationId}'");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
-            var rowCount = _commonService.GetRowCountForData("Cards", whereCondition);
+            var rowCount = _commonService.GetRowCountForData("Cards c", whereCondition);
 
-            var finalQueryData = _commonService.GetFinalData<Bus>("Cards", whereCondition, extraCondition);
+            var cardData = GetAllCardData(whereCondition, extraCondition);
 
-            var cardIds = finalQueryData.Select(q => q.Id).ToList();
+            var allOrg = _organizationRepository.GetAll();
 
-            var cardData = _cardRepository.GetAll()
-                .Where(u => cardIds.Contains(u.Id))
-                .Include(u => u.Organization)
-                .ToList();
+            foreach (var data in cardData)
+            {
+                data.Organization = allOrg.FirstOrDefault(o => o.Id == data.OrganizationId);
+            }
 
             return new PayloadResponse()
             {
@@ -413,6 +451,21 @@ public class CardService : ICardService
                 Message = $"Card fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    private List<CardDataDto> GetAllCardData(string whereCondition, string extraCondition)
+    {
+        var query = $@"
+                    select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                    from Cards c
+                             left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                             left join PassengerCardHistory pch on c.Id = pch.CardId
+                             left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                             {whereCondition} {extraCondition}";
+
+        var data = _baseRepository.Query<CardDataDto>(query);
+
+        return data;
     }
 
     public void MapUserWithCard(string passengerId, string cardId)
@@ -489,5 +542,26 @@ public class CardService : ICardService
                 Message = $"Card insertion has been failed because {ex.Message}!"
             };
         }
+    }
+
+    public void UpdateCardOrganization(string passengerId, string organizationId)
+    {
+        var passengerCardMapping = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.UserId == passengerId)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        if (passengerCardMapping == null)
+        {
+            return;
+        }
+
+        var card = passengerCardMapping.Card;
+
+        card.OrganizationId = organizationId;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
     }
 }

@@ -12,5 +12,5 @@ public interface IBusService
     PayloadResponse Delete(string id);
     PayloadResponse UpdateLocation(LocationUpdateDto locationData);
     PayloadResponse GetAllForDropDown(string organizationId);
-    PayloadResponse GetAllBusMapData(string organizationId);
+    PayloadResponse GetAllBusMapData(string organizationId, string busId);
 }
