@@ -304,7 +304,7 @@ public class PassengerService : IPassengerService
                 };
             }
 
-            var condition = new List<string> { " UserType in ('Public', 'Private') " };
+            var condition = new List<string> { " u.UserType in ('Public', 'Private') " };
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -326,17 +326,17 @@ public class PassengerService : IPassengerService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or PassengerId like '%{filter.SearchQuery}%' or CardNumber like '%{filter.SearchQuery}%') ");
+                condition.Add($" (u.Name like '%{filter.SearchQuery}%' or u.MobileNumber like '%{filter.SearchQuery}%' or u.PassengerId like '%{filter.SearchQuery}%' or u.CardNumber like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
             {
-                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+                condition.Add($" u.OrganizationId = '{filter.OrganizationId}'");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
-            var rowCount = _commonService.GetRowCountForData("Users", whereCondition);
+            var rowCount = _commonService.GetRowCountForData("Users u", whereCondition);
 
             var passengerData = GetAllUserData(whereCondition, extraCondition);
 
