@@ -4,6 +4,7 @@ namespace GoBangladesh.Application.DTOs.Passenger;
 
 public class OnGoingTripDto
 {
+    public string TripId { get; set; }
     public string CardId { get; set; }
     public string SessionId { get; set; }
     public string StartingLatitude { get; set; }

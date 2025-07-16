@@ -433,6 +433,7 @@ public class PassengerService : IPassengerService
                 .Include(t => t.Session.Bus.Route)
                 .Select(t => new OnGoingTripDto()
                 {
+                    TripId = t.Id,
                     BusName = t.Session.Bus.BusName,
                     BusNumber = t.Session.Bus.BusNumber,
                     CardId = t.CardId,

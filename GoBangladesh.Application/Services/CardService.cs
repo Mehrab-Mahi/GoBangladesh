@@ -276,24 +276,19 @@ public class CardService : ICardService
 
     private void UpdateAllPassengersOrg(string cardId, string organizationId)
     {
-        var passengerIds = _passengerCardMappingRepository
+        var passengerCardMapping = _passengerCardMappingRepository
             .GetAll()
             .Where(p => p.CardId == cardId)
-            .Select(p => p.UserId)
-            .ToList();
+            .Include(p => p.User)
+            .FirstOrDefault();
 
-        var passengerList = _userRepository.GetAll();
 
-        if (passengerIds.Any())
+        if (passengerCardMapping is { User: not null })
         {
-            foreach (var passenger in passengerList)
-            {
-                var passengerData = passengerList.FirstOrDefault(p => p.Id == passenger.Id);
-                passengerData!.OrganizationId = organizationId;
+            var passenger = passengerCardMapping.User;
+            passenger.OrganizationId = organizationId;
 
-                _userRepository.Update(passengerData);
-            }
-
+            _userRepository.Update(passenger);
             _userRepository.SaveChanges();
         }
     }
