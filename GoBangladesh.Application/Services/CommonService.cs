@@ -165,7 +165,7 @@ namespace GoBangladesh.Application.Services
                         left join PassengerCardMappings pcm on c.Id = pcm.CardId
                         left join PassengerCardHistory pch on c.Id = pch.CardId
                         left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
-                        where U.Id '{passengerId}'";
+                        where u.Id = '{passengerId}'";
             var cardIds = _baseRepository.Query<string>(query);
 
             return cardIds;
