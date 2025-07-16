@@ -43,7 +43,7 @@ public class DashboardService : IDashboardService
             {
                 if (!string.IsNullOrEmpty(organizationId))
                 {
-                    whereCondition = $" where o.Id = '{currentUser.OrganizationId}'";
+                    whereCondition = $" where o.Id = '{organizationId}'";
                 }
             }
 
