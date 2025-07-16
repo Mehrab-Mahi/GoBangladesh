@@ -113,7 +113,11 @@ public class CardService : ICardService
 
     public PayloadResponse CheckCardValidity(string cardNumber)
     {
-        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+        var card = _cardRepository
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c => c.Organization)
+            .FirstOrDefault();
 
         if (card == null)
         {
@@ -153,7 +157,8 @@ public class CardService : ICardService
         {
             IsSuccess = true,
             PayloadType = "Card",
-            Message = "This card is available!"
+            Message = "This card is available!",
+            Content = card
         };
     }
 
