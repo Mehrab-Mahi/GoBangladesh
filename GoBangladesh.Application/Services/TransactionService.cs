@@ -18,7 +18,6 @@ namespace GoBangladesh.Application.Services;
 public class TransactionService : ITransactionService
 {
     private readonly IRepository<Transaction> _transactionRepository;
-    private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly IRepository<Trip> _tripRepository;
     private readonly IRepository<Session> _sessionRepository;
@@ -26,7 +25,6 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Card> _cardRepository;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
-        IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService, 
         IRepository<Trip> tripRepository,
         IRepository<Session> sessionRepository, 
@@ -34,7 +32,6 @@ public class TransactionService : ITransactionService
         IRepository<Card> cardRepository)
     {
         _transactionRepository = transactionRepository;
-        _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
         _sessionRepository = sessionRepository;
@@ -44,25 +41,14 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Recharge(RechargeRequest model)
     {
-        UpdateCardDatabase(model);
-
-        var passenger = _userRepository
-            .GetConditional(p => p.CardNumber == model.CardNumber);
-
-        if (passenger == null)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Message = "Passenger with the card number not found!"
-            };
-        }
+        var card = _cardRepository
+            .GetConditional(c => c.CardNumber == model.CardNumber);
 
         Transaction transaction;
 
         try
         {
-            transaction = AddRechargeTransaction(model, TransactionType.Recharge, passenger.Id);
+            transaction = AddRechargeTransaction(model, TransactionType.Recharge, card.Id);
         }
         catch (Exception ex)
         {
@@ -75,7 +61,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardAmount(passenger, model.Amount, TransactionOperation.Add);
+            UpdateCardDatabase(model, card);
 
             return new PayloadResponse()
             {
@@ -97,13 +83,14 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private void UpdateCardDatabase(RechargeRequest model)
+    private void UpdateCardDatabase(RechargeRequest model, Card card)
     {
-        var card = _cardRepository
-            .GetConditional(c => c.CardNumber == model.CardNumber);
-
         if (card == null) { return; }
 
+        if (card.Status == CardStatus.NotUsed)
+        {
+            card.Status = CardStatus.InUse;
+        }
         card.Balance += model.Amount;
 
         _cardRepository.Update(card);
@@ -112,19 +99,18 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Tap(TapRequest tapRequest)
     {
-        var passenger = _userRepository
-            .GetAll()
-            .Where(p => p.CardNumber == tapRequest.CardNumber)
-            .Include(u => u.Organization)
+        var card = _cardRepository.GetAll()
+            .Where(c => c.CardNumber == tapRequest.CardNumber)
+            .Include(c => c.Organization)
             .FirstOrDefault();
 
-        if (passenger == null)
+        if (card == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
                 PayloadType = "Tap",
-                Message = "Passenger with this card number is not found!"
+                Message = "Card not found!"
             };
         }
 
@@ -132,7 +118,9 @@ public class TransactionService : ITransactionService
             .GetAll()
             .Where(s => s.Id == tapRequest.SessionId)
             .Include(s => s.User)
+            .Include(s => s.User.Organization)
             .Include(s => s.Bus)
+            .Include(s => s.Bus.Organization)
             .Include(s => s.Bus.Route)
             .FirstOrDefault();
 
@@ -156,11 +144,12 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var minimumBalanceCheck = IsMinimumBalanceAvailable(passenger, session.Bus.Route.MinimumBalance);
+        var minimumBalanceCheck = IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
 
         if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
-        if (passenger.OrganizationId != session.User.OrganizationId)
+        if (card.Organization.OrganizationType == OrganizationTypes.Public &&
+            session.Bus.Organization.OrganizationType == OrganizationTypes.Private)
         {
             return new PayloadResponse()
             {
@@ -170,20 +159,20 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(passenger.Id, tapRequest.SessionId);
+        var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(card.Id, tapRequest.SessionId);
 
         if (!cardSessionVerification.IsSuccess) return cardSessionVerification;
 
         var trip = _tripRepository
             .GetAll()
             .OrderByDescending(t => t.CreateTime)
-            .FirstOrDefault(t => t.PassengerId == passenger.Id && t.SessionId == tapRequest.SessionId);
+            .FirstOrDefault(t => t.CardId == card.Id && t.SessionId == tapRequest.SessionId);
 
         if (trip is null)
         {
             try
             {
-                AddTrip(tapRequest, passenger.Id);
+                AddTrip(tapRequest, card.Id);
 
                 return new PayloadResponse()
                 {
@@ -208,7 +197,7 @@ public class TransactionService : ITransactionService
         {
             try
             {
-                AddTrip(tapRequest, passenger.Id);
+                AddTrip(tapRequest, card.Id);
 
                 return new PayloadResponse()
                 {
@@ -267,7 +256,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            transaction = AddBusFareTransaction(TransactionType.BusFare, passenger.Id, trip);
+            transaction = AddBusFareTransaction(TransactionType.BusFare, card.Id, trip);
         }
         catch (Exception ex)
         {
@@ -282,7 +271,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardAmount(passenger, trip.Amount, TransactionOperation.Subtract);
+            UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
 
             return new PayloadResponse()
             {
@@ -307,15 +296,15 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse ForceTripStop(ForceStopTripDto forceStop)
     {
-        var passenger = _userRepository.GetConditional(p => p.Id == forceStop.PassengerId);
+        var card = _cardRepository.GetConditional(c => c.CardNumber == forceStop.CardNumber);
 
-        if (passenger == null)
+        if (card == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
                 PayloadType = "Trip",
-                Message = "Passenger not found!"
+                Message = "Card not found!"
             };
         }
         
@@ -372,7 +361,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            transaction = AddBusFareTransaction(TransactionType.BusFare, forceStop.PassengerId, trip);
+            transaction = AddBusFareTransaction(TransactionType.BusFare, card.Id, trip);
         }
         catch (Exception ex)
         {
@@ -387,7 +376,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardAmount(passenger, trip.Amount, TransactionOperation.Subtract);
+            UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
 
             return new PayloadResponse()
             {
@@ -410,11 +399,11 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(string passengerId, string sessionId)
+    private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(string cardId, string sessionId)
     {
         var trip = _tripRepository
             .GetAll()
-            .Where(t => t.PassengerId == passengerId && t.SessionId != sessionId && t.IsRunning)
+            .Where(t => t.CardId == cardId && t.SessionId != sessionId && t.IsRunning)
             .Include(t => t.Session)
             .Include(t => t.Session.Bus)
             .FirstOrDefault();
@@ -467,29 +456,18 @@ public class TransactionService : ITransactionService
         return Math.Abs(timeDifference) < 60;
     }
 
-    public PayloadResponse IsMinimumBalanceAvailable(User passenger, decimal minimumBalance)
+    public PayloadResponse IsMinimumBalanceAvailable(Card card, decimal minimumBalance)
     {
         try
         {
-            if (passenger == null) 
+            if (card.Balance < minimumBalance)
             {
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
                     Content = false,
                     PayloadType = "Transaction",
-                    Message = "Passenger with this card number not found"
-                };
-            }
-
-            if (passenger.Balance < minimumBalance)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    Content = false,
-                    PayloadType = "Transaction",
-                    Message = $"Passenger balance is only {passenger.Balance}"
+                    Message = $"Passenger's balance is only {card.Balance}; minimum balance is {minimumBalance}"
                 };
             }
 
@@ -526,11 +504,11 @@ public class TransactionService : ITransactionService
         _tripRepository.SaveChanges();
     }
 
-    private void AddTrip(TapRequest tapRequest, string passengerId)
+    private void AddTrip(TapRequest tapRequest, string cardId)
     {
         _tripRepository.Insert(new Trip()
         {
-            PassengerId = passengerId,
+            CardId = cardId,
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
@@ -541,14 +519,14 @@ public class TransactionService : ITransactionService
     }
 
     private Transaction AddBusFareTransaction(string transactionType,
-        string passengerId,
+        string cardId,
         Trip trip)
     {
         var transaction = new Transaction()
         {
             TransactionType = transactionType,
             Amount = trip.Amount,
-            PassengerId = passengerId,
+            CardId = cardId,
             TripId = trip.Id
         };
 
@@ -564,29 +542,29 @@ public class TransactionService : ITransactionService
         _transactionRepository.SaveChanges();
     }
 
-    private void UpdateCardAmount(User passenger, decimal amount, string operation)
+    private void UpdateCardAmount(Card card, decimal amount, string operation)
     {
         if (operation == TransactionOperation.Add)
         {
-            passenger.Balance += amount;
+            card.Balance += amount;
         }
         else
         {
-            passenger.Balance -= amount;
+            card.Balance -= amount;
         }
 
-        _userRepository.Update(passenger);
-        _userRepository.SaveChanges();
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
     }
 
-    private Transaction AddRechargeTransaction(RechargeRequest model, string transactionType, string passengerId)
+    private Transaction AddRechargeTransaction(RechargeRequest model, string transactionType, string cardId)
     {
         var agentId = _loggedInUserService.GetLoggedInUser();
         var transaction = new Transaction()
         {
             TransactionType = transactionType,
             Amount = model.Amount,
-            PassengerId = passengerId,
+            CardId = cardId,
             AgentId = agentId.Id
         };
 

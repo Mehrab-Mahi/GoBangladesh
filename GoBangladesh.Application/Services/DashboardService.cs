@@ -27,7 +27,7 @@ public class DashboardService : IDashboardService
         _commonService = commonService;
     }
 
-    public PayloadResponse GetDashboardData()
+    public PayloadResponse GetDashboardData(string organizationId)
     {
         try
         {
@@ -38,6 +38,13 @@ public class DashboardService : IDashboardService
             if (!currentUser.IsSuperAdmin)
             {
                 whereCondition = $" where o.Id = '{currentUser.OrganizationId}'";
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(organizationId))
+                {
+                    whereCondition = $" where o.Id = '{organizationId}'";
+                }
             }
 
             var dashboardQuery = $@"
@@ -57,9 +64,9 @@ public class DashboardService : IDashboardService
                 .Query<DashboardDto>(dashboardQuery)
                 .FirstOrDefault();
 
-            dashboardData!.DataOfToday = GetDataForToday(currentUser);
-            dashboardData.DataOfThisMonth = GetDataForThisMonth(currentUser);
-            dashboardData.DataOfAllTime = GetDataForallTime(currentUser);
+            dashboardData!.DataOfToday = GetDataForToday(currentUser, organizationId);
+            dashboardData.DataOfThisMonth = GetDataForThisMonth(currentUser, organizationId);
+            dashboardData.DataOfAllTime = GetDataForallTime(currentUser, organizationId);
 
             return new PayloadResponse()
             {
@@ -277,7 +284,10 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
 
@@ -295,14 +305,17 @@ public class DashboardService : IDashboardService
                        select  t.Id                           as TransactionId,
                                o.Name                         as OrganizationName,
                                t.CreateTime                   as TransactionTime,
-                               p.PassengerId,
-                               p.Name                         as PassengerName,
-                               p.CardNumber                   as CardNumber,
+                               u.PassengerId,
+                               u.Name                         as PassengerName,
+                               c.CardNumber                   as CardNumber,
                                'Agent'                        as RechargeMedium,
                                a.Name                         as RechargerName,
                                t.Amount
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition} {extraCondition}";
 
@@ -317,11 +330,14 @@ public class DashboardService : IDashboardService
     {
         var query = $@"
                        select count(distinct a.Id) as TotalAgent,
-                               count(distinct p.Id) as TotalPassenger,
+                               count(distinct u.Id) as TotalPassenger,
                                count(t.Id) as TotalRecharge,
                                sum(t.Amount) as TotalAmount
                         from Transactions t
-                                 left join Users p on t.PassengerId = p.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Users a on t.AgentId = a.Id
                                  left join Organizations o on a.OrganizationId = o.Id {whereCondition}";
 
@@ -403,10 +419,15 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
-                                 left join Buses b on s.BusId = b.Id {whereCondition}";
+                                 left join Buses b on s.BusId = b.Id
+                                 left join Routes r on b.RouteId = r.Id
+                                 {whereCondition}";
 
 
         var rowCount = _baseRepository
@@ -423,7 +444,7 @@ public class DashboardService : IDashboardService
                                o.Name                                    as OrganizationName,
                                r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                                b.BusNumber,
-                               u.CardNumber,
+                               c.CardNumber,
                                u.Name as PassengerName,
                                t.TripStartTime,
                                t.TripEndTime,
@@ -436,11 +457,14 @@ public class DashboardService : IDashboardService
                                case when t.IsRunning = 1 then 'Running'
                                 else 'Complete' end as Status
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
-                                 left join Organizations o on u.OrganizationId = o.Id
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id
                                  left join Routes r on b.RouteId = r.Id
+                                 left join Organizations o on b.OrganizationId = o.Id
                                  {whereCondition} {extraCondition}";
 
 
@@ -454,11 +478,14 @@ public class DashboardService : IDashboardService
     {
         var query = $@"
                         select count(distinct t.Id) as TotalTrips,
-                               count(distinct u.Id) as TotalPassengers,
+                               count(distinct c.Id) as TotalPassengers,
                                sum(t.Amount) as TotalFare,
                                count(distinct b.Id) as TotalBus
                         from Trips t
-                                 left join Users u on t.PassengerId = u.Id and U.UserType in ('Public', 'Private')
+                                 left join Cards c on t.CardId = c.Id
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                  left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id {whereCondition}";
@@ -470,7 +497,7 @@ public class DashboardService : IDashboardService
         return tripDashBoardTableData;
     }
 
-    private DashboardCommonData GetDataForallTime(User currentUser)
+    private DashboardCommonData GetDataForallTime(User currentUser, string organizationId)
     {
         var allTimeDataQuery = $@"
                                 with trip_detail as (
@@ -480,7 +507,9 @@ public class DashboardService : IDashboardService
                                     from Trips t
                                     inner join Sessions s on t.SessionId = s.Id
                                     inner join Users u on s.UserId = u.Id
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" where u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 ),
                                 recharge_detail as (
                                     select
@@ -489,7 +518,9 @@ public class DashboardService : IDashboardService
                                     from Transactions t
                                     inner join Users u on t.CreatedBy = u.Id
                                     where t.TransactionType = 'Recharge'
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,
@@ -506,7 +537,7 @@ public class DashboardService : IDashboardService
         return allTimeData;
     }
 
-    private DashboardCommonData GetDataForThisMonth(User currentUser)
+    private DashboardCommonData GetDataForThisMonth(User currentUser, string organizationId)
     {
         var thisMonthDataQuery = $@"
                                 with trip_detail as (
@@ -518,7 +549,9 @@ public class DashboardService : IDashboardService
                                     inner join Users u on s.UserId = u.Id
                                     where YEAR(t.CreateTime) = YEAR(GETUTCDATE()) 
                                     AND MONTH(t.CreateTime) = MONTH(GETUTCDATE())
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 ),
                                 recharge_detail as (
                                     select
@@ -529,7 +562,9 @@ public class DashboardService : IDashboardService
                                     where t.TransactionType = 'Recharge' and
                                     YEAR(t.CreateTime) = YEAR(GETUTCDATE()) 
                                     AND MONTH(t.CreateTime) = MONTH(GETUTCDATE())
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,
@@ -546,7 +581,7 @@ public class DashboardService : IDashboardService
         return dataOfThisMonth;
     }
 
-    private DashboardCommonData GetDataForToday(User currentUser)
+    private DashboardCommonData GetDataForToday(User currentUser, string organizationId)
     {
         var todaysDataQuery = $@"
                                 with trip_detail as (
@@ -557,7 +592,9 @@ public class DashboardService : IDashboardService
                                     inner join Sessions s on t.SessionId = s.Id
                                     inner join Users u on s.UserId = u.Id
                                     where CAST(t.CreateTime AS DATE) = CAST(GETUTCDATE() AS DATE)
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 ),
                                 recharge_detail as (
                                     select
@@ -566,7 +603,9 @@ public class DashboardService : IDashboardService
                                     from Transactions t
                                     inner join Users u on t.CreatedBy = u.Id
                                     where t.TransactionType = 'Recharge' and CAST(t.CreateTime AS DATE) = CAST(GETUTCDATE() AS DATE)
-                                    {(currentUser.IsSuperAdmin ? string.Empty : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                    {(currentUser.IsSuperAdmin ? 
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'"
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,

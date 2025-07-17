@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs.Card;
 using GoBangladesh.Application.Interfaces;
@@ -13,16 +14,31 @@ namespace GoBangladesh.Application.Services;
 public class CardService : ICardService
 {
     private readonly IRepository<Card> _cardRepository;
-    private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
+    private readonly ICommonService _commonService;
+    private readonly IRepository<PassengerCardMapping> _passengerCardMappingRepository;
+    private readonly IRepository<PassengerCardHistory> _passengerCardHistoryRepository;
+    private readonly IBaseRepository _baseRepository;
+    private readonly IRepository<Organization> _organizationRepository;
+    private readonly IRepository<User> _userRepository;
 
     public CardService(IRepository<Card> cardRepository,
-        IRepository<User> userRepository,
-        ILoggedInUserService loggedInUserService)
+        ILoggedInUserService loggedInUserService,
+        ICommonService commonService,
+        IRepository<PassengerCardMapping> passengerCardMappingRepository,
+        IRepository<PassengerCardHistory> passengerCardHistoryRepository, 
+        IBaseRepository baseRepository,
+        IRepository<Organization> organizationRepository, 
+        IRepository<User> userRepository)
     {
         _cardRepository = cardRepository;
-        _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
+        _commonService = commonService;
+        _passengerCardMappingRepository = passengerCardMappingRepository;
+        _passengerCardHistoryRepository = passengerCardHistoryRepository;
+        _baseRepository = baseRepository;
+        _organizationRepository = organizationRepository;
+        _userRepository = userRepository;
     }
 
     public PayloadResponse CardInsert(CardCreateRequest model)
@@ -49,12 +65,21 @@ public class CardService : ICardService
                 };
             }
 
+            if(IfDuplicateCard(model.CardNumber))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Duplicate card number!"
+                };
+            }
+
             var card = new Card()
             {
                 CardNumber = model.CardNumber,
-                Status = CardStatus.NotUsed,
+                Status = string.IsNullOrEmpty(model.Status) ? CardStatus.NotUsed : model.Status,
                 Balance = 0,
-                OrganizationId = currentUser.OrganizationId
+                OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ? currentUser.OrganizationId : model.OrganizationId
             };
 
             _cardRepository.Insert(card);
@@ -64,6 +89,7 @@ public class CardService : ICardService
             {
                 IsSuccess = true,
                 PayloadType = "Card",
+                Content = card,
                 Message = "Card has been inserted successfully!"
             };
         }
@@ -78,9 +104,20 @@ public class CardService : ICardService
         }
     }
 
-    public PayloadResponse CheckCardValidity(string cardNumber)
+    private bool IfDuplicateCard(string cardNumber)
     {
         var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+
+        return card != null;
+    }
+
+    public PayloadResponse CheckCardValidity(string cardNumber)
+    {
+        var card = _cardRepository
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c => c.Organization)
+            .FirstOrDefault();
 
         if (card == null)
         {
@@ -92,42 +129,46 @@ public class CardService : ICardService
             };
         }
 
-        var passenger = _userRepository
-            .GetAll()
-            .FirstOrDefault(u => u.CardNumber == cardNumber);
+        var cardPassengerMapping = _passengerCardMappingRepository.GetConditional(c => c.CardId == card.Id);
 
-        if (passenger != null)
+        if (cardPassengerMapping != null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
                 PayloadType = "Card",
-                Message = "This card is already in use!"
+                Message = "Card is already registered!"
             };
         }
 
-        if (card.Status == CardStatus.NotUsed)
+        var cardPassengerHistory = _passengerCardHistoryRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerHistory != null)
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 PayloadType = "Card",
-                Message = "This card is available!"
+                Message = "Card is already registered!"
             };
         }
 
         return new PayloadResponse()
         {
-            IsSuccess = false,
+            IsSuccess = true,
             PayloadType = "Card",
-            Message = "This card is not available!"
+            Message = "This card is available!",
+            Content = card
         };
     }
 
     public Card GetCardDetailByCardNumber(string cardNumber)
     {
         var card = _cardRepository
-            .GetConditional(c => c.CardNumber == cardNumber);
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c =>c.Organization)
+            .FirstOrDefault();
 
         return card;
     }
@@ -157,21 +198,9 @@ public class CardService : ICardService
 
     public PayloadResponse CheckCardAvailability(string cardNumber)
     {
-        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber && c.Status == CardStatus.InUse);
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
 
         if (card != null)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Card",
-                Message = "Card is available"
-            };
-        }
-
-        var passenger = _userRepository.GetConditional(p => p.CardNumber == cardNumber);
-
-        if (passenger != null)
         {
             return new PayloadResponse()
             {
@@ -205,7 +234,29 @@ public class CardService : ICardService
                 };
             }
 
+            if (card.CardNumber != model.CardNumber)
+            {
+                if (IfDuplicateCard(model.CardNumber))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "Duplicate card number!"
+                    };
+                }
+            }
+
             card.CardNumber = model.CardNumber;
+
+            if (!string.IsNullOrEmpty(model.OrganizationId))
+            {
+                if (!string.IsNullOrEmpty(model.OrganizationId) && (model.OrganizationId != card.OrganizationId))
+                {
+                    UpdateAllPassengersOrg(card.Id, model.OrganizationId);
+                }
+
+                card.OrganizationId = model.OrganizationId;
+            }
 
             _cardRepository.Update(card);
             _cardRepository.SaveChanges();
@@ -228,15 +279,37 @@ public class CardService : ICardService
         }
     }
 
+    private void UpdateAllPassengersOrg(string cardId, string organizationId)
+    {
+        var passengerCardMapping = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.CardId == cardId)
+            .Include(p => p.User)
+            .FirstOrDefault();
+
+
+        if (passengerCardMapping is { User: not null })
+        {
+            var passenger = passengerCardMapping.User;
+            passenger.OrganizationId = organizationId;
+
+            _userRepository.Update(passenger);
+            _userRepository.SaveChanges();
+        }
+    }
+
     public PayloadResponse GetById(string id)
     {
         try
         {
-            var card = _cardRepository
-                .GetAll()
-                .Where(c => c.Id == id)
-                .Include(c => c.Organization)
-                .FirstOrDefault();
+            var query = $@"
+                        select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                        from Cards c
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                        where c.Id =  '{id}'";
+            var card = _baseRepository.Query<CardDataDto>(query).FirstOrDefault();
 
             if (card == null)
             {
@@ -248,10 +321,26 @@ public class CardService : ICardService
                 };
             }
 
+            var organization = _organizationRepository
+                .GetConditional(o => o.Id == card.OrganizationId);
+
+            if(organization == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Card organization not found",
+                    PayloadType = "Card"
+                };
+            }
+
+            card.Organization = organization;
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Card",
+                Content = card,
                 Message = "Card data has been fetched successfully!"
             };
         }
@@ -301,5 +390,196 @@ public class CardService : ICardService
                 Message = $"Card deletion has been failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse GetAll(CardDataFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Card",
+                    Message = "Card not found"
+                };
+            }
+
+            var condition = new List<string>();
+            var extraCondition = $@"ORDER BY c.LastModifiedTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Card",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
+
+                filter.OrganizationId = currentUser.OrganizationId;
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" (c.CardNumber like '%{filter.SearchQuery}%' or c.Status like '%{filter.SearchQuery}%') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" c.OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Cards c", whereCondition);
+
+            var cardData = GetAllCardData(whereCondition, extraCondition);
+
+            var allOrg = _organizationRepository.GetAll();
+
+            foreach (var data in cardData)
+            {
+                data.Organization = allOrg.FirstOrDefault(o => o.Id == data.OrganizationId);
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Content = new { data = cardData, rowCount },
+                Message = "Card data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"Card fetching is failed because {ex.Message}!"
+            };
+        }
+    }
+
+    private List<CardDataDto> GetAllCardData(string whereCondition, string extraCondition)
+    {
+        var query = $@"
+                    select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                    from Cards c
+                             left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                             left join PassengerCardHistory pch on c.Id = pch.CardId
+                             left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                             {whereCondition} {extraCondition}";
+
+        var data = _baseRepository.Query<CardDataDto>(query);
+
+        return data;
+    }
+
+    public void MapUserWithCard(string passengerId, string cardId)
+    {
+        _passengerCardMappingRepository.Insert(new PassengerCardMapping()
+        {
+            UserId = passengerId,
+            CardId = cardId
+        });
+
+        _passengerCardMappingRepository.SaveChanges();
+    }
+
+    public Card GetCardDataFromPassengerId(string id)
+    {
+        var data = _passengerCardMappingRepository
+            .GetAll()
+            .Where(c => c.UserId == id)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        return data?.Card;
+    }
+
+    public void MapUserWithCardHistory(string passengerId, string cardId)
+    {
+        _passengerCardHistoryRepository.Insert(new PassengerCardHistory()
+        {
+            UserId = passengerId,
+            CardId = cardId
+        });
+
+        _passengerCardHistoryRepository.SaveChanges();
+    }
+
+    public PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model)
+    {
+        try
+        {
+            if (IfDuplicateCard(model.CardNumber))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Duplicate card number!"
+                };
+            }
+
+            var card = new Card()
+            {
+                CardNumber = model.CardNumber,
+                Status = string.IsNullOrEmpty(model.Status) ? CardStatus.NotUsed : model.Status,
+                Balance = 0,
+                OrganizationId = model.OrganizationId
+            };
+
+            _cardRepository.Insert(card);
+            _cardRepository.SaveChanges();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Card",
+                Content = card,
+                Message = "Card has been inserted successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"Card insertion has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public void UpdateCardOrganization(string passengerId, string organizationId)
+    {
+        var passengerCardMapping = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.UserId == passengerId)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        if (passengerCardMapping == null)
+        {
+            return;
+        }
+
+        var card = passengerCardMapping.Card;
+
+        card.OrganizationId = organizationId;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
     }
 }

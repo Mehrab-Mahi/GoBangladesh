@@ -15,4 +15,10 @@ public interface ICardService
     PayloadResponse CardUpdate(CardUpdateRequest model);
     PayloadResponse GetById(string id);
     PayloadResponse Delete(string id);
+    PayloadResponse GetAll(CardDataFilter filter);
+    void MapUserWithCard(string passengerId, string cardId);
+    Card GetCardDataFromPassengerId(string id);
+    void MapUserWithCardHistory(string passengerId, string cardId);
+    PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model);
+    void UpdateCardOrganization(string passengerId, string organizationId);
 }

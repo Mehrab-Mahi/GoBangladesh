@@ -16,14 +16,20 @@ public class BusService : IBusService
     private readonly IRepository<Bus> _busRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IRepository<Session> _sessionRepository;
+    private readonly IBaseRepository _baseRepository;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IRepository<Session> sessionRepository,
+        IBaseRepository baseRepository)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _sessionRepository = sessionRepository;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -135,6 +141,30 @@ public class BusService : IBusService
                 .Include(o => o.Route)
                 .FirstOrDefault();
 
+            var busDataQuery = $@"
+                                select b.*,
+                                       count(distinct s.Id) as TotalSession,
+                                       count(distinct u.Id) as TotalPassenger,
+                                       sum(t.Amount)        as TotalRevenue
+                                from Buses b
+                                         left join Sessions s on b.id = s.BusId
+                                         left join Trips t on s.Id = t.SessionId
+                                         left join Cards c on t.CardId = c.Id
+                                         left join PassengerCardHistory pch on c.Id = pch.CardId
+                                         left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                         left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
+                                where b.Id = '{id}'
+                                group by b.Id, b.BusNumber, b.BusName, b.OrganizationId, b.CreateTime, b.LastModifiedTime, b.CreatedBy,
+                                         b.LastModifiedBy, b.IsDeleted, b.PresentLatitude, b.PresentLongitude, b.RouteId";
+
+            var busData = _baseRepository.Query<BusDataDto>(busDataQuery).FirstOrDefault();
+
+            if (busData != null && bus != null)
+            {
+                busData.Route = bus.Route;
+                busData.Organization = bus.Organization;
+            }
+
             if (bus == null)
             {
                 return new PayloadResponse()
@@ -149,7 +179,7 @@ public class BusService : IBusService
             {
                 IsSuccess = true,
                 PayloadType = "Bus",
-                Content = bus,
+                Content = busData,
                 Message = "Bus has been found"
             };
         }
@@ -203,7 +233,7 @@ public class BusService : IBusService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%' or TripStartPlace like '%{filter.SearchQuery}%' or TripEndPlace like '%{filter.SearchQuery}%') ");
+                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
@@ -322,7 +352,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllForDropDown(string organizationId)
+    public PayloadResponse GetAllForDropDown(string organizationId, string routeId)
     {
         try
         {
@@ -339,6 +369,11 @@ public class BusService : IBusService
             }
 
             var allBus = _busRepository.GetAll();
+
+            if (!string.IsNullOrEmpty(routeId)) 
+            {
+                allBus = allBus.Where(b => b.RouteId == routeId);
+            }
 
             if (currentUser.IsSuperAdmin)
             {
@@ -390,7 +425,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllBusMapData(string organizationId)
+    public PayloadResponse GetAllBusMapData(string organizationId, string busId, string routId)
     {
         try
         {
@@ -406,7 +441,22 @@ public class BusService : IBusService
                 };
             }
 
-            var allBus = _busRepository.GetAll();
+            var allBus = _sessionRepository
+                .GetAll()
+                .Where(s => s.IsRunning)
+                .Include(s => s.Bus)
+                .Include(s => s.Bus.Organization)
+                .Select(b => b.Bus);
+
+            if (!string.IsNullOrEmpty(busId))
+            {
+                allBus = allBus.Where(b => b.Id == busId);
+            }
+            
+            if (!string.IsNullOrEmpty(routId))
+            {
+                allBus = allBus.Where(b => b.RouteId == routId);
+            }
 
             if (currentUser.IsSuperAdmin)
             {
@@ -421,6 +471,7 @@ public class BusService : IBusService
                         Id = b.Id,
                         BusNumber = b.BusNumber,
                         BusName = b.BusName,
+                        OrganizationName = b.Organization.Name,
                         PresentLatitude = b.PresentLatitude,
                         PresentLongitude = b.PresentLongitude
                     })

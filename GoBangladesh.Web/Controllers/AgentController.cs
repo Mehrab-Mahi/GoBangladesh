@@ -1,7 +1,6 @@
 ﻿using GoBangladesh.Application.DTOs.Agent;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers

@@ -41,6 +41,14 @@ public class CardController : Controller
     }
 
     [GoBangladeshAuth]
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] CardDataFilter filter)
+    {
+        var data = _cardService.GetAll(filter);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
     [HttpDelete("delete")]
     public IActionResult Delete(string id)
     {
@@ -48,6 +56,7 @@ public class CardController : Controller
         return Ok(new { data });
     }
 
+    //while registration
     [AllowAnonymous]
     [HttpGet("CheckCardValidity")]
     public IActionResult CheckCardValidity(string cardNumber)

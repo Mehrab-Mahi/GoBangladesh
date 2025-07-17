@@ -7,7 +7,7 @@ namespace GoBangladesh.Application.Interfaces;
 
 public interface IDashboardService
 {
-    PayloadResponse GetDashboardData();
+    PayloadResponse GetDashboardData(string organizationId);
     PayloadResponse GetTripDashboardData(TripDashboardFilter filter);
     PayloadResponse GetSessionDashboardData(SessionFilter filter);
     PayloadResponse GetRechargeDashboardData(RechargeFilter filter);

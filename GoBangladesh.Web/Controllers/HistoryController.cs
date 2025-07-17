@@ -23,6 +23,22 @@ public class HistoryController : Controller
     }
     
     [GoBangladeshAuth]
+    [HttpGet("passengerRecharge")]
+    public IActionResult PassengerRechargeHistory(string id, int pageNo, int pageSize)
+    {
+        var data = _historyService.PassengerRechargeHistory(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("passengerTrip")]
+    public IActionResult PassengerTripHistory(string id, int pageNo, int pageSize)
+    {
+        var data = _historyService.PassengerTripHistory(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
     [HttpGet("agent")]
     public IActionResult AgentHistory(string id, int pageNo, int pageSize)
     {

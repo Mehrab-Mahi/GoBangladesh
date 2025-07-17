@@ -5,7 +5,7 @@ namespace GoBangladesh.Domain.Entities;
 
 public class Trip : Entity
 {
-    public string PassengerId { get; set; }
+    public string CardId { get; set; }
     public string SessionId { get; set; }
     public string StartingLatitude { get; set; }
     public string StartingLongitude { get; set; }
@@ -18,6 +18,11 @@ public class Trip : Entity
     public decimal Distance { get; set; }
     [ForeignKey("SessionId")]
     public Session Session { get; set; }
-    [ForeignKey("PassengerId")]
+    [ForeignKey("CardId")]
+    public Card Card { get; set; }
+
+    [NotMapped]
     public User Passenger { get; set; }
+    [NotMapped]
+    public string PassengerId { get; set; }
 }

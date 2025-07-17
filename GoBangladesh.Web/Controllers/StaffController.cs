@@ -1,5 +1,4 @@
-﻿using GoBangladesh.Application.DTOs.Session;
-using GoBangladesh.Application.DTOs.Staff;
+﻿using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;

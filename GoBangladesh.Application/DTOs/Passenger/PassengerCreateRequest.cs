@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
+using Newtonsoft.Json;
 
 namespace GoBangladesh.Application.DTOs.Passenger;
 
@@ -17,4 +18,6 @@ public class PassengerCreateRequest
     public string PassengerId { get; set; }
     public string OrganizationId { get; set; }
     public string CardNumber { get; set; }
+    [JsonIgnore]
+    public decimal Balance { get; set; } = 0;
 }

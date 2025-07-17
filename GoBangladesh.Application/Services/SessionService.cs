@@ -165,14 +165,14 @@ public class SessionService : ISessionService
         var trips = _tripRepository
             .GetAll()
             .Where(t => t.SessionId == session.Id && t.IsRunning)
-            .Include(p => p.Passenger)
+            .Include(p => p.Card)
             .ToList();
 
         foreach (var trip in trips)
         {
             var tapRequest = new TapRequest()
             {
-                CardNumber = trip.Passenger.CardNumber,
+                CardNumber = trip.Card.CardNumber,
                 SessionId = trip.SessionId,
                 Latitude = session.Bus.PresentLatitude,
                 Longitude = session.Bus.PresentLongitude
@@ -265,7 +265,7 @@ public class SessionService : ISessionService
             };
         }
 
-        var query = $@"select count(distinct t.PassengerId)                       TotalPassenger,
+        var query = $@"select count(distinct t.CardNumber)                       TotalPassenger,
                            count(t.Id)                                      as TotalTapIn,
                            sum(case when t.IsRunning = 0 then 1 else 0 end) as TotalTapOut,
                            sum(t.Amount)                                    as TotalRevenue
