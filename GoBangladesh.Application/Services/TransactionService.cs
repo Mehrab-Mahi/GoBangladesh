@@ -573,4 +573,20 @@ public class TransactionService : ITransactionService
 
         return transaction;
     }
+
+    public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude)
+    {
+        trip.EndingLatitude = latitude;
+        trip.EndingLongitude = longitude;
+
+        var tripFare = GetTripFareAndDistance(trip, route);
+
+        trip.TripEndTime = DateTime.UtcNow;
+        trip.IsRunning = false;
+        trip.Distance = tripFare.Distance;
+        trip.Amount = tripFare.Fare;
+
+        _tripRepository.Update(trip);
+        _tripRepository.SaveChanges();
+    }
 }

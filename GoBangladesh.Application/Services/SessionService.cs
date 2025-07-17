@@ -116,6 +116,7 @@ public class SessionService : ISessionService
             var session = _sessionRepository.GetAll()
                 .Where(s => s.Id == sessionStopDto.SessionId)
                 .Include(s => s.Bus)
+                .Include(s => s.Bus.Route)
                 .FirstOrDefault();
 
             if (session == null)
@@ -170,14 +171,7 @@ public class SessionService : ISessionService
 
         foreach (var trip in trips)
         {
-            var tapRequest = new TapRequest()
-            {
-                CardNumber = trip.Card.CardNumber,
-                SessionId = trip.SessionId,
-                Latitude = session.Bus.PresentLatitude,
-                Longitude = session.Bus.PresentLongitude
-            };
-            _transactionService.Tap(tapRequest);
+            _transactionService.ForceTripStopLinkedWIthSession(trip, session.Bus.Route, session.Bus.PresentLatitude, session.Bus.PresentLongitude);
         }
     }
 
