@@ -65,17 +65,17 @@ public class BusController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("getAllForDropDown")]
-    public IActionResult GetAllForDropDown(string organizationId)
+    public IActionResult GetAllForDropDown(string organizationId, string routeId)
     {
-        var data = _busService.GetAllForDropDown(organizationId);
+        var data = _busService.GetAllForDropDown(organizationId, routeId);
         return Ok(new { data });
     }
     
     [GoBangladeshAuth]
     [HttpGet("getAllBusMapData")]
-    public IActionResult GetAllBusMapData(string organizationId, string busId)
+    public IActionResult GetAllBusMapData(string organizationId, string busId, string routeId)
     {
-        var data = _busService.GetAllBusMapData(organizationId, busId);
+        var data = _busService.GetAllBusMapData(organizationId, busId, routeId);
         return Ok(new { data });
     }
 }

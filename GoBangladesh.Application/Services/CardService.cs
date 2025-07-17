@@ -302,11 +302,14 @@ public class CardService : ICardService
     {
         try
         {
-            var card = _cardRepository
-                .GetAll()
-                .Where(c => c.Id == id)
-                .Include(c => c.Organization)
-                .FirstOrDefault();
+            var query = $@"
+                        select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                        from Cards c
+                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                                 left join PassengerCardHistory pch on c.Id = pch.CardId
+                                 left join Users u on pcm.UserId = u.Id or pch.UserId = u.Id
+                        where c.Id =  '{id}'";
+            var card = _baseRepository.Query<CardDataDto>(query).FirstOrDefault();
 
             if (card == null)
             {
@@ -317,6 +320,21 @@ public class CardService : ICardService
                     PayloadType = "Card"
                 };
             }
+
+            var organization = _organizationRepository
+                .GetConditional(o => o.Id == card.OrganizationId);
+
+            if(organization == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "Card organization not found",
+                    PayloadType = "Card"
+                };
+            }
+
+            card.Organization = organization;
 
             return new PayloadResponse()
             {

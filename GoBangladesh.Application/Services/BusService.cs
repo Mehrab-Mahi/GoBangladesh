@@ -352,7 +352,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllForDropDown(string organizationId)
+    public PayloadResponse GetAllForDropDown(string organizationId, string routeId)
     {
         try
         {
@@ -369,6 +369,11 @@ public class BusService : IBusService
             }
 
             var allBus = _busRepository.GetAll();
+
+            if (!string.IsNullOrEmpty(routeId)) 
+            {
+                allBus = allBus.Where(b => b.RouteId == routeId);
+            }
 
             if (currentUser.IsSuperAdmin)
             {
@@ -420,7 +425,7 @@ public class BusService : IBusService
         }
     }
 
-    public PayloadResponse GetAllBusMapData(string organizationId, string busId)
+    public PayloadResponse GetAllBusMapData(string organizationId, string busId, string routId)
     {
         try
         {
@@ -440,11 +445,17 @@ public class BusService : IBusService
                 .GetAll()
                 .Where(s => s.IsRunning)
                 .Include(s => s.Bus)
+                .Include(s => s.Bus.Organization)
                 .Select(b => b.Bus);
 
             if (!string.IsNullOrEmpty(busId))
             {
                 allBus = allBus.Where(b => b.Id == busId);
+            }
+            
+            if (!string.IsNullOrEmpty(routId))
+            {
+                allBus = allBus.Where(b => b.RouteId == routId);
             }
 
             if (currentUser.IsSuperAdmin)
@@ -460,6 +471,7 @@ public class BusService : IBusService
                         Id = b.Id,
                         BusNumber = b.BusNumber,
                         BusName = b.BusName,
+                        OrganizationName = b.Organization.Name,
                         PresentLatitude = b.PresentLatitude,
                         PresentLongitude = b.PresentLongitude
                     })
