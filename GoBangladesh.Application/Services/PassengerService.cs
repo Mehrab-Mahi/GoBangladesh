@@ -84,12 +84,34 @@ public class PassengerService : IPassengerService
                 {
                     return cardValidity;
                 }
+
+                if (user.OrganizationId != card.OrganizationId)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = "Organization is not same!"
+                    };
+                }
             }
         }
 
         if (user.UserType == UserTypes.Public)
         {
+
             card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+            if(user.OrganizationId != card.OrganizationId)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Organization is not same!"
+                };
+            }
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
         }
 
