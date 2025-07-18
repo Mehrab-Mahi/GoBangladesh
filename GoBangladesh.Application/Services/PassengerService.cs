@@ -76,6 +76,15 @@ public class PassengerService : IPassengerService
                 };
                 card = _cardService.CardInsertForPrivatePassenger(cardInsertRequest).Content;
             }
+            else
+            {
+                var cardValidity = _cardService.CheckCardValidity(user.CardNumber);
+
+                if (!cardValidity.IsSuccess)
+                {
+                    return cardValidity;
+                }
+            }
         }
 
         if (user.UserType == UserTypes.Public)
