@@ -576,17 +576,48 @@ public class TransactionService : ITransactionService
 
     public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude)
     {
-        trip.EndingLatitude = latitude;
-        trip.EndingLongitude = longitude;
+        try
+        {
+            trip.EndingLatitude = latitude;
+            trip.EndingLongitude = longitude;
 
-        var tripFare = GetTripFareAndDistance(trip, route);
+            var tripFare = GetTripFareAndDistance(trip, route);
 
-        trip.TripEndTime = DateTime.UtcNow;
-        trip.IsRunning = false;
-        trip.Distance = tripFare.Distance;
-        trip.Amount = tripFare.Fare;
+            trip.TripEndTime = DateTime.UtcNow;
+            trip.IsRunning = false;
+            trip.Distance = tripFare.Distance;
+            trip.Amount = tripFare.Fare;
 
-        _tripRepository.Update(trip);
-        _tripRepository.SaveChanges();
+            _tripRepository.Update(trip);
+            _tripRepository.SaveChanges();
+        }
+        catch
+        {
+            return;
+        }
+
+        Transaction transaction;
+
+        try
+        {
+            transaction = AddBusFareTransaction(TransactionType.BusFare, trip.Card.Id, trip);
+        }
+        catch
+        {
+            RollBackTrip(trip);
+            return;
+        }
+
+        try
+        {
+            UpdateCardAmount(trip.Card, trip.Amount, TransactionOperation.Subtract);
+            return;
+        }
+        catch
+        {
+            RollBackTrip(trip);
+            DeleteTransaction(transaction);
+            return;
+        }
     }
 }

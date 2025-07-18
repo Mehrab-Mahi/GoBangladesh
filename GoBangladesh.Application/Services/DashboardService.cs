@@ -455,7 +455,8 @@ public class DashboardService : IDashboardService
                                t.Distance,
                                t.Amount as Fare,
                                case when t.IsRunning = 1 then 'Running'
-                                else 'Complete' end as Status
+                                else 'Complete' end as Status,
+                               u1.UserType as LastModifiedByUserType   
                         from Trips t
                                  left join Cards c on t.CardId = c.Id
                                  left join PassengerCardHistory pch on c.Id = pch.CardId
@@ -465,6 +466,7 @@ public class DashboardService : IDashboardService
                                  left join Buses b on s.BusId = b.Id
                                  left join Routes r on b.RouteId = r.Id
                                  left join Organizations o on b.OrganizationId = o.Id
+                                 left join Users u1 on t.LastModifiedBy = u1.Id
                                  {whereCondition} {extraCondition}";
 
 
