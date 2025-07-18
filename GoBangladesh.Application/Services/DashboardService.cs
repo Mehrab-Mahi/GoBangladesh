@@ -456,7 +456,7 @@ public class DashboardService : IDashboardService
                                t.Amount as Fare,
                                case when t.IsRunning = 1 then 'Running'
                                 else 'Complete' end as Status,
-                               u1.UserType as LastModifiedByUserType   
+                               case when t.IsRunning = 1 then null else u1.UserType end as LastModifiedByUserType   
                         from Trips t
                                  left join Cards c on t.CardId = c.Id
                                  left join PassengerCardHistory pch on c.Id = pch.CardId
