@@ -90,10 +90,21 @@ public class AdminService : IAdminService
 
     private bool IfDuplicateUser(AdminCreateRequest model)
     {
-        var user = _userRepository
+        User user;
+
+        if (!string.IsNullOrEmpty(model.EmailAddress))
+        {
+            user = _userRepository
+                .GetAll()
+                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress);
+
+            return user is not null;
+        }
+
+        user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber
-                                 || u.EmailAddress == model.EmailAddress);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
 
         return user is not null;
     }
