@@ -5,6 +5,7 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using GoBangladesh.Application.DTOs;
 
 namespace GoBangladesh.Application.Services
 {
@@ -12,11 +13,14 @@ namespace GoBangladesh.Application.Services
     {
         private readonly IRepository<User> _userRepo;
         private readonly ILoggedInUserService _loggedInUserService;
+        private readonly ICommonService _commonService;
         public UserService(IRepository<User> userRepo,
-            ILoggedInUserService loggedInUserService)
+            ILoggedInUserService loggedInUserService,
+            ICommonService commonService)
         {
             _userRepo = userRepo;
             _loggedInUserService = loggedInUserService;
+            _commonService = commonService;
         }
 
         public User Get(AuthRequest model)
@@ -210,6 +214,28 @@ namespace GoBangladesh.Application.Services
         private bool OldPasswordIsCorrect(string oldPassword, User currentUser)
         {
             return BCrypt.Net.BCrypt.Verify(oldPassword, currentUser.PasswordHash);
+        }
+
+        public PayloadResponse DeleteFile(DeleteFileByUrl fileUrl)
+        {
+            try
+            {
+                _commonService.DeleteFile(fileUrl.Url);
+
+                return new PayloadResponse() 
+                { 
+                    IsSuccess = true,
+                    Message = "File removed successfully!"
+                };
+            }
+            catch(Exception ex)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = $"File remove failed because {ex.Message}!"
+                };
+            }
         }
     }
 }

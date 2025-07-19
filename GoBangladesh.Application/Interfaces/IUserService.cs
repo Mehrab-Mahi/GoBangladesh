@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Passenger;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.DTOs.Passenger;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using System.Collections.Generic;
@@ -14,5 +15,6 @@ namespace GoBangladesh.Application.Interfaces
         PayloadResponse DeleteUser(string id);
         PayloadResponse ChangePassword(ChangePassword changePassword);
         PayloadResponse ForgotPassword(ForgotPassword forgotPassword);
+        PayloadResponse DeleteFile(DeleteFileByUrl fileUrl);
     }
 }

@@ -100,9 +100,20 @@ public class PassengerService : IPassengerService
 
         if (user.UserType == UserTypes.Public)
         {
-
             card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
-            if(user.OrganizationId != card.OrganizationId)
+
+            if (card is null)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Card not found!"
+                };
+            }
+
+            if (user.OrganizationId != card.OrganizationId)
             {
                 return new PayloadResponse
                 {
@@ -185,6 +196,20 @@ public class PassengerService : IPassengerService
                     };
                 }
             }
+            
+            if (user.EmailAddress != model.EmailAddress && !string.IsNullOrEmpty(user.EmailAddress))
+            {
+                if (IfDuplicateEmail(user.EmailAddress))
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Update",
+                        Content = null,
+                        Message = "Passenger with the email already exists!"
+                    };
+                }
+            }
 
             if (!string.IsNullOrEmpty(user.OrganizationId) && (user.OrganizationId != model.OrganizationId))
             {
@@ -229,6 +254,15 @@ public class PassengerService : IPassengerService
                 Message = $"Passenger Update become failed because {ex.Message}"
             };
         }
+    }
+
+    private bool IfDuplicateEmail(string emailAddress)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.EmailAddress == emailAddress);
+
+        return user is not null;
     }
 
     public PayloadResponse GetPassengerById(string id)

@@ -129,6 +129,20 @@ public class AdminService : IAdminService
                 }
             }
 
+            if (user.EmailAddress != model.EmailAddress && !string.IsNullOrEmpty(user.EmailAddress))
+            {
+                if (IfDuplicateEmail(user.EmailAddress))
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Admin Update",
+                        Content = null,
+                        Message = "User with the email already exists!"
+                    };
+                }
+            }
+
             model.Name = user.Name;
             model.DateOfBirth = user.DateOfBirth;
             model.MobileNumber = user.MobileNumber;
@@ -167,6 +181,15 @@ public class AdminService : IAdminService
                 Message = $"Admin Update is failed because {ex.Message}"
             };
         }
+    }
+
+    private bool IfDuplicateEmail(string emailAddress)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.EmailAddress == emailAddress);
+
+        return user is not null;
     }
 
     private bool IfDuplicateMobileNumber(string mobileNumber)

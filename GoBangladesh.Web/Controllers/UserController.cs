@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.Helper;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,14 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult ForgotPassword([FromBody] ForgotPassword forgotPassword)
         {
             var response = _userService.ForgotPassword(forgotPassword);
+            return Ok(new { data = response });
+        }
+        
+        [GoBangladeshAuth]
+        [HttpPost("DeleteFile")]
+        public IActionResult DeleteFile([FromBody] DeleteFileByUrl fileUrl)
+        {
+            var response = _userService.DeleteFile(fileUrl);
             return Ok(new { data = response });
         }
     }
