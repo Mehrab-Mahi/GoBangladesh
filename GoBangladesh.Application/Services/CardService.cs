@@ -582,4 +582,16 @@ public class CardService : ICardService
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
     }
+
+    public void UnmapUserWithPreviousCard(string passengerId, string cardId)
+    {
+        var mapping = _passengerCardMappingRepository
+            .GetConditional(m => m.UserId == passengerId && m.CardId == cardId);
+
+        if (mapping != null)
+        {
+            _passengerCardMappingRepository.Delete(mapping.Id);
+            _passengerCardMappingRepository.SaveChanges();
+        }
+    }
 }

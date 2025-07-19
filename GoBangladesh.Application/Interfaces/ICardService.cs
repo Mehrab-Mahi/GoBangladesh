@@ -21,4 +21,5 @@ public interface ICardService
     void MapUserWithCardHistory(string passengerId, string cardId);
     PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model);
     void UpdateCardOrganization(string passengerId, string organizationId);
+    void UnmapUserWithPreviousCard(string passengerId, string cardId);
 }

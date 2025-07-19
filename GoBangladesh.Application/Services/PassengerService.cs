@@ -333,14 +333,25 @@ public class PassengerService : IPassengerService
             return cardValidity;
         }
 
+        var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
+
+        if(newCard.OrganizationId != passenger.OrganizationId)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Card organization is not same as passenger organization!"
+            };
+        }
+
         var previousCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
         previousCard.Status = CardStatus.Obsolete;
         _cardService.UpdateCard(previousCard);
 
-        var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
         newCard.Status = CardStatus.InUse;
         _cardService.UpdateCard(newCard);
 
+        _cardService.UnmapUserWithPreviousCard(passenger.Id, previousCard.Id);
         _cardService.MapUserWithCard(passenger.Id, newCard.Id);
         _cardService.MapUserWithCardHistory(passenger.Id, previousCard.Id);
 
