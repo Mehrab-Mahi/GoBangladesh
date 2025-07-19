@@ -42,10 +42,10 @@ namespace GoBangladesh.Web.Controllers
         }
         
         [GoBangladeshAuth]
-        [HttpPost("DeleteFile")]
-        public IActionResult DeleteFile([FromBody] DeleteFileByUrl fileUrl)
+        [HttpPost("DeleteUserImage")]
+        public IActionResult DeleteUserImage([FromBody] DeleteFileByUrl fileUrl)
         {
-            var response = _userService.DeleteFile(fileUrl);
+            var response = _userService.DeleteUserImage(fileUrl);
             return Ok(new { data = response });
         }
     }

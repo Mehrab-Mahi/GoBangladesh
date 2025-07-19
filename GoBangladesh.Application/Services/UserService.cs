@@ -216,11 +216,29 @@ namespace GoBangladesh.Application.Services
             return BCrypt.Net.BCrypt.Verify(oldPassword, currentUser.PasswordHash);
         }
 
-        public PayloadResponse DeleteFile(DeleteFileByUrl fileUrl)
+        public PayloadResponse DeleteUserImage(DeleteFileByUrl fileUrl)
         {
             try
             {
-                _commonService.DeleteFile(fileUrl.Url);
+                var user = _userRepo.GetConditional(u => u.Id == fileUrl.UserId);
+
+                if(user == null)
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "User not found!"
+                    };
+                }
+                user.ImageUrl = null;
+
+                _userRepo.Update(user);
+                _userRepo.SaveChanges();
+
+                if(!string.IsNullOrEmpty(fileUrl.Url))
+                {
+                    _commonService.DeleteFile(fileUrl.Url);
+                }
 
                 return new PayloadResponse() 
                 { 
@@ -233,7 +251,7 @@ namespace GoBangladesh.Application.Services
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    Message = $"File remove failed because {ex.Message}!"
+                    Message = $"File delete failed because {ex.Message}!"
                 };
             }
         }

@@ -15,6 +15,6 @@ namespace GoBangladesh.Application.Interfaces
         PayloadResponse DeleteUser(string id);
         PayloadResponse ChangePassword(ChangePassword changePassword);
         PayloadResponse ForgotPassword(ForgotPassword forgotPassword);
-        PayloadResponse DeleteFile(DeleteFileByUrl fileUrl);
+        PayloadResponse DeleteUserImage(DeleteFileByUrl fileUrl);
     }
 }
