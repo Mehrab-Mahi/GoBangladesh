@@ -317,6 +317,18 @@ public class PassengerService : IPassengerService
         var passenger = _userRepository
             .GetConditional(p => p.Id == model.UserId);
 
+        var passengerCard = _cardService
+            .GetCardDataFromPassengerId(model.UserId);
+
+        if (passengerCard == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Passenger is not assigned to any card!"
+            };
+        }
+
         if (passenger == null)
         {
             return new PayloadResponse()
@@ -344,7 +356,7 @@ public class PassengerService : IPassengerService
             };
         }
 
-        var previousCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
+        var previousCard = _cardService.GetCardDetailByCardNumber(passengerCard.CardNumber);
         previousCard.Status = CardStatus.Obsolete;
         _cardService.UpdateCard(previousCard);
 
@@ -447,8 +459,7 @@ public class PassengerService : IPassengerService
         var query = $@"
                     select u.*, c.CardNumber, c.Balance from Users u
                     left join PassengerCardMappings pcm on u.Id = pcm.UserId
-                    left join PassengerCardHistory pch on u.Id = pch.UserId
-                    left join Cards c on c.Id = pcm.CardId or c.Id = pch.CardId
+                    left join Cards c on c.Id = pcm.CardId
                     {whereCondition} {extraCondition}";
 
         var data = _baseRepository.Query<PassengerDto>(query);
