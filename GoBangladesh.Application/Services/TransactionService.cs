@@ -611,13 +611,11 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(trip.Card, trip.Amount, TransactionOperation.Subtract);
-            return;
         }
         catch
         {
             RollBackTrip(trip);
             DeleteTransaction(transaction);
-            return;
         }
     }
 }

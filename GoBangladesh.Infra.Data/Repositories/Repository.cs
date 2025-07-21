@@ -26,7 +26,14 @@ namespace GoBangladesh.Infra.Data.Repositories
         private void ParseLoggedInUser()
         {
             var bytes = new byte[1024];
-            _httpContextAccessor.HttpContext.Session.TryGetValue("userId", out bytes);
+            try
+            {
+                _httpContextAccessor.HttpContext.Session.TryGetValue("userId", out bytes);
+            }
+            catch
+            {
+
+            }
             if (bytes is not null)
             {
                 LoggedInUserName = System.Text.Encoding.UTF8.GetString(bytes).Trim('"');
