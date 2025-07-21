@@ -55,23 +55,23 @@ public class TripAutoCloseService : BackgroundService
     private async Task CloseTripsAsync(CancellationToken stoppingToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        //var transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService>();
-        //var tripRepository = scope.ServiceProvider.GetRequiredService<IRepository<Trip>>();
+        var transactionService = scope.ServiceProvider.GetRequiredService<ITransactionService>();
+        var tripRepository = scope.ServiceProvider.GetRequiredService<IRepository<Trip>>();
 
-        //var trips = tripRepository
-        //    .GetAll()
-        //    .Where(t => t.IsRunning && EF.Functions.DateDiffHour(t.TripStartTime, DateTime.UtcNow) >= 8.00)
-        //    .Include(t => t.Card)
-        //    .ToList();
+        var trips = tripRepository
+            .GetAll()
+            .Where(t => t.IsRunning && EF.Functions.DateDiffHour(t.TripStartTime, DateTime.UtcNow) >= 8.00)
+            .Include(t => t.Card)
+            .ToList();
 
-        //foreach (var trip in trips)
-        //{
-        //    await Task.Run(() => transactionService.ForceTripStop(new ForceStopTripDto()
-        //    {
-        //        CardNumber = trip.Card.CardNumber,
-        //        TripId = trip.Id,
-        //        SessionId = trip.SessionId
-        //    }), stoppingToken);
-        //}
+        foreach (var trip in trips)
+        {
+            await Task.Run(() => transactionService.ForceTripStop(new ForceStopTripDto()
+            {
+                CardNumber = trip.Card.CardNumber,
+                TripId = trip.Id,
+                SessionId = trip.SessionId
+            }), stoppingToken);
+        }
     }
 }
