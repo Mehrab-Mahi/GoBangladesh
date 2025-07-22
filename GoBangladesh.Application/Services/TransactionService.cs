@@ -114,7 +114,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        if (card.Status == CardStatus.NotUsed)
+        if (card.Status != CardStatus.InUse)
         {
             return new PayloadResponse()
             {
