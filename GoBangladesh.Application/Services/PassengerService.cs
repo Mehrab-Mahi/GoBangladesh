@@ -95,6 +95,8 @@ public class PassengerService : IPassengerService
                         Message = "Organization is not same!"
                     };
                 }
+
+                _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
             }
         }
 

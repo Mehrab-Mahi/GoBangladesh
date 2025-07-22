@@ -114,6 +114,16 @@ public class TransactionService : ITransactionService
             };
         }
 
+        if (card.Status == CardStatus.NotUsed)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Card is not in use!"
+            };
+        }
+
         var session = _sessionRepository
             .GetAll()
             .Where(s => s.Id == tapRequest.SessionId)
@@ -144,10 +154,6 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var minimumBalanceCheck = IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
-
-        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
-
         if (card.Organization.OrganizationType == OrganizationTypes.Public &&
             session.Bus.Organization.OrganizationType == OrganizationTypes.Private)
         {
@@ -158,6 +164,22 @@ public class TransactionService : ITransactionService
                 Message = "Organization is not same!"
             };
         }
+
+        if(card.Organization.OrganizationType == OrganizationTypes.Private &&
+           session.Bus.Organization.OrganizationType == OrganizationTypes.Private
+           && card.Organization.Id != session.Bus.Organization.Id)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Organization is not same!"
+            };
+        }
+
+        var minimumBalanceCheck = IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
+
+        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
         var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(card.Id, tapRequest.SessionId);
 
