@@ -4,6 +4,7 @@ using System.Linq;
 using GoBangladesh.Application.DTOs;
 using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
@@ -477,6 +478,101 @@ public class OrganizationService : IOrganizationService
                         OrganizationType = o.OrganizationType
                     })
                     .ToList();
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Organization",
+                Content = organizationData,
+                Message = "Organization data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = $"Organization data fetch failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetAllForMap()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User not found!"
+                };
+            }
+
+            List<OrganizationDropdownDto> organizationData;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                organizationData = _organizationRepository
+                    .GetAll()
+                    .Select(o => new OrganizationDropdownDto()
+                    {
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
+                    })
+                    .ToList();
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Organization",
+                        Message = "User is not from any organization!"
+                    };
+                }
+
+                var organization = _organizationRepository.GetConditional(o => o.Id == currentUser.OrganizationId);
+
+                if (organization.OrganizationType == OrganizationTypes.Public)
+                {
+                    organizationData = _organizationRepository
+                        .GetAll()
+                        .Where(org => org.OrganizationType == OrganizationTypes.Public)
+                        .Select(o => new OrganizationDropdownDto()
+                        {
+                            Id = o.Id,
+                            Name = o.Name,
+                            Code = o.Code,
+                            OrganizationType = o.OrganizationType
+                        })
+                        .ToList();
+                }
+                else
+                {
+                    organizationData = _organizationRepository
+                        .GetAll()
+                        .Where(org => org.OrganizationType == OrganizationTypes.Public || org.Id == organization.Id)
+                        .Select(o => new OrganizationDropdownDto()
+                        {
+                            Id = o.Id,
+                            Name = o.Name,
+                            Code = o.Code,
+                            OrganizationType = o.OrganizationType
+                        })
+                        .ToList();
+                }
             }
 
             return new PayloadResponse()

@@ -62,4 +62,12 @@ public class OrganizationController : Controller
         var data = _organizationService.Delete(id);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("getAllForMap")]
+    public IActionResult GetAllForMap()
+    {
+        var data = _organizationService.GetAllForMap();
+        return Ok(new { data });
+    }
 }

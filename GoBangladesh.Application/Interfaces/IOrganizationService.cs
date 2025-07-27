@@ -12,4 +12,5 @@ public interface IOrganizationService
     PayloadResponse GetAll(OrganizationDataFilter filter);
     PayloadResponse Delete(string id);
     PayloadResponse GetAllForSuperAdmin();
+    PayloadResponse GetAllForMap();
 }
