@@ -6,7 +6,6 @@ using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Linq;
-using GoBangladesh.Application.DTOs.Transaction;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
@@ -143,7 +142,7 @@ public class SessionService : ISessionService
             _sessionRepository.Update(session);
             _sessionRepository.SaveChanges();
 
-            ForceStopTripsLinkedWithSession(session);
+            ForceStopTripsLinkedWithSession(session, sessionStopDto.TripClosingType);
 
             return new PayloadResponse()
             {
@@ -161,7 +160,7 @@ public class SessionService : ISessionService
         }
     }
 
-    private void ForceStopTripsLinkedWithSession(Session session)
+    private void ForceStopTripsLinkedWithSession(Session session, string tapOutStatus)
     {
         var trips = _tripRepository
             .GetAll()
@@ -171,7 +170,11 @@ public class SessionService : ISessionService
 
         foreach (var trip in trips)
         {
-            _transactionService.ForceTripStopLinkedWIthSession(trip, session.Bus.Route, session.Bus.PresentLatitude, session.Bus.PresentLongitude);
+            _transactionService.ForceTripStopLinkedWIthSession(trip,
+                session.Bus.Route,
+                session.Bus.PresentLatitude,
+                session.Bus.PresentLongitude,
+                tapOutStatus);
         }
     }
 

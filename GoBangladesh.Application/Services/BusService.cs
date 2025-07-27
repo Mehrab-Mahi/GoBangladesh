@@ -448,14 +448,14 @@ public class BusService : IBusService
                 .Include(s => s.Bus.Organization)
                 .Select(b => b.Bus);
 
-            if (!string.IsNullOrEmpty(busId))
-            {
-                allBus = allBus.Where(b => b.Id == busId);
-            }
-            
             if (!string.IsNullOrEmpty(routId))
             {
                 allBus = allBus.Where(b => b.RouteId == routId);
+            }
+
+            if (!string.IsNullOrEmpty(busId))
+            {
+                allBus = allBus.Where(b => b.Id == busId);
             }
 
             if (currentUser.IsSuperAdmin)

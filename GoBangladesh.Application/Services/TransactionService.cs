@@ -260,6 +260,7 @@ public class TransactionService : ITransactionService
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
+            trip.TapOutStatus = tapRequest.TapType;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -365,6 +366,7 @@ public class TransactionService : ITransactionService
             trip.IsRunning = false;
             trip.Distance = 0;
             trip.Amount = session.Bus.Route.PenaltyAmount;
+            trip.TapOutStatus = forceStop.TripCloseStatus;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -534,7 +536,8 @@ public class TransactionService : ITransactionService
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
-            TripStartTime = DateTime.UtcNow
+            TripStartTime = DateTime.UtcNow,
+            TapInType = tapRequest.TapType
         });
 
         _tripRepository.SaveChanges();
@@ -596,7 +599,7 @@ public class TransactionService : ITransactionService
         return transaction;
     }
 
-    public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude)
+    public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude, string tapOutStatus)
     {
         try
         {
@@ -609,6 +612,7 @@ public class TransactionService : ITransactionService
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
+            trip.TapOutStatus = tapOutStatus;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();

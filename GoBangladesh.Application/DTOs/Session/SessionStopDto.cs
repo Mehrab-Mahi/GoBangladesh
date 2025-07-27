@@ -3,4 +3,5 @@
 public class SessionStopDto
 {
     public string SessionId { get; set; }
+    public string TripClosingType { get; set; }
 }

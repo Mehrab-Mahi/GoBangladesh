@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cronos;
 using GoBangladesh.Application.DTOs.Transaction;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -70,7 +71,8 @@ public class TripAutoCloseService : BackgroundService
             {
                 CardNumber = trip.Card.CardNumber,
                 TripId = trip.Id,
-                SessionId = trip.SessionId
+                SessionId = trip.SessionId,
+                TripCloseStatus = TapOutStatus.TimeOut
             }), stoppingToken);
         }
     }
