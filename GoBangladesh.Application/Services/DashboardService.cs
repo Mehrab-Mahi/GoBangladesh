@@ -454,6 +454,8 @@ public class DashboardService : IDashboardService
                                t.EndingLongitude,
                                t.Distance,
                                t.Amount as Fare,
+                               t.TapInType as TapInType,                                 
+                               t.TapOutStatus as TapOutStatus,
                                case when t.IsRunning = 1 then 'Running'
                                 else 'Complete' end as Status,
                                case when t.IsRunning = 1 then null else u1.UserType end as LastModifiedByUserType   

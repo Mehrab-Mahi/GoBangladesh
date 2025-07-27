@@ -20,4 +20,6 @@ public class TripDashBoardTableData
     public decimal Fare { get; set; }
     public string Status { get; set; }
     public string LastModifiedByUserType { get; set; }
+    public string TapInType { get; set; }
+    public string TapOutStatus { get; set; }
 }

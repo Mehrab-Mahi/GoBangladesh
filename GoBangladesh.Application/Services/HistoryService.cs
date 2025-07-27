@@ -73,9 +73,8 @@ public class HistoryService : IHistoryService
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Trip)
-                .Include(t => t.Trip.Session)
-                .Include(t => t.Trip.Session.Bus)
+                .Include(t => t.Agent)
+                .Include(t => t.Agent.Organization)
                 .ToList();
 
             return new PayloadResponse()
@@ -108,8 +107,9 @@ public class HistoryService : IHistoryService
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Agent)
-                .Include(t => t.Agent.Organization)
+                .Include(t => t.Trip)
+                .Include(t => t.Trip.Session)
+                .Include(t => t.Trip.Session.Bus)
                 .ToList();
 
             return new PayloadResponse()
