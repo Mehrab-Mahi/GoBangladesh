@@ -194,7 +194,7 @@ public class DashboardService : IDashboardService
 
             if (!string.IsNullOrEmpty(filter.RouteId))
             {
-                condition.Add($" b.Id = '{filter.RouteId}' ");
+                condition.Add($" r.Id = '{filter.RouteId}' ");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
