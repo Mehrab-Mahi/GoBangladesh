@@ -29,4 +29,12 @@ public class OtpController : Controller
         var response = _otpService.VerifyOtp(mobileNumber, otp);
         return Ok(new { data = response });
     }
+
+    [AllowAnonymous]
+    [HttpGet("SendOtpForForgotPassword")]
+    public IActionResult SendOtpForForgotPassword(string mobileNumber)
+    {
+        var response = _otpService.SendOtpForForgotPassword(mobileNumber);
+        return Ok(new { data = response });
+    }
 }

@@ -11,12 +11,15 @@ namespace GoBangladesh.Application.Services;
 public class OtpService : IOtpService
 {
     private readonly IRepository<OneTimePassword> _oneTimePasswordRepository;
+    private readonly IRepository<User> _userRepository;
     private readonly OtpSettings _otpSettings;
 
     public OtpService(IRepository<OneTimePassword> oneTimePasswordRepository,
-        IOptions<OtpSettings> otpSettings)
+        IOptions<OtpSettings> otpSettings, 
+        IRepository<User> userRepository)
     {
         _oneTimePasswordRepository = oneTimePasswordRepository;
+        _userRepository = userRepository;
         _otpSettings = otpSettings.Value;
     }
 
@@ -105,6 +108,22 @@ public class OtpService : IOtpService
             IsSuccess = true,
             Message = "Otp has been matched"
         };
+    }
+
+    public PayloadResponse SendOtpForForgotPassword(string mobileNumber)
+    {
+        var user = _userRepository.GetConditional(u => u.MobileNumber == mobileNumber);
+
+        if(user == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found with this mobile number!"
+            };
+        }
+
+        return SendOtp(mobileNumber);
     }
 
     public string GenerateOtp()

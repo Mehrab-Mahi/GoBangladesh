@@ -122,6 +122,11 @@ public class DashboardService : IDashboardService
             {
                 condition.Add($" b.Id = '{filter.BusId}' ");
             }
+            
+            if (!string.IsNullOrEmpty(filter.RouteId))
+            {
+                condition.Add($" r.Id = '{filter.RouteId}' ");
+            }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
@@ -185,6 +190,11 @@ public class DashboardService : IDashboardService
             if (!string.IsNullOrEmpty(filter.BusId))
             {
                 condition.Add($" b.Id = '{filter.BusId}' ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.RouteId))
+            {
+                condition.Add($" b.Id = '{filter.RouteId}' ");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
@@ -302,7 +312,7 @@ public class DashboardService : IDashboardService
     private List<RechargeDashboardTableData> GetRechargeDashboardTableData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                       select  t.Id                           as TransactionId,
+                       select  t.TransactionId                as TransactionId,
                                o.Name                         as OrganizationName,
                                t.CreateTime                   as TransactionTime,
                                u.PassengerId,
@@ -378,6 +388,10 @@ public class DashboardService : IDashboardService
                        u.MobileNumber,
                        s.StartTime,
                        s.EndTime,
+                       s.StartingLatitude,
+                       s.StartingLongitude,
+                       s.EndingLatitude,
+                       s.EndingLongitude,
                        case
                            when s.IsRunning = 1 then 'Running'
                            else 'Complete' end                   as Status

@@ -70,7 +70,9 @@ public class SessionService : ISessionService
                 UserId = sessionStartDto.UserId,
                 StartTime = DateTime.UtcNow,
                 Serial = serialNumber,
-                SessionCode = $"SSN-{serialNumber:D6}"
+                SessionCode = $"SSN-{serialNumber:D6}",
+                StartingLatitude = sessionStartDto.Latitude,
+                StartingLongitude = sessionStartDto.Longitude
             };
 
             _sessionRepository.Insert(session);
@@ -138,6 +140,8 @@ public class SessionService : ISessionService
 
             session.IsRunning = false;
             session.EndTime = DateTime.UtcNow;
+            session.EndingLatitude = session.Bus.PresentLatitude;
+            session.EndingLongitude = session.Bus.PresentLongitude;
 
             _sessionRepository.Update(session);
             _sessionRepository.SaveChanges();

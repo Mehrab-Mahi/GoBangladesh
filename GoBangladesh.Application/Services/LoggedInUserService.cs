@@ -1,6 +1,4 @@
-﻿using GoBangladesh.Application.Helper;
-using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.ViewModels;
+﻿using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;

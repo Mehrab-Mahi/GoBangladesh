@@ -44,7 +44,7 @@ public class TransactionService : ITransactionService
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {
@@ -275,7 +275,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {
@@ -381,7 +381,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {
@@ -622,7 +622,7 @@ public class TransactionService : ITransactionService
             return;
         }
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {

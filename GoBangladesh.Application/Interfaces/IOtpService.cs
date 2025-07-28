@@ -6,4 +6,5 @@ public interface IOtpService
 {
     PayloadResponse SendOtp(string mobileNumber);
     PayloadResponse VerifyOtp(string mobileNumber, string otp);
+    PayloadResponse SendOtpForForgotPassword(string mobileNumber);
 }
