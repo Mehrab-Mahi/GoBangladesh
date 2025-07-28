@@ -458,6 +458,7 @@ public class DashboardService : IDashboardService
                                o.Name                                    as OrganizationName,
                                r.TripStartPlace + ' - ' + r.TripEndPlace as Route,
                                b.BusNumber,
+                               tr.TransactionId,
                                c.CardNumber,
                                u.Name as PassengerName,
                                t.TripStartTime,
@@ -483,6 +484,7 @@ public class DashboardService : IDashboardService
                                  left join Routes r on b.RouteId = r.Id
                                  left join Organizations o on b.OrganizationId = o.Id
                                  left join Users u1 on t.LastModifiedBy = u1.Id
+                                 left join Transactions tr on t.Id = tr.TripId
                                  {whereCondition} {extraCondition}";
 
 

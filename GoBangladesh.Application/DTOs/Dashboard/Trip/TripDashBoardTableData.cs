@@ -22,4 +22,5 @@ public class TripDashBoardTableData
     public string LastModifiedByUserType { get; set; }
     public string TapInType { get; set; }
     public string TapOutStatus { get; set; }
+    public string TransactionId { get; set; }
 }
