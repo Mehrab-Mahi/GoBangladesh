@@ -363,9 +363,11 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(s.Id)
                         from Sessions s
-                                 left join Buses b on s.BusId = b.Id
-                                 left join Organizations o on b.OrganizationId = o.Id
-                                 left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition}";
+                         left join Buses b on s.BusId = b.Id
+                         left join Organizations o on b.OrganizationId = o.Id
+                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff')
+                         left join Routes r on b.RouteId = r.Id 
+                         {whereCondition}";
 
 
         var rowCount = _baseRepository
@@ -418,6 +420,7 @@ public class DashboardService : IDashboardService
                        count(distinct u.Id) as TotalStaff
                 from Sessions s
                          left join Buses b on s.BusId = b.Id
+                         left join Routes r on b.RouteId = r.Id
                          left join Organizations o on b.OrganizationId = o.Id
                          left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition}";
 
@@ -433,14 +436,10 @@ public class DashboardService : IDashboardService
         var query = $@"
                         select count(t.Id)
                         from Trips t
-                                 left join Cards c on t.CardId = c.Id
-                                 left join PassengerCardHistory pch on c.Id = pch.CardId
-                                 left join PassengerCardMappings pcm on c.Id = pcm.CardId
-                                 left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
-                                 left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
                                  left join Buses b on s.BusId = b.Id
                                  left join Routes r on b.RouteId = r.Id
+                                 left join Organizations o on b.OrganizationId = o.Id
                                  {whereCondition}";
 
 
@@ -506,9 +505,11 @@ public class DashboardService : IDashboardService
                                  left join PassengerCardHistory pch on c.Id = pch.CardId
                                  left join PassengerCardMappings pcm on c.Id = pcm.CardId
                                  left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
-                                 left join Organizations o on u.OrganizationId = o.Id
                                  left join Sessions s on t.SessionId = s.Id
-                                 left join Buses b on s.BusId = b.Id {whereCondition}";
+                                 left join Buses b on s.BusId = b.Id 
+                                 left join Routes r on b.RouteId = r.Id
+                                 left join Organizations o on b.OrganizationId = o.Id 
+                                 {whereCondition}";
 
         var tripDashBoardTableData = _baseRepository
             .Query<TripDashboardCardData>(query)

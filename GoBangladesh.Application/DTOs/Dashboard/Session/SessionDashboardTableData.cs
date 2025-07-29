@@ -15,4 +15,8 @@ public class SessionDashboardTableData
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public string Status { get; set; }
+    public string StartingLatitude { get; set; }
+    public string StartingLongitude { get; set; }
+    public string EndingLatitude { get; set; }
+    public string EndingLongitude { get; set; }
 }

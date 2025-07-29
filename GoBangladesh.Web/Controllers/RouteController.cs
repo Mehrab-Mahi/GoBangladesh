@@ -62,4 +62,12 @@ public class RouteController : Controller
         var data = _routeService.GetRouteDropdown(organizationId);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("routeDropdownForMobile")]
+    public IActionResult RouteDropdownForMobile(string organizationId)
+    {
+        var data = _routeService.RouteDropdownForMobile(organizationId);
+        return Ok(new { data });
+    }
 }

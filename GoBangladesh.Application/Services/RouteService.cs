@@ -319,4 +319,47 @@ public class RouteService : IRouteService
             };
         }
     }
+
+    public PayloadResponse RouteDropdownForMobile(string organizationId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(organizationId))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Route",
+                    Message = "Need organization!"
+                };
+            }
+
+            var allRoute = _routeRepository
+                .GetAll()
+                .Where(r => r.OrganizationId == organizationId);
+
+            var routeData = allRoute.Select(r => new ValueLabel()
+            {
+                Value = r.Id,
+                Label = $"{r.TripStartPlace} - {r.TripEndPlace}"
+            }).ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = routeData,
+                PayloadType = "Route",
+                Message = "Route data has been fetching successfully!"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = $"Route data fetching has been failed because {ex.Message}!"
+            };
+        }
+    }
 }
