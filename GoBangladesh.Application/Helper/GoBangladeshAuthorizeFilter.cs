@@ -29,6 +29,7 @@ public class GoBangladeshAuthorizeFilter : IAuthorizationFilter
                 if (!auth.IsAuthenticate)
                 {
                     context.Result = new UnauthorizedResult();
+                    context.HttpContext.Response.StatusCode = 401;
                 }
                 else
                 {

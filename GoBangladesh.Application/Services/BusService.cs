@@ -486,17 +486,36 @@ public class BusService : IBusService
                 };
             }
 
-            var data = allBus
-                .Where(b => b.OrganizationId == currentUser.OrganizationId)
-                .Select(b => new BusMapDataDto()
-                {
-                    Id = b.Id,
-                    BusNumber = b.BusNumber,
-                    BusName = b.BusName,
-                    PresentLatitude = b.PresentLatitude,
-                    PresentLongitude = b.PresentLongitude
-                })
-                .ToList();
+            List<BusMapDataDto> data;
+
+            if (!string.IsNullOrEmpty(organizationId))
+            {
+                data = allBus
+                    .Where(b => b.OrganizationId == organizationId)
+                    .Select(b => new BusMapDataDto()
+                    {
+                        Id = b.Id,
+                        BusNumber = b.BusNumber,
+                        BusName = b.BusName,
+                        PresentLatitude = b.PresentLatitude,
+                        PresentLongitude = b.PresentLongitude
+                    })
+                    .ToList();
+            }
+            else
+            {
+                data = allBus
+                    .Where(b => b.OrganizationId == currentUser.OrganizationId)
+                    .Select(b => new BusMapDataDto()
+                    {
+                        Id = b.Id,
+                        BusNumber = b.BusNumber,
+                        BusName = b.BusName,
+                        PresentLatitude = b.PresentLatitude,
+                        PresentLongitude = b.PresentLongitude
+                    })
+                    .ToList();
+            }
 
             return new PayloadResponse()
             {

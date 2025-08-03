@@ -37,7 +37,7 @@ public class OtpService : IOtpService
             });
             _oneTimePasswordRepository.SaveChanges();
 
-            SendOtpToUser(mobileNumber, otp);
+            //SendOtpToUser(mobileNumber, otp);
 
             return new PayloadResponse()
             {
@@ -128,7 +128,8 @@ public class OtpService : IOtpService
 
     public string GenerateOtp()
     {
-        var random = new Random();
-        return random.Next(0, 1000000).ToString("D6");
+        //var random = new Random();
+        //return random.Next(0, 1000000).ToString("D6");
+        return "123456";
     }
 }

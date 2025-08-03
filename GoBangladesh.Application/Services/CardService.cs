@@ -113,6 +113,8 @@ public class CardService : ICardService
 
     public PayloadResponse CheckCardValidity(string cardNumber)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
         var card = _cardRepository
             .GetAll()
             .Where(c => c.CardNumber == cardNumber)
@@ -150,6 +152,16 @@ public class CardService : ICardService
                 IsSuccess = false,
                 PayloadType = "Card",
                 Message = "Card is already registered!"
+            };
+        }
+
+        if (card.OrganizationId != currentUser.OrganizationId)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card organization is not same as passenger organization!"
             };
         }
 

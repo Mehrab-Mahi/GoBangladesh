@@ -347,21 +347,11 @@ public class PassengerService : IPassengerService
             return cardValidity;
         }
 
-        var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
-
-        if(newCard.OrganizationId != passenger.OrganizationId)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Message = "Card organization is not same as passenger organization!"
-            };
-        }
-
         var previousCard = _cardService.GetCardDetailByCardNumber(passengerCard.CardNumber);
         previousCard.Status = CardStatus.Obsolete;
         _cardService.UpdateCard(previousCard);
 
+        var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
         newCard.Status = CardStatus.InUse;
         _cardService.UpdateCard(newCard);
 
@@ -518,6 +508,7 @@ public class PassengerService : IPassengerService
                 .GetAll()
                 .Where(t => t.CardId == card.Id && t.IsRunning)
                 .Include(t => t.Session)
+                .Include(t => t.Card)
                 .Include(t => t.Session.Bus)
                 .Include(t => t.Session.Bus.Route)
                 .Select(t => new OnGoingTripDto()
@@ -526,6 +517,7 @@ public class PassengerService : IPassengerService
                     BusName = t.Session.Bus.BusName,
                     BusNumber = t.Session.Bus.BusNumber,
                     CardId = t.CardId,
+                    CardNumber = t.Card.CardNumber,
                     IsRunning = t.IsRunning,
                     PenaltyAmount = t.Session.Bus.Route.PenaltyAmount,
                     SessionId = t.SessionId,

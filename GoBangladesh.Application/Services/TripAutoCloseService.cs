@@ -69,7 +69,7 @@ public class TripAutoCloseService : BackgroundService
         {
             await Task.Run(() => transactionService.ForceTripStop(new ForceStopTripDto()
             {
-                CardNumber = trip.Card.CardNumber,
+                CardId = trip.Card.Id,
                 TripId = trip.Id,
                 SessionId = trip.SessionId,
                 TripCloseStatus = TapOutStatus.TimeOut

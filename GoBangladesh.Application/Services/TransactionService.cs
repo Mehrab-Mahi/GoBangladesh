@@ -319,7 +319,7 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse ForceTripStop(ForceStopTripDto forceStop)
     {
-        var card = _cardRepository.GetConditional(c => c.CardNumber == forceStop.CardNumber);
+        var card = _cardRepository.GetConditional(c => c.Id == forceStop.CardId);
 
         if (card == null)
         {
@@ -331,7 +331,7 @@ public class TransactionService : ITransactionService
             };
         }
         
-        var trip = _tripRepository.GetConditional(t => t.Id == forceStop.TripId);
+        var trip = _tripRepository.GetConditional(t => t.Id == forceStop.TripId && t.IsRunning);
 
         if (trip == null)
         {
@@ -339,7 +339,7 @@ public class TransactionService : ITransactionService
             {
                 IsSuccess = false,
                 PayloadType = "Trip",
-                Message = "Trip not found!"
+                Message = "No running trip not found!"
             };
         }
 
