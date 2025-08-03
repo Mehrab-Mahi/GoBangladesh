@@ -1,22 +1,24 @@
-﻿using GoBangladesh.Application.DTOs.Staff;
+﻿using GoBangladesh.Application.DTOs.TicketChecker;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using GoBangladesh.Application.Util;
+using GoBangladesh.Application.DTOs.Staff;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace GoBangladesh.Application.Services;
 
-public class StaffService : IStaffService
+public class TicketCheckerService : ITicketCheckerService
 {
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
 
-    public StaffService(IRepository<User> userRepository, 
+    public TicketCheckerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService)
     {
@@ -25,14 +27,14 @@ public class StaffService : IStaffService
         _commonService = commonService;
     }
 
-    public PayloadResponse StaffInsert(StaffCreateRequest user)
+    public PayloadResponse TicketCheckerCreate(TicketCheckerCreateRequest user)
     {
         if (IfDuplicateUser(user))
         {
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Staff Creation",
+                PayloadType = "Ticket Checker",
                 Content = null,
                 Message = "User with this mobile number already exists!"
             };
@@ -40,8 +42,6 @@ public class StaffService : IStaffService
 
         try
         {
-            var serial = GetSerialNumber();
-
             var model = new User()
             {
                 Name = user.Name,
@@ -50,10 +50,8 @@ public class StaffService : IStaffService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = user.UserType,
-                OrganizationId = user.OrganizationId,
-                Serial = serial,
-                Code = $"STF-{serial:D6}"
+                UserType = UserTypes.TicketChecker,
+                OrganizationId = user.OrganizationId
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -74,9 +72,9 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = true,
-                PayloadType = "Staff Creation",
+                PayloadType = "Ticket Checker",
                 Content = null,
-                Message = "Staff Creation has been successful"
+                Message = "Ticket Checker Creation has been successful"
             };
         }
         catch (Exception ex)
@@ -84,41 +82,14 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Staff Creation",
+                PayloadType = "Ticket Checker",
                 Content = null,
-                Message = $"Staff Creation become unsuccessful because {ex.Message}"
+                Message = $"Ticket Checker Creation become unsuccessful because {ex.Message}"
             };
         }
     }
 
-    private int GetSerialNumber()
-    {
-        var maxSerial = _userRepository.GetAll().Max(s => s.Serial);
-        return maxSerial + 1;
-    }
-
-    private bool IfDuplicateUser(StaffCreateRequest model)
-    {
-        User user;
-
-        if (!string.IsNullOrEmpty(model.EmailAddress))
-        {
-            user = _userRepository
-                .GetAll()
-                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
-                                     u.EmailAddress == model.EmailAddress);
-
-            return user is not null;
-        }
-
-        user = _userRepository
-            .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
-
-        return user is not null;
-    }
-
-    public PayloadResponse UpdateStaff(StaffUpdateRequest user)
+    public PayloadResponse TicketCheckerUpdate(TicketCheckerUpdateRequest user)
     {
         var model = _userRepository.GetConditional(u => u.Id == user.Id);
         try
@@ -130,9 +101,9 @@ public class StaffService : IStaffService
                     return new PayloadResponse
                     {
                         IsSuccess = false,
-                        PayloadType = "Staff Update",
+                        PayloadType = "Ticket Checker",
                         Content = null,
-                        Message = "Staff with the mobile number already exists!"
+                        Message = "User with the mobile number already exists!"
                     };
                 }
             }
@@ -144,9 +115,9 @@ public class StaffService : IStaffService
                     return new PayloadResponse
                     {
                         IsSuccess = false,
-                        PayloadType = "Staff Update",
+                        PayloadType = "Ticket Checker",
                         Content = null,
-                        Message = "Staff with the email already exists!"
+                        Message = "User with the email already exists!"
                     };
                 }
             }
@@ -172,9 +143,9 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = true,
-                PayloadType = "Staff Update",
+                PayloadType = "Ticket Checker",
                 Content = null,
-                Message = "Staff Update successful"
+                Message = "Ticket Checker Update successful"
             };
         }
         catch (Exception ex)
@@ -182,57 +153,56 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Staff Update",
+                PayloadType = "Ticket Checker",
                 Content = null,
-                Message = $"Staff Update become failed because {ex.Message}"
+                Message = $"Ticket Checker Update become failed because {ex.Message}"
             };
         }
     }
 
-    public PayloadResponse GetStaffById(string id)
+    public PayloadResponse GetById(string id)
     {
-        var staff = _userRepository
+        var ticketChecker = _userRepository
             .GetAll().Where(u => u.Id == id)
             .Include(p => p.Organization)
             .FirstOrDefault();
 
-        if (staff == null)
+        if (ticketChecker == null)
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Staff Get",
+                PayloadType = "Ticket Checker",
                 Content = new StaffDto(),
-                Message = "Staff not found!"
+                Message = "Ticket Checker not found!"
             };
         }
 
         return new PayloadResponse()
         {
             IsSuccess = true,
-            PayloadType = "Staff Get",
+            PayloadType = "Ticket Checker",
             Content = new StaffDto()
             {
-                Id = staff.Id,
-                Name = staff.Name,
-                DateOfBirth = staff.DateOfBirth,
-                MobileNumber = staff.MobileNumber,
-                EmailAddress = staff.EmailAddress,
-                Address = staff.Address,
-                Gender = staff.Gender,
-                UserType = staff.UserType,
-                ImageUrl = staff.ImageUrl,
-                Organization = staff.Organization,
-                Code = staff.Code,
-                OrganizationId = staff.OrganizationId,
-                CreateTime = staff.CreateTime,
-                LastModifiedTime = staff.LastModifiedTime
+                Id = ticketChecker.Id,
+                Name = ticketChecker.Name,
+                DateOfBirth = ticketChecker.DateOfBirth,
+                MobileNumber = ticketChecker.MobileNumber,
+                EmailAddress = ticketChecker.EmailAddress,
+                Address = ticketChecker.Address,
+                Gender = ticketChecker.Gender,
+                UserType = ticketChecker.UserType,
+                ImageUrl = ticketChecker.ImageUrl,
+                Organization = ticketChecker.Organization,
+                OrganizationId = ticketChecker.OrganizationId,
+                CreateTime = ticketChecker.CreateTime,
+                LastModifiedTime = ticketChecker.LastModifiedTime
             },
-            Message = "Staff found!"
+            Message = "Ticket Checker not found!"
         };
     }
 
-    public PayloadResponse GetAll(StaffDataFilter filter)
+    public PayloadResponse GetAll(TicketCheckerDataFilter filter)
     {
         try
         {
@@ -244,12 +214,12 @@ public class StaffService : IStaffService
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    PayloadType = "Staff",
+                    PayloadType = "Ticket Checker",
                     Message = "Current User not found!"
                 };
             }
 
-            var condition = new List<string> { " UserType = 'Staff' " };
+            var condition = new List<string> { " UserType = 'TicketChecker' " };
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -261,7 +231,7 @@ public class StaffService : IStaffService
                     return new PayloadResponse()
                     {
                         IsSuccess = false,
-                        PayloadType = "Staff",
+                        PayloadType = "Ticket Checker",
                         Message = "Current User is not associated with any organization!"
                     };
                 }
@@ -271,7 +241,7 @@ public class StaffService : IStaffService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' or Code like '%{filter.SearchQuery}%') ");
+                condition.Add($" (Name like '%{filter.SearchQuery}%' or MobileNumber like '%{filter.SearchQuery}%' ) ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
@@ -313,9 +283,9 @@ public class StaffService : IStaffService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Staff",
+                PayloadType = "Ticket Checker",
                 Content = new { data = staffData, rowCount },
-                Message = "Staff data fetch is successful"
+                Message = "Ticket Checker data fetch is successful"
             };
         }
         catch (Exception ex)
@@ -323,8 +293,8 @@ public class StaffService : IStaffService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Staff",
-                Message = $"Staff fetching is failed because {ex.Message}!"
+                PayloadType = "Ticket Checker",
+                Message = $"Ticket Checker fetching is failed because {ex.Message}!"
             };
         }
     }
@@ -333,27 +303,27 @@ public class StaffService : IStaffService
     {
         try
         {
-            var staff = _userRepository
+            var ticketChecker = _userRepository
                 .GetConditional(u => u.Id == id);
 
-            if (staff == null)
+            if (ticketChecker == null)
             {
                 return new PayloadResponse()
                 {
                     IsSuccess = false,
-                    PayloadType = "Staff",
-                    Message = "Staff not found"
+                    PayloadType = "Ticket Checker",
+                    Message = "Ticket Checker not found"
                 };
             }
 
-            _userRepository.Delete(staff);
+            _userRepository.Delete(ticketChecker);
             _userRepository.SaveChanges();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Staff",
-                Message = "Staff has been deleted successfully"
+                PayloadType = "Ticket Checker",
+                Message = "Ticket Checker has been deleted successfully"
             };
         }
         catch (Exception ex)
@@ -361,11 +331,12 @@ public class StaffService : IStaffService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Staff",
-                Message = $"Staff deletion is failed! because {ex.Message}"
+                PayloadType = "Ticket Checker",
+                Message = $"Ticket Checker deletion is failed! because {ex.Message}"
             };
         }
     }
+
     private bool IfDuplicateEmail(string emailAddress)
     {
         var user = _userRepository
@@ -380,6 +351,27 @@ public class StaffService : IStaffService
         var user = _userRepository
             .GetAll()
             .FirstOrDefault(u => u.MobileNumber == mobileNumber);
+
+        return user is not null;
+    }
+
+    private bool IfDuplicateUser(TicketCheckerCreateRequest model)
+    {
+        User user;
+
+        if (!string.IsNullOrEmpty(model.EmailAddress))
+        {
+            user = _userRepository
+                .GetAll()
+                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress);
+
+            return user is not null;
+        }
+
+        user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
 
         return user is not null;
     }
