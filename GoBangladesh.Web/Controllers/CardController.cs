@@ -79,4 +79,12 @@ public class CardController : Controller
         var data = _cardService.CheckCardAvailability(cardNumber);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("GetCardDetailByCardNumber")]
+    public IActionResult GetCardDetailByCardNumber(string cardNumber)
+    {
+        var data = _cardService.GetCardDetailByCardNumber(cardNumber);
+        return Ok(new { data });
+    }
 }

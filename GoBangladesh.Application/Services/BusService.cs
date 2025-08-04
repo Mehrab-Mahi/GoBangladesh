@@ -536,6 +536,37 @@ public class BusService : IBusService
         }
     }
 
+    public PayloadResponse GetAllRunningBus()
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Current user not found"
+            };
+        }
+
+        var allRunningBus = _sessionRepository
+            .GetAll()
+            .Include(s => s.Bus)
+            .Where(s => s.IsRunning && s.Bus.OrganizationId == currentUser.OrganizationId)
+            .Select(s => s.Bus)
+            .Distinct()
+            .ToList();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Bus",
+            Content = allRunningBus,
+            Message = "All running buses"
+        };
+    }
+
     private bool IfDuplicateBusNumber(string busNumber)
     {
         var bus = _busRepository.GetConditional(b => b.BusName == busNumber);

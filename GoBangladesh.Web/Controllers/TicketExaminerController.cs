@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
 
-[Route("api/ticketChecker")]
-public class TicketCheckerController : Controller
+[Route("api/ticketExaminer")]
+public class TicketExaminerController : Controller
 {
-    private readonly ITicketCheckerService _ticketCheckerService;
+    private readonly ITicketExaminerService _ticketCheckerService;
 
-    public TicketCheckerController(ITicketCheckerService ticketCheckerService)
+    public TicketExaminerController(ITicketExaminerService ticketCheckerService)
     {
         _ticketCheckerService = ticketCheckerService;
     }
@@ -52,6 +52,22 @@ public class TicketCheckerController : Controller
     public IActionResult Delete(string id)
     {
         var data = _ticketCheckerService.Delete(id);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getTripInfoByCard")]
+    public IActionResult GetTripInfoByCard(string sessionId, string cardNumber)
+    {
+        var data = _ticketCheckerService.GetTripInfoByCard(sessionId, cardNumber);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("startPenaltyTrip")]
+    public IActionResult StartPenaltyTrip([FromBody] TicketExaminerPenaltyTripRequest tapRequest)
+    {
+        var data = _ticketCheckerService.StartPenaltyTrip(tapRequest);
         return Ok(new { data });
     }
 }

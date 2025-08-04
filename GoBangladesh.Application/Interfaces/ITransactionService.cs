@@ -10,4 +10,5 @@ public interface ITransactionService
     PayloadResponse Tap(TapRequest tap);
     PayloadResponse ForceTripStop(ForceStopTripDto forceStop);
     void ForceTripStopLinkedWIthSession(Trip trip, Domain.Entities.Route route, string latitude, string longitude, string tapOutStatus);
+    PayloadResponse Return(ReturnRequest model);
 }

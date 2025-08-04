@@ -38,5 +38,13 @@ namespace GoBangladesh.Web.Controllers
             var data = _transactionService.ForceTripStop(forceStop);
             return Ok(new { data });
         }
+
+        [GoBangladeshAuth]
+        [HttpPost("return")]
+        public IActionResult Return([FromBody] ReturnRequest model)
+        {
+            var data = _transactionService.Return(model);
+            return Ok(new { data });
+        }
     }
 }

@@ -9,22 +9,35 @@ using GoBangladesh.Application.Util;
 using GoBangladesh.Application.DTOs.Staff;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using GoBangladesh.Application.DTOs.Transaction;
 
 namespace GoBangladesh.Application.Services;
 
-public class TicketCheckerService : ITicketCheckerService
+public class TicketExaminerService : ITicketExaminerService
 {
     private readonly IRepository<User> _userRepository;
+    private readonly IRepository<Trip> _tripRepository;
+    private readonly IRepository<Session> _sessionRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly ICardService _cardService;
+    private readonly ITransactionService _transactionService;
 
-    public TicketCheckerService(IRepository<User> userRepository,
+    public TicketExaminerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        IRepository<Trip> tripRepository, 
+        ICardService cardService,
+        IRepository<Session> sessionRepository,
+        ITransactionService transactionService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _tripRepository = tripRepository;
+        _cardService = cardService;
+        _sessionRepository = sessionRepository;
+        _transactionService = transactionService;
     }
 
     public PayloadResponse TicketCheckerCreate(TicketCheckerCreateRequest user)
@@ -50,7 +63,7 @@ public class TicketCheckerService : ITicketCheckerService
                 MobileNumber = user.MobileNumber,
                 Address = user.Address,
                 Gender = user.Gender,
-                UserType = UserTypes.TicketChecker,
+                UserType = UserTypes.TicketExaminer,
                 OrganizationId = user.OrganizationId
             };
 
@@ -335,6 +348,64 @@ public class TicketCheckerService : ITicketCheckerService
                 Message = $"Ticket Checker deletion is failed! because {ex.Message}"
             };
         }
+    }
+
+    public PayloadResponse GetTripInfoByCard(string sessionId, string cardNumber)
+    {
+        var card = _cardService.GetCardDetailByCardNumber(cardNumber);
+
+        if (card is null || card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse
+            {
+                IsSuccess = false,
+                PayloadType = "Ticket",
+                Content = "Invalid",
+                Message = "Card is invalid"
+            };
+        }
+
+        var runningTrip = _tripRepository
+            .GetAll()
+            .FirstOrDefault(t => t.SessionId == sessionId && t.CardId == card.Id && t.IsRunning);
+
+        if (runningTrip == null)
+        {
+            return new PayloadResponse
+            {
+                IsSuccess = false,
+                PayloadType = "Ticket",
+                Content = "Not Tapped",
+                Message = "Card is not tapped properly."
+            };
+        }
+
+        return new PayloadResponse
+        {
+            IsSuccess = true,
+            PayloadType = "Ticket",
+            Content = "Tapped",
+            Message = "Card has been tapped properly."
+        };
+    }
+
+    public PayloadResponse StartPenaltyTrip(TicketExaminerPenaltyTripRequest tapRequest)
+    {
+        var session = _sessionRepository
+            .GetAll()
+            .Include(s => s.Bus)
+            .FirstOrDefault(s => s.Id == tapRequest.SessionId);
+
+        var response = _transactionService.Tap(new TapRequest()
+        {
+            CardNumber = tapRequest.CardNumber,
+            SessionId = tapRequest.SessionId,
+            Latitude = session?.Bus.PresentLatitude,
+            Longitude = session?.Bus.PresentLongitude,
+            TapType = "Penalty"
+        });
+
+        return response;
     }
 
     private bool IfDuplicateEmail(string emailAddress)

@@ -41,10 +41,43 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Recharge(RechargeRequest model)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
+        var medium = string.Empty;
+
+        if (currentUser.UserType == UserTypes.Agent)
+        {
+            medium = RechargeMedium.Agent;
+        }
+        else if (currentUser.UserType == UserTypes.TicketExaminer)
+        {
+            medium = RechargeMedium.TicketExaminer;
+        }
+        else
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User does not have permission to recharge!"
+            };
+        }
+
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
-        var transaction = new Transaction();
+        var transaction = new Transaction()
+        {
+            Medium = medium
+        };
 
         try
         {
@@ -61,7 +94,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardDatabase(model, card);
+            UpdateCardDatabase(model.Amount, card);
 
             return new PayloadResponse()
             {
@@ -83,7 +116,7 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private void UpdateCardDatabase(RechargeRequest model, Card card)
+    private void UpdateCardDatabase(int amount, Card card)
     {
         if (card == null) { return; }
 
@@ -91,7 +124,7 @@ public class TransactionService : ITransactionService
         {
             card.Status = CardStatus.InUse;
         }
-        card.Balance += model.Amount;
+        card.Balance += amount;
 
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
@@ -448,7 +481,9 @@ public class TransactionService : ITransactionService
     private TripFareDistanceDto GetTripFareAndDistance(Trip trip, Route route)
     {
         var distance = GetDistance(trip);
-        var fare = GetCalculatedAmount(distance, route);
+        var fare = trip.TapInType == "Penalty" ?
+            route.PenaltyAmount :
+            GetCalculatedAmount(distance, route);
 
         return new TripFareDistanceDto()
         {
@@ -643,5 +678,66 @@ public class TransactionService : ITransactionService
             RollBackTrip(trip);
             DeleteTransaction(transaction);
         }
+    }
+
+    public PayloadResponse Return(ReturnRequest model)
+    {
+        var card = _cardRepository
+            .GetConditional(c => c.CardNumber == model.CardNumber);
+
+        var transaction = new Transaction();
+
+        try
+        {
+            transaction = AddReturnTransaction(model, TransactionType.Return, card.Id);
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Transaction failed because {ex.Message}",
+            };
+        }
+
+        try
+        {
+            UpdateCardDatabase(model.Amount, card);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Return",
+                Message = "Return has been successful!"
+            };
+        }
+        catch (Exception ex)
+        {
+            DeleteTransaction(transaction);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = $"Return has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    private Transaction AddReturnTransaction(ReturnRequest model, string transactionType, string cardId)
+    {
+        var agentId = _loggedInUserService.GetLoggedInUser();
+        var transaction = new Transaction()
+        {
+            TransactionType = transactionType,
+            Amount = model.Amount,
+            CardId = cardId,
+            AgentId = agentId.Id
+        };
+
+        _transactionRepository.Insert(transaction);
+        _transactionRepository.SaveChanges();
+
+        return transaction;
     }
 }
