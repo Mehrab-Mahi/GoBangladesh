@@ -685,6 +685,16 @@ public class TransactionService : ITransactionService
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
+        if(model.Amount > card.Balance)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Amount must be less than or equal card balance!"
+            };
+        }
+
         var transaction = new Transaction();
 
         try
@@ -702,7 +712,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardDatabase(model.Amount, card);
+            UpdateCardAmount(card, model.Amount, TransactionOperation.Subtract);
 
             return new PayloadResponse()
             {
