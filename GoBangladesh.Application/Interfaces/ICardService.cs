@@ -22,4 +22,5 @@ public interface ICardService
     PayloadResponse CardInsertForPrivatePassenger(CardCreateRequest model);
     void UpdateCardOrganization(string passengerId, string organizationId);
     void UnmapUserWithPreviousCard(string passengerId, string cardId);
+    PayloadResponse CheckCardValidityForRegistration(string cardNumber);
 }

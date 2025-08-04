@@ -353,6 +353,7 @@ public class PassengerService : IPassengerService
 
         var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
         newCard.Status = CardStatus.InUse;
+        newCard.Balance += previousCard.Balance;
         _cardService.UpdateCard(newCard);
 
         _cardService.UnmapUserWithPreviousCard(passenger.Id, previousCard.Id);

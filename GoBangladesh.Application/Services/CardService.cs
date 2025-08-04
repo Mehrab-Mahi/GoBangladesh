@@ -606,4 +606,55 @@ public class CardService : ICardService
             _passengerCardMappingRepository.SaveChanges();
         }
     }
+
+    public PayloadResponse CheckCardValidityForRegistration(string cardNumber)
+    {
+        var card = _cardRepository
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c => c.Organization)
+            .FirstOrDefault();
+
+        if (card == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card not found!"
+            };
+        }
+
+        var cardPassengerMapping = _passengerCardMappingRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerMapping != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card is already registered!"
+            };
+        }
+
+        var cardPassengerHistory = _passengerCardHistoryRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerHistory != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card is already registered!"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card",
+            Message = "This card is available!",
+            Content = card
+        };
+    }
 }

@@ -56,12 +56,19 @@ public class CardController : Controller
         return Ok(new { data });
     }
 
-    //while registration
-    [AllowAnonymous]
+    [GoBangladeshAuth]
     [HttpGet("CheckCardValidity")]
     public IActionResult CheckCardValidity(string cardNumber)
     {
         var data = _cardService.CheckCardValidity(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [AllowAnonymous]
+    [HttpGet("CheckCardValidityForRegistration")]
+    public IActionResult CheckCardValidityForRegistration(string cardNumber)
+    {
+        var data = _cardService.CheckCardValidityForRegistration(cardNumber);
         return Ok(new { data });
     }
     
