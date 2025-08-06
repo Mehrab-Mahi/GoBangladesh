@@ -554,7 +554,7 @@ public class BusService : IBusService
             .GetAll()
             .Include(s => s.Bus)
             .Where(s => s.IsRunning && s.Bus.OrganizationId == currentUser.OrganizationId)
-            .Select(s => s.Bus)
+            .Select(s => s)
             .Distinct()
             .ToList();
 

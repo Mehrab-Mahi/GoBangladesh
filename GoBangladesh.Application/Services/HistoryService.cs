@@ -69,7 +69,7 @@ public class HistoryService : IHistoryService
 
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => cardIds.Contains(p.CardId) && p.TransactionType == TransactionType.Recharge)
+                .Where(p => cardIds.Contains(p.CardId) && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
                 .Include(t => t.Agent)
                 .Include(t => t.Agent.Organization)
                 .OrderByDescending(t => t.CreateTime);
@@ -153,7 +153,7 @@ public class HistoryService : IHistoryService
         {
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => p.CreatedBy == id && p.TransactionType == TransactionType.Recharge)
+                .Where(p => p.CreatedBy == id && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
                 .Include(t => t.Card)
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)

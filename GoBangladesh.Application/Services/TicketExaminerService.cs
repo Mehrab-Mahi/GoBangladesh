@@ -222,7 +222,7 @@ public class TicketExaminerService : ITicketExaminerService
                 LastModifiedTime = ticketChecker.LastModifiedTime,
                 Code = ticketChecker.Code
             },
-            Message = "Ticket Checker not found!"
+            Message = "Ticket Checker data found!"
         };
     }
 
