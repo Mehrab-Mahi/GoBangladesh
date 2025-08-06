@@ -55,6 +55,8 @@ public class TicketExaminerService : ITicketExaminerService
 
         try
         {
+            var serial = GetSerialNumber();
+
             var model = new User()
             {
                 Name = user.Name,
@@ -64,7 +66,9 @@ public class TicketExaminerService : ITicketExaminerService
                 Address = user.Address,
                 Gender = user.Gender,
                 UserType = UserTypes.TicketExaminer,
-                OrganizationId = user.OrganizationId
+                OrganizationId = user.OrganizationId,
+                Serial = serial,
+                Code = $"TE-{serial:D6}"
             };
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
@@ -100,6 +104,12 @@ public class TicketExaminerService : ITicketExaminerService
                 Message = $"Ticket Checker Creation become unsuccessful because {ex.Message}"
             };
         }
+    }
+
+    private int GetSerialNumber()
+    {
+        var maxSerial = _userRepository.GetAll().Where(u => u.UserType == UserTypes.TicketExaminer).Max(s => s.Serial);
+        return maxSerial + 1;
     }
 
     public PayloadResponse TicketCheckerUpdate(TicketCheckerUpdateRequest user)
@@ -232,7 +242,7 @@ public class TicketExaminerService : ITicketExaminerService
                 };
             }
 
-            var condition = new List<string> { " UserType = 'TicketChecker' " };
+            var condition = new List<string> { " UserType = 'TicketExaminer' " };
             var extraCondition = $@"ORDER BY CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
