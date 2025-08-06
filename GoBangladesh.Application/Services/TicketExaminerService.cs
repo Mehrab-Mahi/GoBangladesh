@@ -219,7 +219,8 @@ public class TicketExaminerService : ITicketExaminerService
                 Organization = ticketChecker.Organization,
                 OrganizationId = ticketChecker.OrganizationId,
                 CreateTime = ticketChecker.CreateTime,
-                LastModifiedTime = ticketChecker.LastModifiedTime
+                LastModifiedTime = ticketChecker.LastModifiedTime,
+                Code = ticketChecker.Code
             },
             Message = "Ticket Checker not found!"
         };
