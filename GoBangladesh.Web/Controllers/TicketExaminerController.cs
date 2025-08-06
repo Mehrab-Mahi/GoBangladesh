@@ -16,7 +16,7 @@ public class TicketExaminerController : Controller
     }
 
     [GoBangladeshAuth]
-    [HttpPost("insert")]
+    [HttpPost("registration")]
     public IActionResult Insert([FromForm] TicketCheckerCreateRequest model)
     {
         var data = _ticketCheckerService.TicketCheckerCreate(model);

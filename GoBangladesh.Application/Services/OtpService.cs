@@ -37,7 +37,7 @@ public class OtpService : IOtpService
             });
             _oneTimePasswordRepository.SaveChanges();
 
-            //SendOtpToUser(mobileNumber, otp);
+            SendOtpToUser(mobileNumber, otp);
 
             return new PayloadResponse()
             {
@@ -61,7 +61,7 @@ public class OtpService : IOtpService
     {
         using var httpClient = new HttpClient();
 
-        var smsUrl = $"{_otpSettings.BaseUrl}/sendtext?apikey={_otpSettings.ApiKey}&secretkey={_otpSettings.SecretKey}&callerID=8801847&toUser={mobileNumber}&messageContent=Your OTP is {otp}. This code is valid for the next {_otpSettings.ExpireTime} minutes. For your safety, do not disclose it to anyone.";
+        var smsUrl = $"{_otpSettings.BaseUrl}/sendtext?apikey={_otpSettings.ApiKey}&secretkey={_otpSettings.SecretKey}&callerID=8801847&toUser={mobileNumber}&messageContent=Your OTP is {otp}. This code is valid for the next {_otpSettings.ExpireTime} minutes. For your safety, do not disclose it to anyone.%0A%0AGo Bangladesh";
 
         var response = httpClient.GetAsync(smsUrl).Result;
 
@@ -128,8 +128,7 @@ public class OtpService : IOtpService
 
     public string GenerateOtp()
     {
-        //var random = new Random();
-        //return random.Next(0, 1000000).ToString("D6");
-        return "123456";
+        var random = new Random();
+        return random.Next(0, 1000000).ToString("D6");
     }
 }
