@@ -78,7 +78,7 @@ public class PassengerService : IPassengerService
             }
             else
             {
-                var cardValidity = _cardService.CheckCardValidity(user.CardNumber);
+                var cardValidity = _cardService.CheckCardValidityForRegistration(user.CardNumber);
 
                 if (!cardValidity.IsSuccess)
                 {

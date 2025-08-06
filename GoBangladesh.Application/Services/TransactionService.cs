@@ -210,7 +210,9 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var minimumBalanceCheck = IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
+        var minimumBalanceCheck = tapRequest.TapType == "Penalty" ?
+            IsMinimumBalanceAvailable(card, session.Bus.Route.PenaltyAmount) :
+            IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
 
         if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
@@ -685,7 +687,17 @@ public class TransactionService : ITransactionService
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
-        if(model.Amount > card.Balance)
+        if (model.Amount <= 0)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Amount must be greater than 0!"
+            };
+        }
+
+        if (model.Amount > card.Balance)
         {
             return new PayloadResponse()
             {
