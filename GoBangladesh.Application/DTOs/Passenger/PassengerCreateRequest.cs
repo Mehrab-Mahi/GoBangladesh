@@ -20,4 +20,5 @@ public class PassengerCreateRequest
     public string CardNumber { get; set; }
     [JsonIgnore]
     public decimal Balance { get; set; } = 0;
+    public string Designation { get; set; }
 }

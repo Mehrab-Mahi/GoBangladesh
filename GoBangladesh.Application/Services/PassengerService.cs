@@ -308,7 +308,8 @@ public class PassengerService : IPassengerService
                 CardNumber = cardData.CardNumber,
                 Balance = cardData.Balance,
                 CreateTime = passenger.CreateTime,
-                LastModifiedTime = passenger.LastModifiedTime
+                LastModifiedTime = passenger.LastModifiedTime,
+                Designation = passenger.Designation
             },
             Message = "Passenger data found!"
         };

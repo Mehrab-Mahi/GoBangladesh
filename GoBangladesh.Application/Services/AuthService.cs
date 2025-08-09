@@ -107,7 +107,7 @@ namespace GoBangladesh.Application.Services
                     new(type: "OrganizationName", user.Organization.Name),
                     new(type: "OrganizationType", user.Organization.OrganizationType)
                 }),
-                Expires = DateTime.UtcNow.AddDays(365),
+                Expires = DateTime.UtcNow.AddMinutes(30),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);

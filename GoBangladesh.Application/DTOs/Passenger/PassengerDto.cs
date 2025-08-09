@@ -20,4 +20,5 @@ public class PassengerDto
     public decimal Balance { get; set; } = 0;
     public DateTime CreateTime { get; set; }
     public DateTime LastModifiedTime { get; set; }
+    public string Designation { get; set; }
 }
