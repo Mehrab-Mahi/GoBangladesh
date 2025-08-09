@@ -74,6 +74,16 @@ public class TransactionService : ITransactionService
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
+        if(card.Status is CardStatus.Obsolete or CardStatus.Paused)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Recharge",
+                Message = $"Recharge is not possible on {card.Status} card!"
+            };
+        }
+
         var transaction = new Transaction()
         {
             Medium = medium
@@ -686,6 +696,16 @@ public class TransactionService : ITransactionService
     {
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
+
+        if (card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Card is not in use!"
+            };
+        }
 
         if (model.Amount <= 0)
         {

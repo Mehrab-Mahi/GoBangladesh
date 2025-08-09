@@ -568,15 +568,15 @@ public class PassengerService : IPassengerService
         {
             user = _userRepository
                 .GetAll()
-                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
-                                     u.EmailAddress == model.EmailAddress);
+                .FirstOrDefault(u => (u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress) && u.IsActive);
 
             return user is not null;
         }
 
         user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber && u.IsActive);
 
         return user is not null;
     }

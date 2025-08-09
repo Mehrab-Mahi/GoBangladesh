@@ -657,4 +657,15 @@ public class CardService : ICardService
             Content = card
         };
     }
+
+    public Card? GetPassengerCardDetailByPassengerId(string passengerId)
+    {
+        var passengerCardMapping = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.UserId == passengerId)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        return passengerCardMapping?.Card;
+    }
 }

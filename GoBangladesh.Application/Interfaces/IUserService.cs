@@ -8,7 +8,7 @@ namespace GoBangladesh.Application.Interfaces
 {
     public interface IUserService
     {
-        User Get(AuthRequest model);
+        List<User> Get(AuthRequest model);
         UserCreationVm GetById(string id);
         object GetAll();
         public bool Delete(string id, string table);
@@ -16,5 +16,9 @@ namespace GoBangladesh.Application.Interfaces
         PayloadResponse ChangePassword(ChangePassword changePassword);
         PayloadResponse ForgotPassword(ForgotPassword forgotPassword);
         PayloadResponse DeleteUserImage(DeleteFileByUrl fileUrl);
+        PayloadResponse DeactivateAccount(UserAccountActivationDto model);
+        void Update(User user);
+        void UpdateUserCardToInUse(string userId);
+        PayloadResponse ActivateAccount(UserAccountActivationDto model);
     }
 }

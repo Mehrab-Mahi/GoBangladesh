@@ -12,6 +12,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using GoBangladesh.Application.Util;
 
 namespace GoBangladesh.Application.Services
 {
@@ -41,8 +42,9 @@ namespace GoBangladesh.Application.Services
 
         public PayloadResponse Authenticate(AuthRequest model)
         {
-            var user = _userService.Get(model);
-            if (user == null)
+            var users = _userService.Get(model);
+
+            if (users == null || !users.Any())
             {
                 return new PayloadResponse
                 {
@@ -52,15 +54,38 @@ namespace GoBangladesh.Application.Services
                     Message = "User not found!"
                 };
             }
-            if (!user.IsApproved)
+
+            var user = users.Count == 1 ? users.FirstOrDefault() : ProcessFinalUser(users);
+
+            if (!user!.IsActive)
             {
-                return new PayloadResponse
+                if (user.UserType != UserTypes.Public && user.UserType != UserTypes.Private)
                 {
-                    IsSuccess = false,
-                    PayloadType = "authentication",
-                    Content = null,
-                    Message = "User not Approved!"
-                };
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "authentication",
+                        Content = null,
+                        Message = "This account is not active!"
+                    };
+                }
+
+                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7)
+                {
+                    user.IsActive = true;
+                    _userService.Update(user);
+                    _userService.UpdateUserCardToInUse(user.Id);
+                }
+                else
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "authentication",
+                        Content = null,
+                        Message = "This account has been deleted!"
+                    };
+                }
             }
 
             var verification = (!string.IsNullOrEmpty(model.MobileNumber) && !string.IsNullOrEmpty(model.Otp)) ?
@@ -88,6 +113,26 @@ namespace GoBangladesh.Application.Services
             };
         }
 
+        private User ProcessFinalUser(List<User> users)
+        {
+            var activeUser = users.FirstOrDefault(u => u.IsActive);
+
+            if (activeUser != null)
+            {
+                return activeUser;
+            }
+
+            foreach (var user in users)
+            {
+                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7)
+                {
+                    return user;
+                }
+            }
+
+            return users.FirstOrDefault();
+        }
+
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -112,7 +157,7 @@ namespace GoBangladesh.Application.Services
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);
             var token = tokenHandler.WriteToken(tokenValue);
-            _httpContextAccessor.HttpContext.Session.SetString("token", token);
+            _httpContextAccessor.HttpContext!.Session.SetString("token", token);
             _httpContextAccessor.HttpContext.Session.SetString("userType", user.UserType);
             return token;
         }
