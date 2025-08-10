@@ -595,10 +595,6 @@ public class PassengerService : IPassengerService
                 .GetAll()
                 .Where(t => t.CardId == card.Id)
                 .OrderByDescending(t => t.LastModifiedTime)
-                .Include(t => t.Agent)
-                .Include(t => t.Trip)
-                .Include(t => t.Trip.Session)
-                .Include(t => t.Trip.Session.Bus)
                 .Take(5)
                 .ToList();
 

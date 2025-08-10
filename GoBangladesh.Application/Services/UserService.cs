@@ -277,6 +277,11 @@ namespace GoBangladesh.Application.Services
 
             var runningStatus = CheckIfAnyTripOrSessionRunning(user);
 
+            if (!runningStatus.IsSuccess)
+            {
+                return runningStatus;
+            }
+
             user.IsActive = false;
 
             _userRepo.Update(user);
