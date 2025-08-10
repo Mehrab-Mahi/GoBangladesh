@@ -70,7 +70,7 @@ namespace GoBangladesh.Application.Services
                     };
                 }
 
-                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7)
+                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7 && user.LastModifiedBy == user.Id)
                 {
                     user.IsActive = true;
                     _userService.Update(user);
@@ -152,7 +152,7 @@ namespace GoBangladesh.Application.Services
                     new(type: "OrganizationName", user.Organization.Name),
                     new(type: "OrganizationType", user.Organization.OrganizationType)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(30),
+                Expires = DateTime.UtcNow.AddMinutes(5),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);
@@ -243,6 +243,11 @@ namespace GoBangladesh.Application.Services
                         join AccessControls ac on mc.AccessControlId = ac.Id where mc.RoleId = '{roleId}'; ";
             }
             return BuildMenuTree(_repo.Query<AccessControlVm>(query));
+        }
+
+        public bool CheckIfAnUserIsActivated(string userId)
+        {
+            return _userService.CheckIfAnUserIsActivated(userId);
         }
 
         private List<AccessControlVm> BuildMenuTree(List<AccessControlVm> accessControlVms)

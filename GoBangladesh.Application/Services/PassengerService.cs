@@ -21,6 +21,7 @@ public class PassengerService : IPassengerService
     private readonly ICardService _cardService;
     private readonly IBaseRepository _baseRepository;
     private readonly IRepository<Organization> _organizationRepository;
+    private readonly IRepository<Transaction> _transactionRepository;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -28,7 +29,8 @@ public class PassengerService : IPassengerService
         IRepository<Trip> tripRepository,
         ICardService cardService,
         IBaseRepository baseRepository, 
-        IRepository<Organization> organizationRepository)
+        IRepository<Organization> organizationRepository,
+        IRepository<Transaction> transactionRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -37,6 +39,7 @@ public class PassengerService : IPassengerService
         _cardService = cardService;
         _baseRepository = baseRepository;
         _organizationRepository = organizationRepository;
+        _transactionRepository = transactionRepository;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -556,6 +559,64 @@ public class PassengerService : IPassengerService
                 IsSuccess = false,
                 PayloadType = "Passenger",
                 Message = $"Ongoing trip fetch failed because {ex.Message}!"
+            };
+        }
+    }
+
+    public PayloadResponse GetRecentActivity()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Current user not found!"
+                };
+            }
+
+            var card = _cardService.GetCardDataFromPassengerId(currentUser.Id);
+
+            if (card == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Card not found for the current user!"
+                };
+            }
+
+            var recentTransactionList = _transactionRepository
+                .GetAll()
+                .Where(t => t.CardId == card.Id)
+                .OrderByDescending(t => t.LastModifiedTime)
+                .Include(t => t.Agent)
+                .Include(t => t.Trip)
+                .Include(t => t.Trip.Session)
+                .Include(t => t.Trip.Session.Bus)
+                .Take(5)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = recentTransactionList,
+                Message = "Recent activity fetched successfully",
+                PayloadType = "Passenger Recent Activity"
+            };
+        }
+        catch(Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger Recent Activity",
+                Message = $"Recent activity fetch failed because {ex.Message}!"
             };
         }
     }

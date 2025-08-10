@@ -20,5 +20,6 @@ namespace GoBangladesh.Application.Interfaces
         void Update(User user);
         void UpdateUserCardToInUse(string userId);
         PayloadResponse ActivateAccount(UserAccountActivationDto model);
+        bool CheckIfAnUserIsActivated(string userId);
     }
 }

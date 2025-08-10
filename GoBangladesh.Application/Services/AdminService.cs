@@ -317,7 +317,8 @@ public class AdminService : IAdminService
                     Organization = admin.Organization,
                     CreateTime = admin.CreateTime,
                     LastModifiedTime = admin.LastModifiedTime,
-                    Designation = admin.Designation
+                    Designation = admin.Designation,
+                    IsActive = admin.IsActive
                 })
                 .OrderByDescending(a => a.CreateTime)
                 .ToList();

@@ -12,4 +12,5 @@ public interface IPassengerService
     PayloadResponse GetAll(PassengerDataFilter filter);
     PayloadResponse Delete(string id);
     PayloadResponse GetOnGoingTrip();
+    PayloadResponse GetRecentActivity();
 }

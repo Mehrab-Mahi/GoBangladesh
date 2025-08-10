@@ -282,7 +282,8 @@ public class AgentService : IAgentService
                     Organization = agent.Organization,
                     Code = agent.Code,
                     CreateTime = agent.CreateTime,
-                    LastModifiedTime = agent.LastModifiedTime
+                    LastModifiedTime = agent.LastModifiedTime,
+                    IsActive = agent.IsActive
                 })
                 .OrderByDescending(a => a.CreateTime)
                 .ToList();

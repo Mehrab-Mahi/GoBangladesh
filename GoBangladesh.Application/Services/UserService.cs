@@ -17,14 +17,20 @@ namespace GoBangladesh.Application.Services
         private readonly ILoggedInUserService _loggedInUserService;
         private readonly ICommonService _commonService;
         private readonly ICardService _cardService;
+        private readonly ITripService _tripService;
+        private readonly ISessionService _sessionService;
         public UserService(IRepository<User> userRepo,
             ILoggedInUserService loggedInUserService,
-            ICommonService commonService, ICardService cardService)
+            ICommonService commonService, ICardService cardService,
+            ITripService tripService,
+            ISessionService sessionService)
         {
             _userRepo = userRepo;
             _loggedInUserService = loggedInUserService;
             _commonService = commonService;
             _cardService = cardService;
+            _tripService = tripService;
+            _sessionService = sessionService;
         }
 
         public List<User> Get(AuthRequest model)
@@ -269,6 +275,8 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
+            var runningStatus = CheckIfAnyTripOrSessionRunning(user);
+
             user.IsActive = false;
 
             _userRepo.Update(user);
@@ -288,6 +296,61 @@ namespace GoBangladesh.Application.Services
             {
                 IsSuccess = true,
                 Message = "User account has been deactivated successfully!"
+            };
+        }
+
+        private PayloadResponse CheckIfAnyTripOrSessionRunning(User user)
+        {
+            if (user.UserType is UserTypes.Private or UserTypes.Public)
+            {
+                var card = _cardService.GetPassengerCardDetailByPassengerId(user.Id);
+
+                if(card != null)
+                {
+                    var trip = _tripService.GetRunningTripByCardNumber(card.Id);
+
+                    if (trip != null)
+                    {
+                        return new PayloadResponse()
+                        {
+                            IsSuccess = false,
+                            Message = "You have an ongoing trip. Please end this trip before deleting the account."
+                        };
+                    }
+
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = true
+                    };
+                }
+                return new PayloadResponse()
+                {
+                    IsSuccess = true
+                };
+            }
+
+            if (user.UserType == UserTypes.Staff)
+            {
+                var session = _sessionService.CheckIfSessionRunningForLoggedInUser(user.Id);
+
+                if (session != null)
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "You have an ongoing session. Please end this session before deleting the account."
+                    };
+                }
+
+                return new PayloadResponse()
+                {
+                    IsSuccess = true
+                };
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true
             };
         }
 
@@ -340,6 +403,18 @@ namespace GoBangladesh.Application.Services
                 IsSuccess = true,
                 Message = "User account has been activated successfully!"
             };
+        }
+
+        public bool CheckIfAnUserIsActivated(string userId)
+        {
+            var user = _userRepo.GetConditional(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            return user.IsActive;
         }
     }
 }
