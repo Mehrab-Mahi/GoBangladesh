@@ -371,7 +371,7 @@ namespace GoBangladesh.Application.Services
 
             if (card != null)
             {
-                _cardService.UpdateCardStatus(card.CardNumber, CardStatus.Paused);
+                _cardService.UpdateCardStatus(card.CardNumber, CardStatus.InUse);
             }
         }
 
@@ -385,6 +385,24 @@ namespace GoBangladesh.Application.Services
                 {
                     IsSuccess = false,
                     Message = "User not found!"
+                };
+            }
+
+            if (user.IsActive)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "User is already active!"
+                };
+            }
+
+            if (user.UserType is UserTypes.Public or UserTypes.Private && user.Id == user.LastModifiedBy)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "User can't be activated!"
                 };
             }
 

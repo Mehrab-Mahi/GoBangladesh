@@ -24,13 +24,15 @@ namespace GoBangladesh.Application.Services
         private readonly IBaseRepository _repo;
         private readonly IRepository<AccessControl> _accessRepo;
         private readonly IOtpService _otpService;
+        private readonly IRepository<SystemSetting> _systemSettingRepository;
 
         public AuthService(IUserService userService,
             IOptions<AppSettings> appSettings,
             IHttpContextAccessor httpContextAccessor,
             IBaseRepository repo,
             IRepository<AccessControl> accessRepo,
-            IOtpService otpService)
+            IOtpService otpService,
+            IRepository<SystemSetting> systemSettingRepository)
         {
             _userService = userService;
             _appSettings = appSettings.Value;
@@ -38,6 +40,7 @@ namespace GoBangladesh.Application.Services
             _repo = repo;
             _accessRepo = accessRepo;
             _otpService = otpService;
+            _systemSettingRepository = systemSettingRepository;
         }
 
         public PayloadResponse Authenticate(AuthRequest model)
@@ -139,6 +142,8 @@ namespace GoBangladesh.Application.Services
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
 
+            var systemSetting = _systemSettingRepository.GetAll().FirstOrDefault();
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
@@ -152,7 +157,9 @@ namespace GoBangladesh.Application.Services
                     new(type: "OrganizationName", user.Organization.Name),
                     new(type: "OrganizationType", user.Organization.OrganizationType)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(5),
+                Expires = systemSetting is null || systemSetting.TokenExpireTime == 0 ?
+                    DateTime.UtcNow.AddMinutes(30) :
+                    DateTime.UtcNow.AddMinutes(systemSetting.TokenExpireTime),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);

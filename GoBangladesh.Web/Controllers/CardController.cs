@@ -87,4 +87,20 @@ public class CardController : Controller
         var data = _cardService.GetCardDetailByCardNumber(cardNumber);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpPost("ActivateCard")]
+    public IActionResult ActivateCard([FromBody] CardActivationDto cardActivation)
+    {
+        var data = _cardService.ActivateCard(cardActivation);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("DeactivateCard")]
+    public IActionResult DeactivateCard([FromBody] CardActivationDto cardActivation)
+    {
+        var data = _cardService.DeactivateCard(cardActivation);
+        return Ok(new { data });
+    }
 }

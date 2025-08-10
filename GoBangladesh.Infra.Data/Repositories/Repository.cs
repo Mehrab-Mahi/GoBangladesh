@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace GoBangladesh.Infra.Data.Repositories
 {
@@ -161,6 +163,10 @@ namespace GoBangladesh.Infra.Data.Repositories
             _dbContext.Database.ExecuteSqlRaw(query);
         }
 
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return _dbContext.SaveChangesAsync(cancellationToken);
+        }
         #endregion Public Generic Methods
     }
 }
