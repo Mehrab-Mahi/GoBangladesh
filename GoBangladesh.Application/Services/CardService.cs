@@ -486,7 +486,13 @@ public class CardService : ICardService
     private List<CardDataDto> GetAllCardData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                    select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                    select C.*,
+                           IIF(u.Id is null, 0, 1)                  as IsRegistered,
+                           case
+                               when u.id is null or c.Status = 'Obsolete' or c.Status = 'Not Used' or c.Status = 'In Use' then null
+                               else cast(case
+                                             when c.Status = 'Paused' and c.LastModifiedBy = u.Id then 1
+                                             else 0 end as bit) end as IsSelfDeactivation
                     from Cards c
                              left join PassengerCardMappings pcm on c.Id = pcm.CardId
                              left join PassengerCardHistory pch on c.Id = pch.CardId
