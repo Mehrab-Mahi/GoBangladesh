@@ -299,7 +299,8 @@ public class TicketExaminerService : ITicketExaminerService
                     Code = staff.Code,
                     OrganizationId = staff.OrganizationId,
                     CreateTime = staff.CreateTime,
-                    LastModifiedTime = staff.LastModifiedTime
+                    LastModifiedTime = staff.LastModifiedTime,
+                    IsActive = staff.IsActive
                 })
                 .OrderByDescending(s => s.CreateTime)
                 .ToList();

@@ -2,6 +2,7 @@
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
+using System.Linq;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.Extensions.Options;
 using System.Net.Http;
@@ -12,14 +13,17 @@ public class OtpService : IOtpService
 {
     private readonly IRepository<OneTimePassword> _oneTimePasswordRepository;
     private readonly IRepository<User> _userRepository;
+    private readonly IRepository<SystemSetting> _systemSettingRepository;
     private readonly OtpSettings _otpSettings;
 
     public OtpService(IRepository<OneTimePassword> oneTimePasswordRepository,
         IOptions<OtpSettings> otpSettings, 
-        IRepository<User> userRepository)
+        IRepository<User> userRepository,
+        IRepository<SystemSetting> systemSettingRepository)
     {
         _oneTimePasswordRepository = oneTimePasswordRepository;
         _userRepository = userRepository;
+        _systemSettingRepository = systemSettingRepository;
         _otpSettings = otpSettings.Value;
     }
 
@@ -27,7 +31,11 @@ public class OtpService : IOtpService
     {
         try
         {
-            var otp = GenerateOtp();
+            var realOtpPermission = _systemSettingRepository
+                .GetAll()
+                .FirstOrDefault()!.SendRealOtp;
+
+            var otp = realOtpPermission == true ? GenerateOtp() : "12345678";
 
             _oneTimePasswordRepository.Insert(new OneTimePassword()
             {
@@ -37,7 +45,10 @@ public class OtpService : IOtpService
             });
             _oneTimePasswordRepository.SaveChanges();
 
-            SendOtpToUser(mobileNumber, otp);
+            if (realOtpPermission)
+            {
+                SendOtpToUser(mobileNumber, otp);
+            }
 
             return new PayloadResponse()
             {

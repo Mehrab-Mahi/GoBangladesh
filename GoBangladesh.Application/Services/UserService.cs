@@ -338,12 +338,12 @@ namespace GoBangladesh.Application.Services
             {
                 var session = _sessionService.CheckIfSessionRunningForLoggedInUser(user.Id);
 
-                if (session != null)
+                if (!session.IsSuccess)
                 {
                     return new PayloadResponse()
                     {
                         IsSuccess = false,
-                        Message = "You have an ongoing session. Please end this session before deleting the account."
+                        Message = "The staff has an ongoing session. Please allow them to end the session before deactivating the account."
                     };
                 }
 

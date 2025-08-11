@@ -16,4 +16,5 @@ public class PassengerUpdateRequest
     public IFormFile ProfilePicture { get; set; }
     public string PassengerId { get; set; }
     public string OrganizationId { get; set; }
+    public string Designation { get; set; }
 }

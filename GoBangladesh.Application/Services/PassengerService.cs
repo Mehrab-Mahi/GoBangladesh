@@ -230,6 +230,7 @@ public class PassengerService : IPassengerService
             model.PassengerId = user.PassengerId;
             model.OrganizationId = user.OrganizationId;
             model.UserType = user.UserType;
+            model.Designation = user.Designation;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -312,7 +313,8 @@ public class PassengerService : IPassengerService
                 Balance = cardData.Balance,
                 CreateTime = passenger.CreateTime,
                 LastModifiedTime = passenger.LastModifiedTime,
-                Designation = passenger.Designation
+                Designation = passenger.Designation,
+                IsActive = passenger.IsActive
             },
             Message = "Passenger data found!"
         };
@@ -454,9 +456,21 @@ public class PassengerService : IPassengerService
     private List<PassengerDto> GetAllUserData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                    select u.*, c.CardNumber, c.Balance from Users u
-                    left join PassengerCardMappings pcm on u.Id = pcm.UserId
-                    left join Cards c on c.Id = pcm.CardId
+                    select u.*,
+                           CASE
+                               WHEN u.IsActive = 1 THEN NULL
+                               ELSE CAST(
+                                       CASE
+                                           WHEN u.Id = u.LastModifiedBy THEN 1
+                                           ELSE 0
+                                           END AS BIT
+                                    )
+                               END AS IsSelfDeactivation,
+                           c.CardNumber,
+                           c.Balance
+                    from Users u
+                             left join PassengerCardMappings pcm on u.Id = pcm.UserId
+                             left join Cards c on c.Id = pcm.CardId
                     {whereCondition} {extraCondition}";
 
         var data = _baseRepository.Query<PassengerDto>(query);

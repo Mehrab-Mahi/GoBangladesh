@@ -22,4 +22,5 @@ public class PassengerDto
     public DateTime LastModifiedTime { get; set; }
     public string Designation { get; set; }
     public bool IsActive { get; set; }
+    public bool? IsSelfDeactivation { get; set; } = null;
 }

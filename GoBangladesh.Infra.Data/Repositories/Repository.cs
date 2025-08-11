@@ -47,10 +47,25 @@ namespace GoBangladesh.Infra.Data.Repositories
                 model.CreateTime = createdTime;
                 model.LastModifiedTime = createdTime;
             }
-            model.CreatedBy = LoggedInUserName;
-            model.LastModifiedBy = LoggedInUserName;
+            model.CreatedBy = GetCurrentUserId();
+            model.LastModifiedBy = GetCurrentUserId();
 
             _dbContext.Entry(model).State = EntityState.Added;
+        }
+
+        private string GetCurrentUserId()
+        {
+            var authorization = _httpContextAccessor.HttpContext!.Request.Headers["Authorization"].ToString();
+
+            if (string.IsNullOrEmpty(authorization)) return null;
+
+            _httpContextAccessor.HttpContext.Session.TryGetValue("userId", out var bytes);
+
+            if (bytes is null) return null;
+
+            var loggedInUserId = System.Text.Encoding.UTF8.GetString(bytes).Trim('"');
+
+            return loggedInUserId;
         }
 
         public void InsertWithUserData(T model)
@@ -88,7 +103,7 @@ namespace GoBangladesh.Infra.Data.Repositories
         {
             if (entity != null)
                 entity.LastModifiedTime = DateTime.UtcNow;
-            entity.LastModifiedBy = LoggedInUserName;
+            entity.LastModifiedBy = GetCurrentUserId();
             _dbContext.Entry(entity).State = EntityState.Modified;
         }
 
