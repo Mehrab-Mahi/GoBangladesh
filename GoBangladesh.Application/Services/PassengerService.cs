@@ -60,6 +60,18 @@ public class PassengerService : IPassengerService
         if (string.IsNullOrEmpty(user.UserType))
         {
             card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+
+            if (card?.Status is CardStatus.Obsolete or CardStatus.Paused)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = $"Can't register with {card.Status} card!"
+                };
+            }
+
             user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
             user.UserType = card.Organization.OrganizationType;
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
@@ -82,6 +94,17 @@ public class PassengerService : IPassengerService
             else
             {
                 var cardValidity = _cardService.CheckCardValidityForRegistration(user.CardNumber);
+
+                if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = $"Can't register with {card.Status} card!"
+                    };
+                }
 
                 if (!cardValidity.IsSuccess)
                 {
@@ -115,6 +138,17 @@ public class PassengerService : IPassengerService
                     PayloadType = "Passenger Creation",
                     Content = null,
                     Message = "Card not found!"
+                };
+            }
+
+            if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = $"Can't register with {card.Status} card!"
                 };
             }
 

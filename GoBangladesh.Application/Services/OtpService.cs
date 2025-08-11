@@ -35,7 +35,7 @@ public class OtpService : IOtpService
                 .GetAll()
                 .FirstOrDefault()!.SendRealOtp;
 
-            var otp = realOtpPermission == true ? GenerateOtp() : "12345678";
+            var otp = realOtpPermission == true ? GenerateOtp() : "123456";
 
             _oneTimePasswordRepository.Insert(new OneTimePassword()
             {
