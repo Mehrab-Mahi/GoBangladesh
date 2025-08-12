@@ -52,14 +52,16 @@ public class DashboardService : IDashboardService
                                        count(distinct b.Id)  as TotalBus,
                                        count(distinct u.Id)  as TotalStaff,
                                        count(distinct u1.Id) as TotalAgent,
-                                       count(distinct c.Id) as TotalPassenger,
-                                       count(distinct u2.Id) as TicketExaminer
+                                       count(distinct c.Id)  as TotalPassenger,
+                                       count(distinct u2.Id) as TotalTicketExaminer,
+                                       count(distinct r.Id) as TotalRoute
                                 from Organizations o
-                                         left join Buses b on o.Id = b.OrganizationId
-                                         left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
-                                         left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
-                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'TicketExaminer'
+                                         left join Buses b on o.Id = b.OrganizationId and b.IsActive = 1
+                                         left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff' and u.IsActive = 1
+                                         left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent' and u.IsActive = 1
+                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'TicketExaminer' and u.IsActive = 1
                                          left join Cards c on o.Id = c.OrganizationId and c.Status = 'In Use'
+                                         left join Routes r on o.Id = r.OrganizationId and r.IsActive = 1
                                 {whereCondition}";
 
             var dashboardData = _baseRepository
