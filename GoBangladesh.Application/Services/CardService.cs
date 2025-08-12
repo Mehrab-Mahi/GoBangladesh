@@ -712,6 +712,7 @@ public class CardService : ICardService
         card.Status = CardStatus.InUse;
 
         _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
 
         var passengerData = _passengerCardMappingRepository.GetAll()
             .Where(p => p.CardId == card.Id)
@@ -719,21 +720,13 @@ public class CardService : ICardService
             .Select(p => p.User)
             .FirstOrDefault();
 
-        if (passengerData == null)
+        if (passengerData != null)
         {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Card",
-                Message = "Passenger not found for this card!"
-            };
+            passengerData.IsActive = true;
+
+            _userRepository.Update(passengerData);
+            _userRepository.SaveChanges();
         }
-
-        passengerData.IsActive = true;
-
-        _userRepository.Update(passengerData);
-        _userRepository.SaveChanges();
-        _cardRepository.SaveChanges();
 
         return new PayloadResponse()
         {

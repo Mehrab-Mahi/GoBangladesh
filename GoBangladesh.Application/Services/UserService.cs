@@ -430,14 +430,17 @@ namespace GoBangladesh.Application.Services
 
         public bool CheckIfAnUserIsActivated(string userId)
         {
-            var user = _userRepo.GetConditional(u => u.Id == userId);
+            var user = _userRepo
+                .GetAll()
+                .Include(u => u.Organization)
+                .FirstOrDefault(u => u.Id == userId);
 
             if (user == null)
             {
                 return false;
             }
 
-            return user.IsActive;
+            return user.IsActive && user.Organization.IsActive;
         }
     }
 }

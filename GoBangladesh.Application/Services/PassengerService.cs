@@ -55,6 +55,23 @@ public class PassengerService : IPassengerService
             };
         }
 
+        if (!string.IsNullOrEmpty(user.OrganizationId))
+        {
+            var organization = _organizationRepository
+                .GetConditional(o => o.Id == user.OrganizationId);
+
+            if (!organization.IsActive)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Organization is not active!"
+                };
+            }
+        }
+
         var card = new Card();
 
         if (string.IsNullOrEmpty(user.UserType))
@@ -72,8 +89,26 @@ public class PassengerService : IPassengerService
                 };
             }
 
-            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
-            user.UserType = card.Organization.OrganizationType;
+            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card!.OrganizationId : user.OrganizationId;
+
+            if (!string.IsNullOrEmpty(user.OrganizationId))
+            {
+                var organization = _organizationRepository
+                    .GetConditional(o => o.Id == user.OrganizationId);
+
+                if (!organization.IsActive)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = "Organization is not active!"
+                    };
+                }
+            }
+
+            user.UserType = card!.Organization.OrganizationType;
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
         }
 

@@ -60,6 +60,17 @@ namespace GoBangladesh.Application.Services
 
             var user = users.Count == 1 ? users.FirstOrDefault() : ProcessFinalUser(users);
 
+            if (!user!.Organization.IsActive)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "authentication",
+                    Content = null,
+                    Message = "User organization is not active!"
+                };
+            }
+
             if (!user!.IsActive)
             {
                 if (user.UserType != UserTypes.Public && user.UserType != UserTypes.Private)

@@ -368,7 +368,7 @@ public class BusService : IBusService
                 };
             }
 
-            var allBus = _busRepository.GetAll();
+            var allBus = _busRepository.GetAll().Where(b => b.IsActive);
 
             if (!string.IsNullOrEmpty(routeId)) 
             {
@@ -564,6 +564,95 @@ public class BusService : IBusService
             PayloadType = "Bus",
             Content = allRunningBus,
             Message = "All running buses"
+        };
+    }
+
+    public PayloadResponse ActivateBus(BusActivationDto busActivation)
+    {
+        var bus = _busRepository
+            .GetConditional(b => b.Id == busActivation.BusId);
+
+        if (bus == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Bus not found"
+            };
+        }
+
+        if(bus.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "This bus is already active."
+            };
+        }
+
+        bus.IsActive = true;
+
+        _busRepository.Update(bus);
+        _busRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Bus",
+            Message = "Bus has been activated successfully!"
+        };
+    }
+
+    public PayloadResponse DeactivateBus(BusActivationDto busActivation)
+    {
+        var bus = _busRepository
+            .GetConditional(b => b.Id == busActivation.BusId);
+
+        if (bus == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Bus not found"
+            };
+        }
+        
+        var session = _sessionRepository
+            .GetConditional(s => s.BusId == busActivation.BusId && s.IsRunning);
+
+        if (session != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "This bus is currently running. Please stop the session first."
+            };
+        }
+
+        if (!bus.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "This bus is already deactivated."
+            };
+        }
+
+        bus.IsActive = false;
+
+        _busRepository.Update(bus);
+        _busRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Bus",
+            Message = "Bus has been deactivated successfully!"
         };
     }
 

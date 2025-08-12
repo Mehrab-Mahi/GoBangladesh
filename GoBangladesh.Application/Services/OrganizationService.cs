@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using GoBangladesh.Application.DTOs;
 using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
@@ -469,7 +468,6 @@ public class OrganizationService : IOrganizationService
 
                 organizationData = _organizationRepository
                     .GetAll()
-                    .Where(org => org.Id == currentUser.OrganizationId)
                     .Select(o => new OrganizationDropdownDto()
                     {
                         Id = o.Id,
@@ -522,6 +520,7 @@ public class OrganizationService : IOrganizationService
             {
                 organizationData = _organizationRepository
                     .GetAll()
+                    .Where(o => o.IsActive)
                     .Select(o => new OrganizationDropdownDto()
                     {
                         Id = o.Id,
@@ -592,5 +591,186 @@ public class OrganizationService : IOrganizationService
                 Message = $"Organization data fetch failed because {ex.Message}"
             };
         }
+    }
+
+    public PayloadResponse ActivateOrganization(OrganizationActivationDto organizationActivation)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if(currentUser is null || !currentUser.IsSuperAdmin)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "User is not authorized to activate an organization!"
+            };
+        }
+
+        var organization = _organizationRepository
+            .GetConditional(o => o.Id == organizationActivation.OrganizationId);
+
+        organization.IsActive = true;
+
+        _organizationRepository.Update(organization);
+        _organizationRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Organization",
+            Message = "Organization has been activated successfully!"
+        };
+    }
+
+    public PayloadResponse DeactivateOrganization(OrganizationActivationDto organizationActivation)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser is null || !currentUser.IsSuperAdmin)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "User is not authorized to deactivate an organization!"
+            };
+        }
+
+        var organization = _organizationRepository
+            .GetConditional(o => o.Id == organizationActivation.OrganizationId);
+
+        if (organization == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "Organization not found!"
+            };
+        }
+
+        if (!organization.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "Organization is already deactivated!"
+            };
+        }
+
+        if (IfSessionRunningOnThisOrganization(organizationActivation.OrganizationId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "Cannot deactivate organization while sessions are running!"
+            };
+        }
+
+        organization.IsActive = false;
+
+        _organizationRepository.Update(organization);
+        _organizationRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Organization",
+            Message = "Organization has been deactivated successfully!"
+        };
+    }
+
+    public PayloadResponse GetAllActiveOrganization()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User not found!"
+                };
+            }
+
+            List<OrganizationDropdownDto> organizationData;
+
+            if (currentUser.IsSuperAdmin)
+            {
+                organizationData = _organizationRepository
+                    .GetAll()
+                    .Where(o => o.IsActive)
+                    .Select(o => new OrganizationDropdownDto()
+                    {
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
+                    })
+                    .ToList();
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Organization",
+                        Message = "User is not from any organization!"
+                    };
+                }
+
+                organizationData = _organizationRepository
+                    .GetAll()
+                    .Where(o => o.IsActive)
+                    .Select(o => new OrganizationDropdownDto()
+                    {
+                        Id = o.Id,
+                        Name = o.Name,
+                        Code = o.Code,
+                        OrganizationType = o.OrganizationType
+                    })
+                    .ToList();
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Organization",
+                Content = organizationData,
+                Message = "Organization data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = $"Organization data fetch failed because {ex.Message}"
+            };
+        }
+    }
+
+    private bool IfSessionRunningOnThisOrganization(string organizationId)
+    {
+        var query = $@"
+                    select b.BusNumber
+                    from Sessions s
+                             left join Buses b on s.BusId = b.Id
+                             left join Organizations o on b.OrganizationId = o.Id
+                    where s.IsRunning = 1 and o.Id = '{organizationId}'";
+
+        var busNumbers = _baseRepository.Query<string>(query);
+
+        return busNumbers != null && busNumbers.Any();
     }
 }

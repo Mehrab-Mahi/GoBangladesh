@@ -1,6 +1,8 @@
-﻿using GoBangladesh.Application.DTOs.Route;
+﻿using GoBangladesh.Application.DTOs.Bus;
+using GoBangladesh.Application.DTOs.Route;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -68,6 +70,22 @@ public class RouteController : Controller
     public IActionResult RouteDropdownForMobile(string organizationId)
     {
         var data = _routeService.RouteDropdownForMobile(organizationId);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("activate")]
+    public IActionResult ActivateRoute([FromBody] RouteActivationDto routeActivation)
+    {
+        var data = _routeService.ActivateRoute(routeActivation);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("deactivate")]
+    public IActionResult DeactivateRoute([FromBody] RouteActivationDto routeActivation)
+    {
+        var data = _routeService.DeactivateRoute(routeActivation);
         return Ok(new { data });
     }
 }

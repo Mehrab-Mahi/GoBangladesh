@@ -37,27 +37,29 @@ public class DashboardService : IDashboardService
 
             if (!currentUser.IsSuperAdmin)
             {
-                whereCondition = $" where o.Id = '{currentUser.OrganizationId}'";
+                whereCondition = $" where o.Id = '{currentUser.OrganizationId}' and o.IsActive = 1";
             }
             else
             {
                 if (!string.IsNullOrEmpty(organizationId))
                 {
-                    whereCondition = $" where o.Id = '{organizationId}'";
+                    whereCondition = $" where o.Id = '{organizationId}' and o.IsActive = 1";
                 }
             }
 
             var dashboardQuery = $@"
-                                select count(distinct o.Id) as TotalOrganization,
-                                       count(distinct b.Id) as TotalBus,
-                                       count(distinct u.Id) as TotalStaff,
+                                select count(distinct o.Id)  as TotalOrganization,
+                                       count(distinct b.Id)  as TotalBus,
+                                       count(distinct u.Id)  as TotalStaff,
                                        count(distinct u1.Id) as TotalAgent,
-                                       count(distinct u2.Id) as TotalPassenger
+                                       count(distinct c.Id) as TotalPassenger,
+                                       count(distinct u2.Id) as TicketExaminer
                                 from Organizations o
                                          left join Buses b on o.Id = b.OrganizationId
                                          left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
                                          left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
-                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
+                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'TicketExaminer'
+                                         left join Cards c on o.Id = c.OrganizationId and c.Status = 'In Use'
                                 {whereCondition}";
 
             var dashboardData = _baseRepository
@@ -542,14 +544,28 @@ public class DashboardService : IDashboardService
                                     {(currentUser.IsSuperAdmin ?
                                         string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
                                         : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                ),
+                                return_detail as (
+                                    select
+                                        count(distinct t.Id) as TotalReturn,
+                                        sum(t.Amount) as ReturnAmount
+                                    from Transactions t
+                                    inner join Users u on t.CreatedBy = u.Id
+                                    where t.TransactionType = 'Return'
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,
                                     td.TotalRevenue,
                                     rd.TotalRecharge,
-                                    rd.RechargeAmount
+                                    rd.RechargeAmount,
+                                    rd1.TotalReturn,
+                                    rd1.ReturnAmount
                                 from trip_detail td
-                                cross join recharge_detail rd;";
+                                cross join recharge_detail rd
+                                cross join return_detail rd1;";
 
         var allTimeData = _baseRepository
             .Query<DashboardCommonData>(allTimeDataQuery)
@@ -586,14 +602,30 @@ public class DashboardService : IDashboardService
                                     {(currentUser.IsSuperAdmin ?
                                         string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
                                         : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                ),
+                                return_detail as (
+                                    select
+                                        count(distinct t.Id) as TotalReturn,
+                                        sum(t.Amount) as ReturnAmount
+                                    from Transactions t
+                                    inner join Users u on t.CreatedBy = u.Id
+                                    where t.TransactionType = 'Return' and
+                                    YEAR(t.CreateTime) = YEAR(GETUTCDATE()) 
+                                    AND MONTH(t.CreateTime) = MONTH(GETUTCDATE())
+                                    {(currentUser.IsSuperAdmin ?
+                                        string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'" 
+                                        : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,
                                     td.TotalRevenue,
                                     rd.TotalRecharge,
-                                    rd.RechargeAmount
+                                    rd.RechargeAmount,
+                                    rd1.TotalReturn,
+                                    rd1.ReturnAmount
                                 from trip_detail td
-                                cross join recharge_detail rd;";
+                                cross join recharge_detail rd
+                                cross join return_detail rd1;";
 
         var dataOfThisMonth = _baseRepository
             .Query<DashboardCommonData>(thisMonthDataQuery)
@@ -627,14 +659,28 @@ public class DashboardService : IDashboardService
                                     {(currentUser.IsSuperAdmin ? 
                                         string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'"
                                         : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
+                                ),
+                                return_detail as (
+                                    select
+                                        count(distinct t.Id) as TotalReturn,
+                                        sum(t.Amount) as ReturnAmount
+                                    from Transactions t
+                                    inner join Users u on t.CreatedBy = u.Id
+                                    where t.TransactionType = 'Return' and CAST(t.CreateTime AS DATE) = CAST(GETUTCDATE() AS DATE)
+                                {(currentUser.IsSuperAdmin ? 
+                                    string.IsNullOrEmpty(organizationId) ? string.Empty : $" and u.OrganizationId = '{organizationId}'"
+                                    : $" and u.OrganizationId = '{currentUser.OrganizationId}'")}
                                 )
                                 select
                                     td.TotalTrip,
                                     td.TotalRevenue,
                                     rd.TotalRecharge,
-                                    rd.RechargeAmount
+                                    rd.RechargeAmount,
+                                    rd1.TotalReturn,
+                                    rd1.ReturnAmount
                                 from trip_detail td
-                                cross join recharge_detail rd;";
+                                cross join recharge_detail rd
+                                cross join return_detail rd1;";
 
         var dataOfToday = _baseRepository
             .Query<DashboardCommonData>(todaysDataQuery)

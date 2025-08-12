@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Organization;
+﻿using GoBangladesh.Application.DTOs.Card;
+using GoBangladesh.Application.DTOs.Organization;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Enums;
 
@@ -13,4 +14,7 @@ public interface IOrganizationService
     PayloadResponse Delete(string id);
     PayloadResponse GetAllForSuperAdmin();
     PayloadResponse GetAllForMap();
+    PayloadResponse ActivateOrganization(OrganizationActivationDto organizationActivation);
+    PayloadResponse DeactivateOrganization(OrganizationActivationDto organizationActivation);
+    PayloadResponse GetAllActiveOrganization();
 }

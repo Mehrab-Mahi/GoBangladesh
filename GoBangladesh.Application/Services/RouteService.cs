@@ -14,16 +14,22 @@ namespace GoBangladesh.Application.Services;
 public class RouteService : IRouteService
 {
     private readonly IRepository<Route> _routeRepository;
+    private readonly IRepository<Bus> _busRepository;
+    private readonly IRepository<Session> _sessionRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
 
     public RouteService(IRepository<Route> routeRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService, 
+        IRepository<Bus> busRepository, 
+        IRepository<Session> sessionRepository)
     {
         _routeRepository = routeRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _busRepository = busRepository;
+        _sessionRepository = sessionRepository;
     }
 
     public PayloadResponse RouteInsert(RouteCreateRequest model)
@@ -281,7 +287,7 @@ public class RouteService : IRouteService
             var currentUser = _loggedInUserService
                 .GetLoggedInUser();
 
-            var allRoute = _routeRepository.GetAll();
+            var allRoute = _routeRepository.GetAll().Where(r => r.IsActive);
 
             if (currentUser.IsSuperAdmin)
             {
@@ -336,7 +342,7 @@ public class RouteService : IRouteService
 
             var allRoute = _routeRepository
                 .GetAll()
-                .Where(r => r.OrganizationId == organizationId);
+                .Where(r => r.OrganizationId == organizationId && r.IsActive);
 
             var routeData = allRoute.Select(r => new ValueLabel()
             {
@@ -361,5 +367,120 @@ public class RouteService : IRouteService
                 Message = $"Route data fetching has been failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse ActivateRoute(RouteActivationDto routeActivation)
+    {
+        var route = _routeRepository
+            .GetConditional(r => r.Id == routeActivation.RouteId);
+
+        if (route == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = "Route not found!"
+            };
+        }
+
+        if (route.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = "Route is already active!"
+            };
+        }
+
+        route.IsActive = true;
+
+        _routeRepository.Update(route);
+        _routeRepository.SaveChanges();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Route",
+            Message = "Route has been activated successfully!"
+        };
+    }
+
+    public PayloadResponse DeactivateRoute(RouteActivationDto routeActivation)
+    {
+        var route = _routeRepository
+            .GetConditional(r => r.Id == routeActivation.RouteId);
+
+        if (route == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = "Route not found!"
+            };
+        }
+
+        if(!route.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = "Route is already deactivated!"
+            };
+        }
+
+        if (IfSessionRunningOnThisRoute(routeActivation.RouteId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = "Route cannot be deactivated because there are active sessions on this route!"
+            };
+        }
+
+        route.IsActive = false;
+        _routeRepository.Update(route);
+        _routeRepository.SaveChanges();
+
+        DeactivateBusesInThisRoute(routeActivation.RouteId);
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Route",
+            Message = "Route has been deactivated successfully!"
+        };
+    }
+
+    private void DeactivateBusesInThisRoute(string routeId)
+    {
+        var busList = _busRepository.GetAll()
+            .Where(b => b.RouteId == routeId && b.IsActive)
+            .ToList();
+
+        foreach (var bus in busList)
+        {
+            bus.IsActive = false;
+            _busRepository.Update(bus);
+        }
+        _busRepository.SaveChanges();
+    }
+
+    private bool IfSessionRunningOnThisRoute(string routeId)
+    {
+        var busIdList = _busRepository.GetAll()
+            .Where(b => b.RouteId == routeId && b.IsActive)
+            .Select(b => b.Id)
+            .ToList();
+
+        var runningSession = _sessionRepository.GetAll()
+            .Where(s => s.IsRunning && busIdList.Contains(s.BusId))
+            .ToList();
+
+        return runningSession.Any();
     }
 }

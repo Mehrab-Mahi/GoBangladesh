@@ -9,4 +9,5 @@ public class Organization : Entity
     public string Email { get; set; }
     public string MobileNumber { get; set; }
     public string OrganizationType { get; set; }
+    public bool IsActive { get; set; } = true;
 }
