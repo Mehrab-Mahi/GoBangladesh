@@ -7,7 +7,8 @@ public class DashboardDto
     public int TotalStaff { get; set; }
     public int TotalAgent { get; set; }
     public int TotalPassenger { get; set; }
-    public int TicketExaminer { get; set; }
+    public int TotalTicketExaminer { get; set; }
+    public int TotalRoute { get; set; }
     public DashboardCommonData DataOfToday { get; set; }
     public DashboardCommonData DataOfThisMonth { get; set; }
     public DashboardCommonData DataOfAllTime { get; set; }
