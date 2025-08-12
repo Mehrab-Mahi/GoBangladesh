@@ -274,7 +274,7 @@ public class OrganizationService : IOrganizationService
                                  left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
                         where o.Id = '{id}'
                         group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
-                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType";
+                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType, o.IsActive";
 
             var organizationData = _baseRepository
                 .Query<OrganizationDataDto>(query)
@@ -761,6 +761,68 @@ public class OrganizationService : IOrganizationService
                     })
                     .ToList();
             }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Organization",
+                Content = organizationData,
+                Message = "Organization data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = $"Organization data fetch failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetAllPrivateWithSystemOrganization()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User not found!"
+                };
+            }
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Only super admin can access this data!"
+                };
+            }
+
+            var systemOrgId = _systemSettingRepository.GetAll()
+                .FirstOrDefault()!
+                .SystemOrganizationId;
+
+            var organizationData = _organizationRepository
+                .GetAll()
+                .Where(o => o.OrganizationType == OrganizationTypes.Private || o.Id == systemOrgId)
+                .Select(o => new OrganizationDropdownDto()
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    Code = o.Code,
+                    OrganizationType = o.OrganizationType
+                })
+                .ToList();
 
             return new PayloadResponse()
             {

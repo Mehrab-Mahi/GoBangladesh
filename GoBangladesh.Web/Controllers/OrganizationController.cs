@@ -54,6 +54,14 @@ public class OrganizationController : Controller
         var data = _organizationService.GetAllActiveOrganization();
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllPrivateWithSystemOrganization")]
+    public IActionResult GetAllPrivateWithSystemOrganization()
+    {
+        var data = _organizationService.GetAllPrivateWithSystemOrganization();
+        return Ok(new { data });
+    }
 
     [GoBangladeshAuth]
     [HttpPost("getAll")]
