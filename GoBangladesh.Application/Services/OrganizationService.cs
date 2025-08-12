@@ -13,6 +13,7 @@ namespace GoBangladesh.Application.Services;
 public class OrganizationService : IOrganizationService
 {
     private readonly IRepository<Organization> _organizationRepository;
+    private readonly IRepository<SystemSetting> _systemSettingRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IBaseRepository _baseRepository;
@@ -20,12 +21,14 @@ public class OrganizationService : IOrganizationService
     public OrganizationService(IRepository<Organization> organizationRepository, 
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        IRepository<SystemSetting> systemSettingRepository)
     {
         _organizationRepository = organizationRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _baseRepository = baseRepository;
+        _systemSettingRepository = systemSettingRepository;
     }
 
     public PayloadResponse OrganizationInsert(OrganizationCreateRequest model)
@@ -650,6 +653,16 @@ public class OrganizationService : IOrganizationService
             };
         }
 
+        if (IfSystemOrganization(organizationActivation.OrganizationId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = "Cannot deactivate system organization!"
+            };
+        }
+
         if (!organization.IsActive)
         {
             return new PayloadResponse()
@@ -681,6 +694,14 @@ public class OrganizationService : IOrganizationService
             PayloadType = "Organization",
             Message = "Organization has been deactivated successfully!"
         };
+    }
+
+    private bool IfSystemOrganization(string organizationId)
+    {
+        var systemOrganization = _systemSettingRepository
+            .GetAll().FirstOrDefault()!.SystemOrganizationId;
+
+        return systemOrganization == organizationId;
     }
 
     public PayloadResponse GetAllActiveOrganization()

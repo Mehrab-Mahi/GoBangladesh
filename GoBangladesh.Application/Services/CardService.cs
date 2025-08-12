@@ -631,6 +631,16 @@ public class CardService : ICardService
             };
         }
 
+        if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"You can't register a {card.Status} card!"
+            };
+        }
+
         var cardPassengerMapping = _passengerCardMappingRepository.GetConditional(c => c.CardId == card.Id);
 
         if (cardPassengerMapping != null)

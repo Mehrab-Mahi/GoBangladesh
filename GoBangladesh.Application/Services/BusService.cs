@@ -14,6 +14,7 @@ namespace GoBangladesh.Application.Services;
 public class BusService : IBusService
 {
     private readonly IRepository<Bus> _busRepository;
+    private readonly IRepository<Route> _routeRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IRepository<Session> _sessionRepository;
@@ -23,13 +24,15 @@ public class BusService : IBusService
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
         IRepository<Session> sessionRepository,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        IRepository<Route> routeRepository)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _sessionRepository = sessionRepository;
         _baseRepository = baseRepository;
+        _routeRepository = routeRepository;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -592,6 +595,16 @@ public class BusService : IBusService
             };
         }
 
+        if (IfBusRouteInactive(bus.RouteId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "This bus route is inactive. Please activate the route first."
+            };
+        }
+
         bus.IsActive = true;
 
         _busRepository.Update(bus);
@@ -603,6 +616,19 @@ public class BusService : IBusService
             PayloadType = "Bus",
             Message = "Bus has been activated successfully!"
         };
+    }
+
+    private bool IfBusRouteInactive(string routeId)
+    {
+        var route = _routeRepository
+            .GetConditional(r => r.Id == routeId);
+
+        if (route is null)
+        {
+            return true;
+        }
+
+        return !route.IsActive;
     }
 
     public PayloadResponse DeactivateBus(BusActivationDto busActivation)

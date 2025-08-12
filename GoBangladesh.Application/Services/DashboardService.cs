@@ -33,17 +33,17 @@ public class DashboardService : IDashboardService
         {
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            var whereCondition = string.Empty;
+            var whereCondition = "where o.IsActive = 1";
 
             if (!currentUser.IsSuperAdmin)
             {
-                whereCondition = $" where o.Id = '{currentUser.OrganizationId}' and o.IsActive = 1";
+                whereCondition = $" and o.Id = '{currentUser.OrganizationId}'";
             }
             else
             {
                 if (!string.IsNullOrEmpty(organizationId))
                 {
-                    whereCondition = $" where o.Id = '{organizationId}' and o.IsActive = 1";
+                    whereCondition = $" and o.Id = '{organizationId}'";
                 }
             }
 
@@ -58,8 +58,8 @@ public class DashboardService : IDashboardService
                                 from Organizations o
                                          left join Buses b on o.Id = b.OrganizationId and b.IsActive = 1
                                          left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff' and u.IsActive = 1
-                                         left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent' and u.IsActive = 1
-                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'TicketExaminer' and u.IsActive = 1
+                                         left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent' and u1.IsActive = 1
+                                         left join Users u2 on o.Id = u2.OrganizationId and u2.UserType = 'TicketExaminer' and u2.IsActive = 1
                                          left join Cards c on o.Id = c.OrganizationId and c.Status = 'In Use'
                                          left join Routes r on o.Id = r.OrganizationId and r.IsActive = 1
                                 {whereCondition}";
@@ -235,7 +235,7 @@ public class DashboardService : IDashboardService
         {
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
-            var condition = new List<string> { " t.TransactionType = 'Recharge' " };
+            var condition = new List<string> { " t.TransactionType in ('Recharge', 'Return') " };
             var extraCondition = $@" order by t.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -324,7 +324,8 @@ public class DashboardService : IDashboardService
                                c.CardNumber                   as CardNumber,
                                'Agent'                        as RechargeMedium,
                                a.Name                         as RechargerName,
-                               t.Amount
+                               t.Amount,
+                               t.TransactionType
                         from Transactions t
                                  left join Cards c on t.CardId = c.Id
                                  left join PassengerCardHistory pch on c.Id = pch.CardId
