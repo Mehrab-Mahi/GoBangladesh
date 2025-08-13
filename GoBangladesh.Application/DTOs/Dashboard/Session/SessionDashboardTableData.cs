@@ -19,4 +19,6 @@ public class SessionDashboardTableData
     public string StartingLongitude { get; set; }
     public string EndingLatitude { get; set; }
     public string EndingLongitude { get; set; }
+    public int TotalTrips { get; set; }
+    public int CurrentRunningTrips { get; set; }
 }

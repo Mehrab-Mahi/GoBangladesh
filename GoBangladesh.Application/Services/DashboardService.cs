@@ -167,7 +167,11 @@ public class DashboardService : IDashboardService
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
             var condition = new List<string>();
-            var extraCondition = $@" order by s.CreateTime desc
+            var extraCondition = $@"
+                                    group by s.Id, s.SessionCode, o.Name, b.BusNumber, b.BusName, r.TripStartPlace, r.TripEndPlace, u.Name, u.MobileNumber,
+                                             s.StartTime, s.EndTime, s.StartingLatitude, s.StartingLongitude, s.EndingLatitude, s.EndingLongitude,
+                                             s.IsRunning, s.CreateTime
+                                    order by s.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
@@ -401,12 +405,15 @@ public class DashboardService : IDashboardService
                        s.EndingLongitude,
                        case
                            when s.IsRunning = 1 then 'Running'
-                           else 'Complete' end                   as Status
+                           else 'Complete' end                   as Status,
+                       count(t.Id)                               as TotalTrips,
+                       sum(CASE WHEN t.IsRunning = 1 THEN 1 ELSE 0 END) as CurrentRunningTrips
                 from Sessions s
                          left join Buses b on s.BusId = b.Id
                          left join Organizations o on b.OrganizationId = o.Id
                          left join Users u on s.UserId = u.Id and u.UserType in ('Staff')
                          left join Routes r on b.RouteId = r.Id
+                         left join Trips t on s.Id = t.SessionId
                          {whereCondition} {extraCondition}";
 
 
