@@ -18,4 +18,5 @@ public interface IOrganizationService
     PayloadResponse DeactivateOrganization(OrganizationActivationDto organizationActivation);
     PayloadResponse GetAllActiveOrganization();
     PayloadResponse GetAllPrivateWithSystemOrganization();
+    PayloadResponse GetAllActivePrivateWithSystemOrganization();
 }

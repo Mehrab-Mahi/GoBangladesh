@@ -843,6 +843,68 @@ public class OrganizationService : IOrganizationService
         }
     }
 
+    public PayloadResponse GetAllActivePrivateWithSystemOrganization()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser is null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Current User not found!"
+                };
+            }
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Organization",
+                    Message = "Only super admin can access this data!"
+                };
+            }
+
+            var systemOrgId = _systemSettingRepository.GetAll()
+                .FirstOrDefault()!
+                .SystemOrganizationId;
+
+            var organizationData = _organizationRepository
+                .GetAll()
+                .Where(o => o.IsActive && (o.OrganizationType == OrganizationTypes.Private || o.Id == systemOrgId))
+                .Select(o => new OrganizationDropdownDto()
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    Code = o.Code,
+                    OrganizationType = o.OrganizationType
+                })
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Organization",
+                Content = organizationData,
+                Message = "Organization data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Organization",
+                Message = $"Organization data fetch failed because {ex.Message}"
+            };
+        }
+    }
+
     private bool IfSessionRunningOnThisOrganization(string organizationId)
     {
         var query = $@"
