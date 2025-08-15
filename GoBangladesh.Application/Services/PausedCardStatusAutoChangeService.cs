@@ -66,6 +66,7 @@ public class PausedCardStatusAutoChangeService : BackgroundService
         foreach (var card in cards)
         {
             card.Status = CardStatus.Obsolete;
+            card.PassengerStatus = PassengerStatus.AccountDeleted;
         }
 
         await cardRepository.SaveChangesAsync(stoppingToken);

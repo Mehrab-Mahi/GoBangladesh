@@ -8,6 +8,7 @@ public class Card : Entity
     public string Status { get; set; }
     public decimal Balance { get; set; }
     public string OrganizationId { get; set; }
+    public string PassengerStatus { get; set; }
     [ForeignKey("OrganizationId")]
     public Organization Organization { get; set; }
 }

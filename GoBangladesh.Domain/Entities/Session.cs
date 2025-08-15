@@ -16,6 +16,7 @@ public class Session : Entity
     public string StartingLongitude { get; set; }
     public string EndingLatitude { get; set; }
     public string EndingLongitude { get; set; }
+    public string StopStatus { get; set; }
     [ForeignKey("UserId")]
     public User User { get; set; }
     [ForeignKey("BusId")]

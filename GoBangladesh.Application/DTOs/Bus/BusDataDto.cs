@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GoBangladesh.Application.DTOs.Bus;
 
@@ -22,4 +21,6 @@ public class BusDataDto
     public int TotalSession { get; set; }
     public int TotalPassenger { get; set; }
     public decimal TotalRevenue { get; set; }
+    public bool IsSessionRunning { get; set; }
+    public bool IsActive { get; set; }
 }

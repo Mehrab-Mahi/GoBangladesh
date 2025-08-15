@@ -37,13 +37,13 @@ public class DashboardService : IDashboardService
 
             if (!currentUser.IsSuperAdmin)
             {
-                whereCondition = $" and o.Id = '{currentUser.OrganizationId}'";
+                whereCondition += $" and o.Id = '{currentUser.OrganizationId}'";
             }
             else
             {
                 if (!string.IsNullOrEmpty(organizationId))
                 {
-                    whereCondition = $" and o.Id = '{organizationId}'";
+                    whereCondition += $" and o.Id = '{organizationId}'";
                 }
             }
 
@@ -170,7 +170,7 @@ public class DashboardService : IDashboardService
             var extraCondition = $@"
                                     group by s.Id, s.SessionCode, o.Name, b.BusNumber, b.BusName, r.TripStartPlace, r.TripEndPlace, u.Name, u.MobileNumber,
                                              s.StartTime, s.EndTime, s.StartingLatitude, s.StartingLongitude, s.EndingLatitude, s.EndingLongitude,
-                                             s.IsRunning, s.CreateTime
+                                             s.IsRunning, s.CreateTime, s.StopStatus
                                     order by s.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
@@ -407,7 +407,9 @@ public class DashboardService : IDashboardService
                            when s.IsRunning = 1 then 'Running'
                            else 'Complete' end                   as Status,
                        count(t.Id)                               as TotalTrips,
-                       sum(CASE WHEN t.IsRunning = 1 THEN 1 ELSE 0 END) as CurrentRunningTrips
+                       sum(CASE WHEN t.IsRunning = 1 THEN 1 ELSE 0 END) as CurrentRunningTrips,
+                       COALESCE(SUM(t.Amount), 0) as Revenue,
+                       s.StopStatus
                 from Sessions s
                          left join Buses b on s.BusId = b.Id
                          left join Organizations o on b.OrganizationId = o.Id

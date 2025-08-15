@@ -282,6 +282,15 @@ namespace GoBangladesh.Application.Services
                 return runningStatus;
             }
 
+            if (!user.IsActive)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "User is already deactivated!"
+                };
+            }
+
             user.IsActive = false;
 
             _userRepo.Update(user);

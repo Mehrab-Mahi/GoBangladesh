@@ -148,7 +148,8 @@ public class BusService : IBusService
                                 select b.*,
                                        count(distinct s.Id) as TotalSession,
                                        count(distinct u.Id) as TotalPassenger,
-                                       sum(t.Amount)        as TotalRevenue
+                                       sum(t.Amount)        as TotalRevenue,
+                                       s.IsRunning          as IsSessionRunning
                                 from Buses b
                                          left join Sessions s on b.id = s.BusId
                                          left join Trips t on s.Id = t.SessionId
@@ -158,7 +159,7 @@ public class BusService : IBusService
                                          left join Users u on pch.UserId = u.Id or pcm.UserId = u.Id
                                 where b.Id = '{id}'
                                 group by b.Id, b.BusNumber, b.BusName, b.OrganizationId, b.CreateTime, b.LastModifiedTime, b.CreatedBy,
-                                         b.LastModifiedBy, b.IsDeleted, b.PresentLatitude, b.PresentLongitude, b.RouteId";
+                                         b.LastModifiedBy, b.IsDeleted, b.PresentLatitude, b.PresentLongitude, b.RouteId, b.IsActive, s.IsRunning";
 
             var busData = _baseRepository.Query<BusDataDto>(busDataQuery).FirstOrDefault();
 
@@ -258,11 +259,13 @@ public class BusService : IBusService
                 .Include(u => u.Route)
                 .ToList();
 
+            var processedData = GetProcessedData(busData);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Bus",
-                Content = new { data = busData, rowCount },
+                Content = new { data = processedData, rowCount },
                 Message = "Bus data fetch is successful"
             };
         }
@@ -275,6 +278,38 @@ public class BusService : IBusService
                 Message = $"Bus fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    private List<AllBusDataDto> GetProcessedData(List<Bus> busData)
+    {
+        var runningBuses = _sessionRepository.GetAll()
+            .Where(s => s.IsRunning && busData.Select(b => b.Id).Contains(s.BusId))
+            .Select(s => s.BusId)
+            .ToList();
+
+        var finalData = busData
+            .Select(b => new AllBusDataDto()
+            {
+                Id = b.Id,
+                CreateTime = b.CreateTime,
+                LastModifiedTime = b.LastModifiedTime,
+                CreatedBy = b.CreatedBy,
+                LastModifiedBy = b.LastModifiedBy,
+                IsDeleted = b.IsDeleted,
+                BusNumber = b.BusNumber,
+                BusName = b.BusName,
+                RouteId = b.RouteId,
+                Route = b.Route,
+                OrganizationId = b.OrganizationId,
+                Organization = b.Organization,
+                PresentLatitude = b.PresentLatitude,
+                PresentLongitude = b.PresentLongitude,
+                IsActive = b.IsActive,
+                IsSessionRunning = runningBuses.Contains(b.Id)
+            })
+            .ToList();
+
+        return finalData;
     }
 
     public PayloadResponse Delete(string id)
@@ -480,6 +515,11 @@ public class BusService : IBusService
                     })
                     .ToList();
 
+                foreach (var bus in busData)
+                {
+                    bus.RunningTrips = GetRunningTripsCountOnBus(bus.Id);
+                }
+                
                 return new PayloadResponse()
                 {
                     IsSuccess = true,
@@ -520,6 +560,11 @@ public class BusService : IBusService
                     .ToList();
             }
 
+            foreach (var bus in data)
+            {
+                bus.RunningTrips = GetRunningTripsCountOnBus(bus.Id);
+            }
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -537,6 +582,21 @@ public class BusService : IBusService
                 Message = $"Bus map data fetch has been failed because {ex.Message}!"
             };
         }
+    }
+
+    private int GetRunningTripsCountOnBus(string busId)
+    {
+        var query = $@"
+                    select count(t.Id)
+                    from Sessions s
+                             left join Buses b on s.BusId = b.Id
+                             left join Trips t on s.Id = t.SessionId
+                    where b.Id = '{busId}'
+                      and s.IsRunning = 1";
+
+        var runningTripsCount = _baseRepository.Query<int>(query).FirstOrDefault();
+
+        return runningTripsCount;
     }
 
     public PayloadResponse GetAllRunningBus()

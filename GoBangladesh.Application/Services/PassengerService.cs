@@ -424,6 +424,7 @@ public class PassengerService : IPassengerService
 
         var previousCard = _cardService.GetCardDetailByCardNumber(passengerCard.CardNumber);
         previousCard.Status = CardStatus.Obsolete;
+        previousCard.PassengerStatus = PassengerStatus.CardChanged;
         _cardService.UpdateCard(previousCard);
 
         var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);

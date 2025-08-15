@@ -10,4 +10,5 @@ public class BusMapDataDto
     public string? OrganizationName { get; set; }
     public string PresentLatitude { get; set; }
     public string PresentLongitude { get; set; }
+    public int RunningTrips { get; set; }
 }

@@ -114,6 +114,11 @@ public class SessionService : ISessionService
                 };
             }
 
+            if (string.IsNullOrEmpty(sessionStopDto.StopStatus))
+            {
+                sessionStopDto.StopStatus = currentUser.UserType;
+            }
+
             var session = _sessionRepository.GetAll()
                 .Where(s => s.Id == sessionStopDto.SessionId)
                 .Include(s => s.Bus)

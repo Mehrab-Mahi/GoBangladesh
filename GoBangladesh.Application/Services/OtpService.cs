@@ -85,8 +85,11 @@ public class OtpService : IOtpService
     public PayloadResponse VerifyOtp(string mobileNumber, string otp)
     {
         var otpData = _oneTimePasswordRepository
-            .GetConditional(o => o.MobileNumber == mobileNumber &&
-                                 o.Otp == otp && o.IsValid);
+            .GetAll()
+            .Where(o => o.MobileNumber == mobileNumber &&
+                                 o.Otp == otp && o.IsValid)
+            .OrderByDescending(o => o.CreateTime)
+            .FirstOrDefault();
 
         if (otpData is null)
         {

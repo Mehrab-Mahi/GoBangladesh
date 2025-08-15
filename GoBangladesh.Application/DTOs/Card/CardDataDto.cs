@@ -17,4 +17,5 @@ public class CardDataDto
     public string OrganizationId { get; set; }
     public Domain.Entities.Organization Organization { get; set; }
     public bool? IsSelfDeactivation { get; set; } = null;
+    public string PassengerStatus { get; set; }
 }

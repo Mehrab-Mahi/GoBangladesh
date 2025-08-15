@@ -30,6 +30,7 @@ public class SessionController : Controller
     public IActionResult StopSession([FromBody] SessionStopDto sessionStopDto)
     {
         sessionStopDto.TripClosingType = TapOutStatus.Staff;
+        sessionStopDto.StopStatus = SessionStopStatus.Staff;
         var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }
