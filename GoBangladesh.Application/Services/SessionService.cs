@@ -147,6 +147,7 @@ public class SessionService : ISessionService
             session.EndTime = DateTime.UtcNow;
             session.EndingLatitude = session.Bus.PresentLatitude;
             session.EndingLongitude = session.Bus.PresentLongitude;
+            session.StopStatus = sessionStopDto.StopStatus;
 
             _sessionRepository.Update(session);
             _sessionRepository.SaveChanges();
