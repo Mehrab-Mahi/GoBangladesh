@@ -27,6 +27,7 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<Route> Routes { get; set; }
         public DbSet<PassengerCardHistory> PassengerCardHistory { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<Account> Accounts { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {
