@@ -304,14 +304,14 @@ public class SessionService : ISessionService
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 Message = "No running session for the user!"
             };
         }
 
         return new PayloadResponse()
         {
-            IsSuccess = false,
+            IsSuccess = true,
             Content = session,
             Message = "Running session found for the user!"
         };
