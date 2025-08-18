@@ -71,7 +71,9 @@ public class AccountService : IAccountService
                 AccountNumber = model.AccountNumber,
                 BranchName = model.BranchName,
                 BranchCode = model.BranchCode,
+                BankCode = model.BankCode,
                 RoutingNumber = model.RoutingNumber,
+                City = model.City,
                 District = model.District,
                 OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ?
                     currentUser.OrganizationId : model.OrganizationId
@@ -154,8 +156,15 @@ public class AccountService : IAccountService
             account.AccountNumber = model.AccountNumber;
             account.BranchName = model.BranchName;
             account.BranchCode = model.BranchCode;
+            account.BankCode = model.BankCode;
             account.RoutingNumber = model.RoutingNumber;
+            account.City = model.City;
             account.District = model.District;
+
+            if (currentUser.UserType == UserTypes.SuperAdmin && !string.IsNullOrEmpty(model.OrganizationId))
+            {
+                account.OrganizationId = model.OrganizationId;
+            }
 
             _accountRepository.Update(account);
             _accountRepository.SaveChanges();

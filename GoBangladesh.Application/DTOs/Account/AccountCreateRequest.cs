@@ -9,7 +9,9 @@ public class AccountCreateRequest
     public string AccountNumber { get; set; }
     public string BranchName { get; set; }
     public string BranchCode { get; set; }
+    public string BankCode { get; set; }
     public string RoutingNumber { get; set; }
+    public string City { get; set; }
     public string District { get; set; }
     public string OrganizationId { get; set; }
 }
