@@ -276,9 +276,9 @@ public class AccountService : IAccountService
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
-            var rowCount = _commonService.GetRowCountForData("Account", whereCondition);
+            var rowCount = _commonService.GetRowCountForData("Accounts", whereCondition);
 
-            var finalQueryData = _commonService.GetFinalData<Account>("Account", whereCondition, extraCondition);
+            var finalQueryData = _commonService.GetFinalData<Account>("Accounts", whereCondition, extraCondition);
 
             var accountIds = finalQueryData.Select(q => q.Id).ToList();
 
