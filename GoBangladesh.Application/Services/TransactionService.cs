@@ -23,19 +23,22 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Session> _sessionRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
     private readonly IRepository<Card> _cardRepository;
+    private readonly ISettlementService _settlementService;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
         IRepository<Trip> tripRepository,
         IRepository<Session> sessionRepository, 
         IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
-        IRepository<Card> cardRepository)
+        IRepository<Card> cardRepository,
+        ISettlementService settlementService)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
         _sessionRepository = sessionRepository;
         _cardRepository = cardRepository;
+        _settlementService = settlementService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -105,6 +108,8 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardDatabase(model.Amount, card);
+            _settlementService
+                .AddOrganizationWiseCardBalance(currentUser.OrganizationId, card.Id, model.Amount);
 
             return new PayloadResponse()
             {
@@ -694,6 +699,17 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Return(ReturnRequest model)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
@@ -745,6 +761,8 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(card, model.Amount, TransactionOperation.Subtract);
+            _settlementService
+                .SettleReturn(card, currentUser.OrganizationId, model.Amount, transaction.TransactionId);
 
             return new PayloadResponse()
             {

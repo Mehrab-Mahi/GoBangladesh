@@ -47,8 +47,11 @@ namespace GoBangladesh.Infra.Data.Repositories
                 model.CreateTime = createdTime;
                 model.LastModifiedTime = createdTime;
             }
-            model.CreatedBy = GetCurrentUserId();
-            model.LastModifiedBy = GetCurrentUserId();
+
+            var currentUserId = GetCurrentUserId();
+
+            model.CreatedBy = currentUserId;
+            model.LastModifiedBy = currentUserId;
 
             _dbContext.Entry(model).State = EntityState.Added;
         }
