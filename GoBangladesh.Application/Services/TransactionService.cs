@@ -23,7 +23,7 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Session> _sessionRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
     private readonly IRepository<Card> _cardRepository;
-    private readonly ISettlementService _settlementService;
+    private readonly ISettlementTransactionService _settlementService;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
@@ -31,7 +31,7 @@ public class TransactionService : ITransactionService
         IRepository<Session> sessionRepository, 
         IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
         IRepository<Card> cardRepository,
-        ISettlementService settlementService)
+        ISettlementTransactionService settlementService)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
@@ -109,7 +109,7 @@ public class TransactionService : ITransactionService
         {
             UpdateCardDatabase(model.Amount, card);
             _settlementService
-                .AddOrganizationWiseCardBalance(currentUser.OrganizationId, card.Id, model.Amount);
+                .SettleRecharge(currentUser.OrganizationId, card.Id, model.Amount);
 
             return new PayloadResponse()
             {
@@ -131,7 +131,7 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private void UpdateCardDatabase(int amount, Card card)
+    private void UpdateCardDatabase(decimal amount, Card card)
     {
         if (card == null) { return; }
 
@@ -147,6 +147,17 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Tap(TapRequest tapRequest)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
         var card = _cardRepository.GetAll()
             .Where(c => c.CardNumber == tapRequest.CardNumber)
             .Include(c => c.Organization)
@@ -345,6 +356,7 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
+            _settlementService.SettleTrip(card, currentUser.OrganizationId, transaction.Amount, transaction.TransactionId);
 
             return new PayloadResponse()
             {

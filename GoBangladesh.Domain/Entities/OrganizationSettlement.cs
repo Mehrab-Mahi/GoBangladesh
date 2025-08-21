@@ -7,4 +7,5 @@ public class OrganizationSettlement : Entity
     public decimal Amount { get; set; }
     public string TransactionId { get; set; }
     public string TransactionType { get; set; }
+    public bool IsPaid { get; set; } = false;
 }
