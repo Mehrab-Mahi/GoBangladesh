@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace GoBangladesh.Infra.Data.Repositories
 {
@@ -25,11 +27,13 @@ namespace GoBangladesh.Infra.Data.Repositories
 
         private void ParseLoggedInUser()
         {
-            var bytes = new byte[1024];
-            _httpContextAccessor.HttpContext.Session.TryGetValue("userId", out bytes);
-            if (bytes is not null)
+            if (_httpContextAccessor.HttpContext?.Session.TryGetValue("userId", out var bytes) == true)
             {
                 LoggedInUserName = System.Text.Encoding.UTF8.GetString(bytes).Trim('"');
+            }
+            else
+            {
+                LoggedInUserName = string.Empty;
             }
         }
 
@@ -43,10 +47,28 @@ namespace GoBangladesh.Infra.Data.Repositories
                 model.CreateTime = createdTime;
                 model.LastModifiedTime = createdTime;
             }
-            model.CreatedBy = LoggedInUserName;
-            model.LastModifiedBy = LoggedInUserName;
+
+            var currentUserId = GetCurrentUserId();
+
+            model.CreatedBy = currentUserId;
+            model.LastModifiedBy = currentUserId;
 
             _dbContext.Entry(model).State = EntityState.Added;
+        }
+
+        private string GetCurrentUserId()
+        {
+            var authorization = _httpContextAccessor.HttpContext!.Request.Headers["Authorization"].ToString();
+
+            if (string.IsNullOrEmpty(authorization)) return null;
+
+            _httpContextAccessor.HttpContext.Session.TryGetValue("userId", out var bytes);
+
+            if (bytes is null) return null;
+
+            var loggedInUserId = System.Text.Encoding.UTF8.GetString(bytes).Trim('"');
+
+            return loggedInUserId;
         }
 
         public void InsertWithUserData(T model)
@@ -84,7 +106,7 @@ namespace GoBangladesh.Infra.Data.Repositories
         {
             if (entity != null)
                 entity.LastModifiedTime = DateTime.UtcNow;
-            entity.LastModifiedBy = LoggedInUserName;
+            entity.LastModifiedBy = GetCurrentUserId();
             _dbContext.Entry(entity).State = EntityState.Modified;
         }
 
@@ -159,6 +181,10 @@ namespace GoBangladesh.Infra.Data.Repositories
             _dbContext.Database.ExecuteSqlRaw(query);
         }
 
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return _dbContext.SaveChangesAsync(cancellationToken);
+        }
         #endregion Public Generic Methods
     }
 }

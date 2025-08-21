@@ -16,11 +16,12 @@ public class Trip : Entity
     public decimal Amount { get; set; } = 0;
     public bool IsRunning { get; set; } = true;
     public decimal Distance { get; set; }
+    public string TapInType { get; set; }
+    public string TapOutStatus { get; set; }
     [ForeignKey("SessionId")]
     public Session Session { get; set; }
     [ForeignKey("CardId")]
     public Card Card { get; set; }
-
     [NotMapped]
     public User Passenger { get; set; }
     [NotMapped]

@@ -21,6 +21,7 @@ public class PassengerService : IPassengerService
     private readonly ICardService _cardService;
     private readonly IBaseRepository _baseRepository;
     private readonly IRepository<Organization> _organizationRepository;
+    private readonly IRepository<Transaction> _transactionRepository;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -28,7 +29,8 @@ public class PassengerService : IPassengerService
         IRepository<Trip> tripRepository,
         ICardService cardService,
         IBaseRepository baseRepository, 
-        IRepository<Organization> organizationRepository)
+        IRepository<Organization> organizationRepository,
+        IRepository<Transaction> transactionRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -37,6 +39,7 @@ public class PassengerService : IPassengerService
         _cardService = cardService;
         _baseRepository = baseRepository;
         _organizationRepository = organizationRepository;
+        _transactionRepository = transactionRepository;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -52,13 +55,60 @@ public class PassengerService : IPassengerService
             };
         }
 
+        if (!string.IsNullOrEmpty(user.OrganizationId))
+        {
+            var organization = _organizationRepository
+                .GetConditional(o => o.Id == user.OrganizationId);
+
+            if (!organization.IsActive)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Organization is not active!"
+                };
+            }
+        }
+
         var card = new Card();
 
         if (string.IsNullOrEmpty(user.UserType))
         {
             card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
-            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card.OrganizationId : user.OrganizationId;
-            user.UserType = card.Organization.OrganizationType;
+
+            if (card?.Status is CardStatus.Obsolete or CardStatus.Paused)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = $"Can't register with {card.Status} card!"
+                };
+            }
+
+            user.OrganizationId = string.IsNullOrEmpty(user.OrganizationId) ? card!.OrganizationId : user.OrganizationId;
+
+            if (!string.IsNullOrEmpty(user.OrganizationId))
+            {
+                var organization = _organizationRepository
+                    .GetConditional(o => o.Id == user.OrganizationId);
+
+                if (!organization.IsActive)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = "Organization is not active!"
+                    };
+                }
+            }
+
+            user.UserType = card!.Organization.OrganizationType;
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
         }
 
@@ -76,11 +126,77 @@ public class PassengerService : IPassengerService
                 };
                 card = _cardService.CardInsertForPrivatePassenger(cardInsertRequest).Content;
             }
+            else
+            {
+                var cardValidity = _cardService.CheckCardValidityForRegistration(user.CardNumber);
+
+                if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = $"Can't register with {card.Status} card!"
+                    };
+                }
+
+                if (!cardValidity.IsSuccess)
+                {
+                    return cardValidity;
+                }
+
+                if (user.OrganizationId != card.OrganizationId)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Creation",
+                        Content = null,
+                        Message = "Organization is not same!"
+                    };
+                }
+
+                _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+            }
         }
 
         if (user.UserType == UserTypes.Public)
         {
             card = _cardService.GetCardDetailByCardNumber(user.CardNumber);
+
+            if (card is null)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Card not found!"
+                };
+            }
+
+            if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = $"Can't register with {card.Status} card!"
+                };
+            }
+
+            if (user.OrganizationId != card.OrganizationId)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger Creation",
+                    Content = null,
+                    Message = "Organization is not same!"
+                };
+            }
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
         }
 
@@ -154,6 +270,20 @@ public class PassengerService : IPassengerService
                     };
                 }
             }
+            
+            if (user.EmailAddress != model.EmailAddress && !string.IsNullOrEmpty(user.EmailAddress))
+            {
+                if (IfDuplicateEmail(user.EmailAddress))
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Passenger Update",
+                        Content = null,
+                        Message = "Passenger with the email already exists!"
+                    };
+                }
+            }
 
             if (!string.IsNullOrEmpty(user.OrganizationId) && (user.OrganizationId != model.OrganizationId))
             {
@@ -169,6 +299,7 @@ public class PassengerService : IPassengerService
             model.PassengerId = user.PassengerId;
             model.OrganizationId = user.OrganizationId;
             model.UserType = user.UserType;
+            model.Designation = user.Designation;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -198,6 +329,15 @@ public class PassengerService : IPassengerService
                 Message = $"Passenger Update become failed because {ex.Message}"
             };
         }
+    }
+
+    private bool IfDuplicateEmail(string emailAddress)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.EmailAddress == emailAddress);
+
+        return user is not null;
     }
 
     public PayloadResponse GetPassengerById(string id)
@@ -241,7 +381,9 @@ public class PassengerService : IPassengerService
                 CardNumber = cardData.CardNumber,
                 Balance = cardData.Balance,
                 CreateTime = passenger.CreateTime,
-                LastModifiedTime = passenger.LastModifiedTime
+                LastModifiedTime = passenger.LastModifiedTime,
+                Designation = passenger.Designation,
+                IsActive = passenger.IsActive
             },
             Message = "Passenger data found!"
         };
@@ -251,6 +393,18 @@ public class PassengerService : IPassengerService
     {
         var passenger = _userRepository
             .GetConditional(p => p.Id == model.UserId);
+
+        var passengerCard = _cardService
+            .GetCardDataFromPassengerId(model.UserId);
+
+        if (passengerCard == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Passenger is not assigned to any card!"
+            };
+        }
 
         if (passenger == null)
         {
@@ -268,14 +422,17 @@ public class PassengerService : IPassengerService
             return cardValidity;
         }
 
-        var previousCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
+        var previousCard = _cardService.GetCardDetailByCardNumber(passengerCard.CardNumber);
         previousCard.Status = CardStatus.Obsolete;
+        previousCard.PassengerStatus = PassengerStatus.CardChanged;
         _cardService.UpdateCard(previousCard);
 
         var newCard = _cardService.GetCardDetailByCardNumber(model.CardNumber);
         newCard.Status = CardStatus.InUse;
+        newCard.Balance += previousCard.Balance;
         _cardService.UpdateCard(newCard);
 
+        _cardService.UnmapUserWithPreviousCard(passenger.Id, previousCard.Id);
         _cardService.MapUserWithCard(passenger.Id, newCard.Id);
         _cardService.MapUserWithCardHistory(passenger.Id, previousCard.Id);
 
@@ -326,7 +483,7 @@ public class PassengerService : IPassengerService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (u.Name like '%{filter.SearchQuery}%' or u.MobileNumber like '%{filter.SearchQuery}%' or u.PassengerId like '%{filter.SearchQuery}%' or u.CardNumber like '%{filter.SearchQuery}%') ");
+                condition.Add($" (u.Name like '%{filter.SearchQuery}%' or u.MobileNumber like '%{filter.SearchQuery}%' or u.PassengerId like '%{filter.SearchQuery}%' or c.CardNumber like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
@@ -369,10 +526,21 @@ public class PassengerService : IPassengerService
     private List<PassengerDto> GetAllUserData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                    select u.*, c.CardNumber, c.Balance from Users u
-                    left join PassengerCardMappings pcm on u.Id = pcm.UserId
-                    left join PassengerCardHistory pch on u.Id = pch.UserId
-                    left join Cards c on c.Id = pcm.CardId or c.Id = pch.CardId
+                    select u.*,
+                           CASE
+                               WHEN u.IsActive = 1 THEN NULL
+                               ELSE CAST(
+                                       CASE
+                                           WHEN u.Id = u.LastModifiedBy THEN 1
+                                           ELSE 0
+                                           END AS BIT
+                                    )
+                               END AS IsSelfDeactivation,
+                           c.CardNumber,
+                           c.Balance
+                    from Users u
+                             left join PassengerCardMappings pcm on u.Id = pcm.UserId
+                             left join Cards c on c.Id = pcm.CardId
                     {whereCondition} {extraCondition}";
 
         var data = _baseRepository.Query<PassengerDto>(query);
@@ -429,6 +597,7 @@ public class PassengerService : IPassengerService
                 .GetAll()
                 .Where(t => t.CardId == card.Id && t.IsRunning)
                 .Include(t => t.Session)
+                .Include(t => t.Card)
                 .Include(t => t.Session.Bus)
                 .Include(t => t.Session.Bus.Route)
                 .Select(t => new OnGoingTripDto()
@@ -437,6 +606,7 @@ public class PassengerService : IPassengerService
                     BusName = t.Session.Bus.BusName,
                     BusNumber = t.Session.Bus.BusNumber,
                     CardId = t.CardId,
+                    CardNumber = t.Card.CardNumber,
                     IsRunning = t.IsRunning,
                     PenaltyAmount = t.Session.Bus.Route.PenaltyAmount,
                     SessionId = t.SessionId,
@@ -477,6 +647,60 @@ public class PassengerService : IPassengerService
         }
     }
 
+    public PayloadResponse GetRecentActivity()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Current user not found!"
+                };
+            }
+
+            var card = _cardService.GetCardDataFromPassengerId(currentUser.Id);
+
+            if (card == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Passenger",
+                    Message = "Card not found for the current user!"
+                };
+            }
+
+            var recentTransactionList = _transactionRepository
+                .GetAll()
+                .Where(t => t.CardId == card.Id)
+                .OrderByDescending(t => t.LastModifiedTime)
+                .Take(5)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = recentTransactionList,
+                Message = "Recent activity fetched successfully",
+                PayloadType = "Passenger Recent Activity"
+            };
+        }
+        catch(Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Passenger Recent Activity",
+                Message = $"Recent activity fetch failed because {ex.Message}!"
+            };
+        }
+    }
+
     private bool IfDuplicateUser(PassengerCreateRequest model)
     {
         User user;
@@ -485,15 +709,15 @@ public class PassengerService : IPassengerService
         {
             user = _userRepository
                 .GetAll()
-                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
-                                     u.EmailAddress == model.EmailAddress);
+                .FirstOrDefault(u => (u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress) && u.IsActive);
 
             return user is not null;
         }
 
         user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber && u.IsActive);
 
         return user is not null;
     }

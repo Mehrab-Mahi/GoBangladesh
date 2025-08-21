@@ -29,10 +29,19 @@ public class GoBangladeshAuthorizeFilter : IAuthorizationFilter
                 if (!auth.IsAuthenticate)
                 {
                     context.Result = new UnauthorizedResult();
+                    context.HttpContext.Response.StatusCode = 401;
                 }
                 else
                 {
-                    _httpContextAccessor.HttpContext!.Session.SetObject("userId", auth.Id);
+                    if (_authService.CheckIfAnUserIsActivated(auth.Id))
+                    {
+                        _httpContextAccessor.HttpContext!.Session.SetObject("userId", auth.Id);
+                    }
+                    else
+                    {
+                        context.Result = new UnauthorizedResult();
+                        context.HttpContext.Response.StatusCode = 401;
+                    }
                 }
             }
             else

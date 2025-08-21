@@ -78,4 +78,28 @@ public class BusController : Controller
         var data = _busService.GetAllBusMapData(organizationId, busId, routeId);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllRunningBus")]
+    public IActionResult GetAllRunningBus()
+    {
+        var data = _busService.GetAllRunningBus();
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("activate")]
+    public IActionResult ActivateBus([FromBody] BusActivationDto busActivation)
+    {
+        var data = _busService.ActivateBus(busActivation);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("deactivate")]
+    public IActionResult DeactivateBus([FromBody] BusActivationDto busActivation)
+    {
+        var data = _busService.DeactivateBus(busActivation);
+        return Ok(new { data });
+    }
 }

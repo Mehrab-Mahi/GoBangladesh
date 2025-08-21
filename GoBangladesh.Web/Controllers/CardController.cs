@@ -56,12 +56,19 @@ public class CardController : Controller
         return Ok(new { data });
     }
 
-    //while registration
-    [AllowAnonymous]
+    [GoBangladeshAuth]
     [HttpGet("CheckCardValidity")]
     public IActionResult CheckCardValidity(string cardNumber)
     {
         var data = _cardService.CheckCardValidity(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [AllowAnonymous]
+    [HttpGet("CheckCardValidityForRegistration")]
+    public IActionResult CheckCardValidityForRegistration(string cardNumber)
+    {
+        var data = _cardService.CheckCardValidityForRegistration(cardNumber);
         return Ok(new { data });
     }
     
@@ -70,6 +77,30 @@ public class CardController : Controller
     public IActionResult CheckCardAvailability(string cardNumber)
     {
         var data = _cardService.CheckCardAvailability(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("GetCardDetailByCardNumber")]
+    public IActionResult GetCardDetailByCardNumber(string cardNumber)
+    {
+        var data = _cardService.GetCardDetailByCardNumber(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("ActivateCard")]
+    public IActionResult ActivateCard([FromBody] CardActivationDto cardActivation)
+    {
+        var data = _cardService.ActivateCard(cardActivation);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("DeactivateCard")]
+    public IActionResult DeactivateCard([FromBody] CardActivationDto cardActivation)
+    {
+        var data = _cardService.DeactivateCard(cardActivation);
         return Ok(new { data });
     }
 }

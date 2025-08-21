@@ -19,4 +19,5 @@ public class AgentDto
     public DateTime CreateTime { get; set; }
     public DateTime LastModifiedTime { get; set; }
     public Domain.Entities.Organization Organization { get; set; }
+    public bool IsActive { get; set; } = true;
 }

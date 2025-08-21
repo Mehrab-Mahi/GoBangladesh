@@ -6,7 +6,6 @@ using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Linq;
-using GoBangladesh.Application.DTOs.Transaction;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
@@ -71,7 +70,9 @@ public class SessionService : ISessionService
                 UserId = sessionStartDto.UserId,
                 StartTime = DateTime.UtcNow,
                 Serial = serialNumber,
-                SessionCode = $"SSN-{serialNumber:D6}"
+                SessionCode = $"SSN-{serialNumber:D6}",
+                StartingLatitude = sessionStartDto.Latitude,
+                StartingLongitude = sessionStartDto.Longitude
             };
 
             _sessionRepository.Insert(session);
@@ -113,9 +114,15 @@ public class SessionService : ISessionService
                 };
             }
 
+            if (string.IsNullOrEmpty(sessionStopDto.StopStatus))
+            {
+                sessionStopDto.StopStatus = currentUser.UserType;
+            }
+
             var session = _sessionRepository.GetAll()
                 .Where(s => s.Id == sessionStopDto.SessionId)
                 .Include(s => s.Bus)
+                .Include(s => s.Bus.Route)
                 .FirstOrDefault();
 
             if (session == null)
@@ -138,11 +145,14 @@ public class SessionService : ISessionService
 
             session.IsRunning = false;
             session.EndTime = DateTime.UtcNow;
+            session.EndingLatitude = session.Bus.PresentLatitude;
+            session.EndingLongitude = session.Bus.PresentLongitude;
+            session.StopStatus = sessionStopDto.StopStatus;
 
             _sessionRepository.Update(session);
             _sessionRepository.SaveChanges();
 
-            ForceStopTripsLinkedWithSession(session);
+            ForceStopTripsLinkedWithSession(session, sessionStopDto.TripClosingType);
 
             return new PayloadResponse()
             {
@@ -160,7 +170,7 @@ public class SessionService : ISessionService
         }
     }
 
-    private void ForceStopTripsLinkedWithSession(Session session)
+    private void ForceStopTripsLinkedWithSession(Session session, string tapOutStatus)
     {
         var trips = _tripRepository
             .GetAll()
@@ -170,14 +180,11 @@ public class SessionService : ISessionService
 
         foreach (var trip in trips)
         {
-            var tapRequest = new TapRequest()
-            {
-                CardNumber = trip.Card.CardNumber,
-                SessionId = trip.SessionId,
-                Latitude = session.Bus.PresentLatitude,
-                Longitude = session.Bus.PresentLongitude
-            };
-            _transactionService.Tap(tapRequest);
+            _transactionService.ForceTripStopLinkedWIthSession(trip,
+                session.Bus.Route,
+                session.Bus.PresentLatitude,
+                session.Bus.PresentLongitude,
+                tapOutStatus);
         }
     }
 
@@ -297,14 +304,14 @@ public class SessionService : ISessionService
         {
             return new PayloadResponse()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 Message = "No running session for the user!"
             };
         }
 
         return new PayloadResponse()
         {
-            IsSuccess = false,
+            IsSuccess = true,
             Content = session,
             Message = "Running session found for the user!"
         };

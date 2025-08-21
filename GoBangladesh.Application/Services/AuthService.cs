@@ -12,6 +12,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using GoBangladesh.Application.Util;
 
 namespace GoBangladesh.Application.Services
 {
@@ -23,13 +24,15 @@ namespace GoBangladesh.Application.Services
         private readonly IBaseRepository _repo;
         private readonly IRepository<AccessControl> _accessRepo;
         private readonly IOtpService _otpService;
+        private readonly IRepository<SystemSetting> _systemSettingRepository;
 
         public AuthService(IUserService userService,
             IOptions<AppSettings> appSettings,
             IHttpContextAccessor httpContextAccessor,
             IBaseRepository repo,
             IRepository<AccessControl> accessRepo,
-            IOtpService otpService)
+            IOtpService otpService,
+            IRepository<SystemSetting> systemSettingRepository)
         {
             _userService = userService;
             _appSettings = appSettings.Value;
@@ -37,12 +40,14 @@ namespace GoBangladesh.Application.Services
             _repo = repo;
             _accessRepo = accessRepo;
             _otpService = otpService;
+            _systemSettingRepository = systemSettingRepository;
         }
 
         public PayloadResponse Authenticate(AuthRequest model)
         {
-            var user = _userService.Get(model);
-            if (user == null)
+            var users = _userService.Get(model);
+
+            if (users == null || !users.Any())
             {
                 return new PayloadResponse
                 {
@@ -52,15 +57,49 @@ namespace GoBangladesh.Application.Services
                     Message = "User not found!"
                 };
             }
-            if (!user.IsApproved)
+
+            var user = users.Count == 1 ? users.FirstOrDefault() : ProcessFinalUser(users);
+
+            if (!user!.Organization.IsActive)
             {
                 return new PayloadResponse
                 {
                     IsSuccess = false,
                     PayloadType = "authentication",
                     Content = null,
-                    Message = "User not Approved!"
+                    Message = "User organization is not active!"
                 };
+            }
+
+            if (!user!.IsActive)
+            {
+                if (user.UserType != UserTypes.Public && user.UserType != UserTypes.Private)
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "authentication",
+                        Content = null,
+                        Message = "This account is not active!"
+                    };
+                }
+
+                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7 && user.LastModifiedBy == user.Id)
+                {
+                    user.IsActive = true;
+                    _userService.Update(user);
+                    _userService.UpdateUserCardToInUse(user.Id);
+                }
+                else
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "authentication",
+                        Content = null,
+                        Message = "This account has been deleted!"
+                    };
+                }
             }
 
             var verification = (!string.IsNullOrEmpty(model.MobileNumber) && !string.IsNullOrEmpty(model.Otp)) ?
@@ -88,11 +127,33 @@ namespace GoBangladesh.Application.Services
             };
         }
 
+        private User ProcessFinalUser(List<User> users)
+        {
+            var activeUser = users.FirstOrDefault(u => u.IsActive);
+
+            if (activeUser != null)
+            {
+                return activeUser;
+            }
+
+            foreach (var user in users)
+            {
+                if ((DateTime.UtcNow - user.LastModifiedTime).TotalDays < 7)
+                {
+                    return user;
+                }
+            }
+
+            return users.FirstOrDefault();
+        }
+
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
+
+            var systemSetting = _systemSettingRepository.GetAll().FirstOrDefault();
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -107,12 +168,14 @@ namespace GoBangladesh.Application.Services
                     new(type: "OrganizationName", user.Organization.Name),
                     new(type: "OrganizationType", user.Organization.OrganizationType)
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = systemSetting is null || systemSetting.TokenExpireTime == 0 ?
+                    DateTime.UtcNow.AddMinutes(30) :
+                    DateTime.UtcNow.AddMinutes(systemSetting.TokenExpireTime),
                 SigningCredentials = credentials
             };
             var tokenValue = tokenHandler.CreateToken(tokenDescriptor);
             var token = tokenHandler.WriteToken(tokenValue);
-            _httpContextAccessor.HttpContext.Session.SetString("token", token);
+            _httpContextAccessor.HttpContext!.Session.SetString("token", token);
             _httpContextAccessor.HttpContext.Session.SetString("userType", user.UserType);
             return token;
         }
@@ -198,6 +261,11 @@ namespace GoBangladesh.Application.Services
                         join AccessControls ac on mc.AccessControlId = ac.Id where mc.RoleId = '{roleId}'; ";
             }
             return BuildMenuTree(_repo.Query<AccessControlVm>(query));
+        }
+
+        public bool CheckIfAnUserIsActivated(string userId)
+        {
+            return _userService.CheckIfAnUserIsActivated(userId);
         }
 
         private List<AccessControlVm> BuildMenuTree(List<AccessControlVm> accessControlVms)

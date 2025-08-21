@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.Helper;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,30 @@ namespace GoBangladesh.Web.Controllers
         public IActionResult ForgotPassword([FromBody] ForgotPassword forgotPassword)
         {
             var response = _userService.ForgotPassword(forgotPassword);
+            return Ok(new { data = response });
+        }
+        
+        [GoBangladeshAuth]
+        [HttpPost("DeleteUserImage")]
+        public IActionResult DeleteUserImage([FromBody] DeleteFileByUrl fileUrl)
+        {
+            var response = _userService.DeleteUserImage(fileUrl);
+            return Ok(new { data = response });
+        }
+        
+        [GoBangladeshAuth]
+        [HttpPost("DeactivateAccount")]
+        public IActionResult DeactivateAccount([FromBody] UserAccountActivationDto model)
+        {
+            var response = _userService.DeactivateAccount(model);
+            return Ok(new { data = response });
+        }
+        
+        [GoBangladeshAuth]
+        [HttpPost("ActivateAccount")]
+        public IActionResult ActivateAccount([FromBody] UserAccountActivationDto model)
+        {
+            var response = _userService.ActivateAccount(model);
             return Ok(new { data = response });
         }
     }

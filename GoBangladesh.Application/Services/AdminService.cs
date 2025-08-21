@@ -90,10 +90,21 @@ public class AdminService : IAdminService
 
     private bool IfDuplicateUser(AdminCreateRequest model)
     {
-        var user = _userRepository
+        User user;
+
+        if (!string.IsNullOrEmpty(model.EmailAddress))
+        {
+            user = _userRepository
+                .GetAll()
+                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress);
+
+            return user is not null;
+        }
+
+        user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber
-                                 || u.EmailAddress == model.EmailAddress);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
 
         return user is not null;
     }
@@ -114,6 +125,20 @@ public class AdminService : IAdminService
                         PayloadType = "Admin Update",
                         Content = null,
                         Message = "User with the mobile number already exists!"
+                    };
+                }
+            }
+
+            if (user.EmailAddress != model.EmailAddress && !string.IsNullOrEmpty(user.EmailAddress))
+            {
+                if (IfDuplicateEmail(user.EmailAddress))
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Admin Update",
+                        Content = null,
+                        Message = "User with the email already exists!"
                     };
                 }
             }
@@ -156,6 +181,15 @@ public class AdminService : IAdminService
                 Message = $"Admin Update is failed because {ex.Message}"
             };
         }
+    }
+
+    private bool IfDuplicateEmail(string emailAddress)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.EmailAddress == emailAddress);
+
+        return user is not null;
     }
 
     private bool IfDuplicateMobileNumber(string mobileNumber)
@@ -283,7 +317,8 @@ public class AdminService : IAdminService
                     Organization = admin.Organization,
                     CreateTime = admin.CreateTime,
                     LastModifiedTime = admin.LastModifiedTime,
-                    Designation = admin.Designation
+                    Designation = admin.Designation,
+                    IsActive = admin.IsActive
                 })
                 .OrderByDescending(a => a.CreateTime)
                 .ToList();

@@ -38,6 +38,12 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IRouteService, RouteService>();
             services.AddScoped<ICardService, CardService>();
+            services.AddScoped<ITicketExaminerService, TicketExaminerService>();
+            services.AddScoped<ITripService, TripService>();
+            services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<ISettlementTransactionService, SettlementTransactionService>();
+            services.AddHostedService<TripAutoCloseService>();
+            services.AddHostedService<PausedCardStatusAutoChangeService>();
         }
     }
 }

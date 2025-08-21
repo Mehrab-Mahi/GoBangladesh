@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GoBangladesh.Application.DTOs.Transaction;
+﻿namespace GoBangladesh.Application.DTOs.Transaction;
 
 public class TapRequest
 {
@@ -8,4 +6,5 @@ public class TapRequest
     public string SessionId { get; set; }
     public string Latitude { get; set; }
     public string Longitude { get; set; }
+    public string TapType { get; set; }
 }

@@ -113,6 +113,8 @@ public class CardService : ICardService
 
     public PayloadResponse CheckCardValidity(string cardNumber)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
         var card = _cardRepository
             .GetAll()
             .Where(c => c.CardNumber == cardNumber)
@@ -150,6 +152,16 @@ public class CardService : ICardService
                 IsSuccess = false,
                 PayloadType = "Card",
                 Message = "Card is already registered!"
+            };
+        }
+
+        if (card.OrganizationId != currentUser.OrganizationId)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card organization is not same as passenger organization!"
             };
         }
 
@@ -474,7 +486,13 @@ public class CardService : ICardService
     private List<CardDataDto> GetAllCardData(string whereCondition, string extraCondition)
     {
         var query = $@"
-                    select C.*, IIF(u.Id is null, 0, 1) as IsRegistered
+                    select C.*,
+                           IIF(u.Id is null, 0, 1)                  as IsRegistered,
+                           case
+                               when u.id is null or c.Status = 'Obsolete' or c.Status = 'Not Used' or c.Status = 'In Use' then null
+                               else cast(case
+                                             when c.Status = 'Paused' and c.LastModifiedBy = u.Id then 1
+                                             else 0 end as bit) end as IsSelfDeactivation
                     from Cards c
                              left join PassengerCardMappings pcm on c.Id = pcm.CardId
                              left join PassengerCardHistory pch on c.Id = pch.CardId
@@ -581,5 +599,211 @@ public class CardService : ICardService
 
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
+    }
+
+    public void UnmapUserWithPreviousCard(string passengerId, string cardId)
+    {
+        var mapping = _passengerCardMappingRepository
+            .GetConditional(m => m.UserId == passengerId && m.CardId == cardId);
+
+        if (mapping != null)
+        {
+            _passengerCardMappingRepository.Delete(mapping.Id);
+            _passengerCardMappingRepository.SaveChanges();
+        }
+    }
+
+    public PayloadResponse CheckCardValidityForRegistration(string cardNumber)
+    {
+        var card = _cardRepository
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c => c.Organization)
+            .FirstOrDefault();
+
+        if (card == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card not found!"
+            };
+        }
+
+        if (card.Status is CardStatus.Obsolete or CardStatus.Paused)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"You can't register a {card.Status} card!"
+            };
+        }
+
+        var cardPassengerMapping = _passengerCardMappingRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerMapping != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card is already registered!"
+            };
+        }
+
+        var cardPassengerHistory = _passengerCardHistoryRepository.GetConditional(c => c.CardId == card.Id);
+
+        if (cardPassengerHistory != null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card is already registered!"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card",
+            Message = "This card is available!",
+            Content = card
+        };
+    }
+
+    public Card? GetPassengerCardDetailByPassengerId(string passengerId)
+    {
+        var passengerCardMapping = _passengerCardMappingRepository
+            .GetAll()
+            .Where(p => p.UserId == passengerId)
+            .Include(c => c.Card)
+            .FirstOrDefault();
+
+        return passengerCardMapping?.Card;
+    }
+
+    public PayloadResponse ActivateCard(CardActivationDto cardActivation)
+    {
+        if (cardActivation == null || string.IsNullOrEmpty(cardActivation.CardId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Invalid card activation request!"
+            };
+        }
+
+        var card = _cardRepository.GetConditional(c => c.Id == cardActivation.CardId);
+
+        if (card == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card not found!"
+            };
+        }
+
+        if (card.Status != CardStatus.Paused)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"You can't activate a {card.Status} card"
+            };
+        }
+
+        card.Status = CardStatus.InUse;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
+
+        var passengerData = _passengerCardMappingRepository.GetAll()
+            .Where(p => p.CardId == card.Id)
+            .Include(p => p.User)
+            .Select(p => p.User)
+            .FirstOrDefault();
+
+        if (passengerData != null)
+        {
+            passengerData.IsActive = true;
+
+            _userRepository.Update(passengerData);
+            _userRepository.SaveChanges();
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card",
+            Message = "Card has been activated successfully!"
+        };
+    }
+
+    public PayloadResponse DeactivateCard(CardActivationDto cardActivation)
+    {
+        if (cardActivation == null || string.IsNullOrEmpty(cardActivation.CardId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Invalid card activation request!"
+            };
+        }
+
+        var card = _cardRepository.GetConditional(c => c.Id == cardActivation.CardId);
+
+        if (card == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card not found!"
+            };
+        }
+
+        if (card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = $"You can't deactivate a {card.Status} card"
+            };
+        }
+
+        card.Status = CardStatus.Paused;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
+
+        var passengerData = _passengerCardMappingRepository.GetAll()
+            .Where(p => p.CardId == card.Id)
+            .Include(p => p.User)
+            .Select(p => p.User)
+            .FirstOrDefault();
+
+        if (passengerData != null)
+        {
+            passengerData.IsActive = false;
+
+            _userRepository.Update(passengerData);
+            _userRepository.SaveChanges();
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card",
+            Message = "Card has been deactivated successfully!"
+        };
     }
 }

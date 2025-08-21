@@ -13,4 +13,5 @@ public class RechargeDashboardTableData
     public string RechargeMedium { get; set; }
     public string RechargerName { get; set; }
     public decimal Amount { get; set; }
+    public string TransactionType { get; set; }
 }

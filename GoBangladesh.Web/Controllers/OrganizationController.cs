@@ -46,6 +46,30 @@ public class OrganizationController : Controller
         var data = _organizationService.GetAllForSuperAdmin();
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllActiveOrganization")]
+    public IActionResult GetAllActiveOrganization()
+    {
+        var data = _organizationService.GetAllActiveOrganization();
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllPrivateWithSystemOrganization")]
+    public IActionResult GetAllPrivateWithSystemOrganization()
+    {
+        var data = _organizationService.GetAllPrivateWithSystemOrganization();
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getAllActivePrivateWithSystemOrganization")]
+    public IActionResult GetAllActivePrivateWithSystemOrganization()
+    {
+        var data = _organizationService.GetAllActivePrivateWithSystemOrganization();
+        return Ok(new { data });
+    }
 
     [GoBangladeshAuth]
     [HttpPost("getAll")]
@@ -60,6 +84,30 @@ public class OrganizationController : Controller
     public IActionResult Delete(string id)
     {
         var data = _organizationService.Delete(id);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpGet("getAllForMap")]
+    public IActionResult GetAllForMap()
+    {
+        var data = _organizationService.GetAllForMap();
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("activate")]
+    public IActionResult ActivateOrganization([FromBody] OrganizationActivationDto organizationActivation)
+    {
+        var data = _organizationService.ActivateOrganization(organizationActivation);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("deactivate")]
+    public IActionResult DeactivateOrganization([FromBody] OrganizationActivationDto organizationActivation)
+    {
+        var data = _organizationService.DeactivateOrganization(organizationActivation);
         return Ok(new { data });
     }
 }

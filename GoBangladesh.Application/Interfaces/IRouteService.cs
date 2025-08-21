@@ -11,4 +11,7 @@ public interface IRouteService
     PayloadResponse GetAll(RouteDataFilter filter);
     PayloadResponse Delete(string id);
     PayloadResponse GetRouteDropdown(string organizationId);
+    PayloadResponse RouteDropdownForMobile(string organizationId);
+    PayloadResponse ActivateRoute(RouteActivationDto routeActivation);
+    PayloadResponse DeactivateRoute(RouteActivationDto routeActivation);
 }

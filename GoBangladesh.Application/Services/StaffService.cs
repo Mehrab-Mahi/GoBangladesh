@@ -27,12 +27,12 @@ public class StaffService : IStaffService
 
     public PayloadResponse StaffInsert(StaffCreateRequest user)
     {
-        if (IfDuplicateUser(user.MobileNumber))
+        if (IfDuplicateUser(user))
         {
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Passenger Creation",
+                PayloadType = "Staff Creation",
                 Content = null,
                 Message = "User with this mobile number already exists!"
             };
@@ -74,9 +74,9 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = true,
-                PayloadType = "Passenger Creation",
+                PayloadType = "Staff Creation",
                 Content = null,
-                Message = "Passenger Creation has been successful"
+                Message = "Staff Creation has been successful"
             };
         }
         catch (Exception ex)
@@ -84,9 +84,9 @@ public class StaffService : IStaffService
             return new PayloadResponse
             {
                 IsSuccess = false,
-                PayloadType = "Passenger Creation",
+                PayloadType = "Staff Creation",
                 Content = null,
-                Message = $"Passenger Creation become unsuccessful because {ex.Message}"
+                Message = $"Staff Creation become unsuccessful because {ex.Message}"
             };
         }
     }
@@ -97,11 +97,23 @@ public class StaffService : IStaffService
         return maxSerial + 1;
     }
 
-    private bool IfDuplicateUser(string mobileNumber)
+    private bool IfDuplicateUser(StaffCreateRequest model)
     {
-        var user = _userRepository
+        User user;
+
+        if (!string.IsNullOrEmpty(model.EmailAddress))
+        {
+            user = _userRepository
+                .GetAll()
+                .FirstOrDefault(u => u.MobileNumber == model.MobileNumber ||
+                                     u.EmailAddress == model.EmailAddress);
+
+            return user is not null;
+        }
+
+        user = _userRepository
             .GetAll()
-            .FirstOrDefault(u => u.MobileNumber == mobileNumber);
+            .FirstOrDefault(u => u.MobileNumber == model.MobileNumber);
 
         return user is not null;
     }
@@ -113,7 +125,7 @@ public class StaffService : IStaffService
         {
             if (user.MobileNumber != model.MobileNumber)
             {
-                if (IfDuplicateUser(user.MobileNumber))
+                if (IfDuplicateMobileNumber(user.MobileNumber))
                 {
                     return new PayloadResponse
                     {
@@ -121,6 +133,20 @@ public class StaffService : IStaffService
                         PayloadType = "Staff Update",
                         Content = null,
                         Message = "Staff with the mobile number already exists!"
+                    };
+                }
+            }
+
+            if (user.EmailAddress != model.EmailAddress && !string.IsNullOrEmpty(user.EmailAddress))
+            {
+                if (IfDuplicateEmail(user.EmailAddress))
+                {
+                    return new PayloadResponse
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Staff Update",
+                        Content = null,
+                        Message = "Staff with the email already exists!"
                     };
                 }
             }
@@ -202,7 +228,7 @@ public class StaffService : IStaffService
                 CreateTime = staff.CreateTime,
                 LastModifiedTime = staff.LastModifiedTime
             },
-            Message = "Passenger not found!"
+            Message = "Staff found!"
         };
     }
 
@@ -279,7 +305,8 @@ public class StaffService : IStaffService
                     Code = staff.Code,
                     OrganizationId = staff.OrganizationId,
                     CreateTime = staff.CreateTime,
-                    LastModifiedTime = staff.LastModifiedTime
+                    LastModifiedTime = staff.LastModifiedTime,
+                    IsActive = staff.IsActive
                 })
                 .OrderByDescending(s => s.CreateTime)
                 .ToList();
@@ -339,5 +366,22 @@ public class StaffService : IStaffService
                 Message = $"Staff deletion is failed! because {ex.Message}"
             };
         }
+    }
+    private bool IfDuplicateEmail(string emailAddress)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.EmailAddress == emailAddress);
+
+        return user is not null;
+    }
+
+    private bool IfDuplicateMobileNumber(string mobileNumber)
+    {
+        var user = _userRepository
+            .GetAll()
+            .FirstOrDefault(u => u.MobileNumber == mobileNumber);
+
+        return user is not null;
     }
 }

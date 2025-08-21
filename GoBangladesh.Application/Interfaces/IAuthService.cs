@@ -6,11 +6,9 @@ namespace GoBangladesh.Application.Interfaces
     public interface IAuthService
     {
         PayloadResponse Authenticate(AuthRequest model);
-
         UserAuthVm ValidateToken(string authToken);
-
         UserAuthVm GetCurrentUser();
-
         List<AccessControlVm> GetUserMenu(string id);
+        bool CheckIfAnUserIsActivated(string userId);
     }
 }

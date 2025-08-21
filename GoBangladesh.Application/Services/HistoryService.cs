@@ -34,13 +34,13 @@ public class HistoryService : IHistoryService
                 .GetAll()
                 .Where(p => cardIds.Contains(p.CardId))
                 .OrderByDescending(t => t.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
                 .Include(t => t.Agent)
                 .Include(t => t.Agent.Organization)
                 .Include(t => t.Trip)
                 .Include(t => t.Trip.Session)
                 .Include(t => t.Trip.Session.Bus)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
             return new PayloadResponse()
@@ -69,20 +69,27 @@ public class HistoryService : IHistoryService
 
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => cardIds.Contains(p.CardId) && p.TransactionType == TransactionType.Recharge)
-                .OrderByDescending(t => t.CreateTime)
+                .Where(p => cardIds.Contains(p.CardId) && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
+                .Include(t => t.Agent)
+                .Include(t => t.Agent.Organization)
+                .OrderByDescending(t => t.CreateTime);
+
+            var rowCount = transactionHistory.Count();
+
+            var data = transactionHistory
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Trip)
-                .Include(t => t.Trip.Session)
-                .Include(t => t.Trip.Session.Bus)
                 .ToList();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Passenger recharge transaction history",
-                Content = transactionHistory
+                Content = new 
+                {
+                    data,
+                    rowCount
+                }
             };
         }
         catch (Exception ex)
@@ -105,18 +112,28 @@ public class HistoryService : IHistoryService
             var transactionHistory = _transactionRepository
                 .GetAll()
                 .Where(p => cardIds.Contains(p.CardId) && p.TransactionType == TransactionType.BusFare)
-                .OrderByDescending(t => t.CreateTime)
+                .Include(t => t.Trip)
+                .Include(t => t.Trip.Session)
+                .Include(t => t.Trip.Session.Bus)
+                .Include(t => t.Trip.Session.Bus.Route)
+                .OrderByDescending(t => t.CreateTime);
+
+            var rowCount = transactionHistory.Count();
+
+            var data = transactionHistory
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Agent)
-                .Include(t => t.Agent.Organization)
                 .ToList();
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Passenger recharge transaction history",
-                Content = transactionHistory
+                Content = new
+                {
+                    data,
+                    rowCount
+                }
             };
         }
         catch (Exception ex)
@@ -136,11 +153,11 @@ public class HistoryService : IHistoryService
         {
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => p.CreatedBy == id && p.TransactionType == TransactionType.Recharge)
+                .Where(p => p.CreatedBy == id && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
+                .Include(t => t.Card)
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Card)
                 .ToList();
 
             var userList = _commonService.GetUserListByCardIds(transactionHistory.Select(t => t.CardId).ToList());
@@ -177,10 +194,10 @@ public class HistoryService : IHistoryService
             var tripHistory = _tripRepository
                 .GetAll()
                 .Where(t => t.SessionId == id)
+                .Include(t => t.Card)
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
-                .Include(t => t.Card)
                 .ToList();
 
             var userList = _commonService.GetUserListByCardIds(tripHistory.Select(t => t.CardId).ToList());

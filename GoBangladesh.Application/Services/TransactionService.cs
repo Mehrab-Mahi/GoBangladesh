@@ -23,28 +23,74 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Session> _sessionRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
     private readonly IRepository<Card> _cardRepository;
+    private readonly ISettlementTransactionService _settlementService;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
         IRepository<Trip> tripRepository,
         IRepository<Session> sessionRepository, 
         IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
-        IRepository<Card> cardRepository)
+        IRepository<Card> cardRepository,
+        ISettlementTransactionService settlementService)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
         _tripRepository = tripRepository;
         _sessionRepository = sessionRepository;
         _cardRepository = cardRepository;
+        _settlementService = settlementService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse Recharge(RechargeRequest model)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
+        var medium = string.Empty;
+
+        if (currentUser.UserType == UserTypes.Agent)
+        {
+            medium = RechargeMedium.Agent;
+        }
+        else if (currentUser.UserType == UserTypes.TicketExaminer)
+        {
+            medium = RechargeMedium.TicketExaminer;
+        }
+        else
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User does not have permission to recharge!"
+            };
+        }
+
         var card = _cardRepository
             .GetConditional(c => c.CardNumber == model.CardNumber);
 
-        Transaction transaction;
+        if(card.Status is CardStatus.Obsolete or CardStatus.Paused)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Recharge",
+                Message = $"Recharge is not possible on {card.Status} card!"
+            };
+        }
+
+        var transaction = new Transaction()
+        {
+            Medium = medium
+        };
 
         try
         {
@@ -61,7 +107,9 @@ public class TransactionService : ITransactionService
 
         try
         {
-            UpdateCardDatabase(model, card);
+            UpdateCardDatabase(model.Amount, card);
+            _settlementService
+                .SettleRecharge(currentUser.OrganizationId, card.Id, model.Amount);
 
             return new PayloadResponse()
             {
@@ -83,7 +131,7 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private void UpdateCardDatabase(RechargeRequest model, Card card)
+    private void UpdateCardDatabase(decimal amount, Card card)
     {
         if (card == null) { return; }
 
@@ -91,7 +139,7 @@ public class TransactionService : ITransactionService
         {
             card.Status = CardStatus.InUse;
         }
-        card.Balance += model.Amount;
+        card.Balance += amount;
 
         _cardRepository.Update(card);
         _cardRepository.SaveChanges();
@@ -99,6 +147,17 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse Tap(TapRequest tapRequest)
     {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
         var card = _cardRepository.GetAll()
             .Where(c => c.CardNumber == tapRequest.CardNumber)
             .Include(c => c.Organization)
@@ -111,6 +170,16 @@ public class TransactionService : ITransactionService
                 IsSuccess = false,
                 PayloadType = "Tap",
                 Message = "Card not found!"
+            };
+        }
+
+        if (card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Card is not in use!"
             };
         }
 
@@ -144,10 +213,6 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var minimumBalanceCheck = IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
-
-        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
-
         if (card.Organization.OrganizationType == OrganizationTypes.Public &&
             session.Bus.Organization.OrganizationType == OrganizationTypes.Private)
         {
@@ -158,6 +223,24 @@ public class TransactionService : ITransactionService
                 Message = "Organization is not same!"
             };
         }
+
+        if(card.Organization.OrganizationType == OrganizationTypes.Private &&
+           session.Bus.Organization.OrganizationType == OrganizationTypes.Private
+           && card.Organization.Id != session.Bus.Organization.Id)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Organization is not same!"
+            };
+        }
+
+        var minimumBalanceCheck = tapRequest.TapType == "Penalty" ?
+            IsMinimumBalanceAvailable(card, session.Bus.Route.PenaltyAmount) :
+            IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
+
+        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
         var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(card.Id, tapRequest.SessionId);
 
@@ -238,6 +321,7 @@ public class TransactionService : ITransactionService
             trip.IsRunning = false;
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
+            trip.TapOutStatus = tapRequest.TapType;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -252,7 +336,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {
@@ -272,6 +356,7 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
+            _settlementService.SettleTrip(card, currentUser.OrganizationId, transaction.Amount, transaction.TransactionId);
 
             return new PayloadResponse()
             {
@@ -296,7 +381,7 @@ public class TransactionService : ITransactionService
 
     public PayloadResponse ForceTripStop(ForceStopTripDto forceStop)
     {
-        var card = _cardRepository.GetConditional(c => c.CardNumber == forceStop.CardNumber);
+        var card = _cardRepository.GetConditional(c => c.Id == forceStop.CardId);
 
         if (card == null)
         {
@@ -308,7 +393,7 @@ public class TransactionService : ITransactionService
             };
         }
         
-        var trip = _tripRepository.GetConditional(t => t.Id == forceStop.TripId);
+        var trip = _tripRepository.GetConditional(t => t.Id == forceStop.TripId && t.IsRunning);
 
         if (trip == null)
         {
@@ -316,7 +401,7 @@ public class TransactionService : ITransactionService
             {
                 IsSuccess = false,
                 PayloadType = "Trip",
-                Message = "Trip not found!"
+                Message = "No running trip not found!"
             };
         }
 
@@ -343,6 +428,7 @@ public class TransactionService : ITransactionService
             trip.IsRunning = false;
             trip.Distance = 0;
             trip.Amount = session.Bus.Route.PenaltyAmount;
+            trip.TapOutStatus = forceStop.TripCloseStatus;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -357,7 +443,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        Transaction transaction;
+        var transaction = new Transaction();
 
         try
         {
@@ -424,7 +510,9 @@ public class TransactionService : ITransactionService
     private TripFareDistanceDto GetTripFareAndDistance(Trip trip, Route route)
     {
         var distance = GetDistance(trip);
-        var fare = GetCalculatedAmount(distance, route);
+        var fare = trip.TapInType == "Penalty" ?
+            route.PenaltyAmount :
+            GetCalculatedAmount(distance, route);
 
         return new TripFareDistanceDto()
         {
@@ -512,7 +600,8 @@ public class TransactionService : ITransactionService
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
-            TripStartTime = DateTime.UtcNow
+            TripStartTime = DateTime.UtcNow,
+            TapInType = tapRequest.TapType
         });
 
         _tripRepository.SaveChanges();
@@ -558,6 +647,156 @@ public class TransactionService : ITransactionService
     }
 
     private Transaction AddRechargeTransaction(RechargeRequest model, string transactionType, string cardId)
+    {
+        var agentId = _loggedInUserService.GetLoggedInUser();
+        var transaction = new Transaction()
+        {
+            TransactionType = transactionType,
+            Amount = model.Amount,
+            CardId = cardId,
+            AgentId = agentId.Id
+        };
+
+        _transactionRepository.Insert(transaction);
+        _transactionRepository.SaveChanges();
+
+        return transaction;
+    }
+
+    public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude, string tapOutStatus)
+    {
+        try
+        {
+            trip.EndingLatitude = latitude;
+            trip.EndingLongitude = longitude;
+
+            var tripFare = GetTripFareAndDistance(trip, route);
+
+            trip.TripEndTime = DateTime.UtcNow;
+            trip.IsRunning = false;
+            trip.Distance = tripFare.Distance;
+            trip.Amount = tripFare.Fare;
+            trip.TapOutStatus = tapOutStatus;
+
+            _tripRepository.Update(trip);
+            _tripRepository.SaveChanges();
+        }
+        catch
+        {
+            return;
+        }
+
+        var transaction = new Transaction();
+
+        try
+        {
+            transaction = AddBusFareTransaction(TransactionType.BusFare, trip.Card.Id, trip);
+        }
+        catch
+        {
+            RollBackTrip(trip);
+            return;
+        }
+
+        try
+        {
+            UpdateCardAmount(trip.Card, trip.Amount, TransactionOperation.Subtract);
+        }
+        catch
+        {
+            RollBackTrip(trip);
+            DeleteTransaction(transaction);
+        }
+    }
+
+    public PayloadResponse Return(ReturnRequest model)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "User not found!"
+            };
+        }
+
+        var card = _cardRepository
+            .GetConditional(c => c.CardNumber == model.CardNumber);
+
+        if (card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Card is not in use!"
+            };
+        }
+
+        if (model.Amount <= 0)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Amount must be greater than 0!"
+            };
+        }
+
+        if (model.Amount > card.Balance)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = "Amount must be less than or equal card balance!"
+            };
+        }
+
+        var transaction = new Transaction();
+
+        try
+        {
+            transaction = AddReturnTransaction(model, TransactionType.Return, card.Id);
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Transaction failed because {ex.Message}",
+            };
+        }
+
+        try
+        {
+            UpdateCardAmount(card, model.Amount, TransactionOperation.Subtract);
+            _settlementService
+                .SettleReturn(card, currentUser.OrganizationId, model.Amount, transaction.TransactionId);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Return",
+                Message = "Return has been successful!"
+            };
+        }
+        catch (Exception ex)
+        {
+            DeleteTransaction(transaction);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Return",
+                Message = $"Return has been failed because {ex.Message}!"
+            };
+        }
+    }
+
+    private Transaction AddReturnTransaction(ReturnRequest model, string transactionType, string cardId)
     {
         var agentId = _loggedInUserService.GetLoggedInUser();
         var transaction = new Transaction()

@@ -12,6 +12,11 @@ public class Session : Entity
     public bool IsRunning { get; set; } = true;
     public int Serial { get; set; }
     public string SessionCode { get; set; }
+    public string StartingLatitude { get; set; }
+    public string StartingLongitude { get; set; }
+    public string EndingLatitude { get; set; }
+    public string EndingLongitude { get; set; }
+    public string StopStatus { get; set; }
     [ForeignKey("UserId")]
     public User User { get; set; }
     [ForeignKey("BusId")]

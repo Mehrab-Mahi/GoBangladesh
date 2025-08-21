@@ -2,6 +2,7 @@
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Services;
+using GoBangladesh.Application.Util;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -10,10 +11,13 @@ namespace GoBangladesh.Web.Controllers;
 public class SessionController : Controller
 {
     private readonly ISessionService _sessionService;
+    private readonly ILoggedInUserService _loggedInUserService;
 
-    public SessionController(ISessionService sessionService)
+    public SessionController(ISessionService sessionService,
+        ILoggedInUserService loggedInUserService)
     {
         _sessionService = sessionService;
+        _loggedInUserService = loggedInUserService;
     }
 
     [GoBangladeshAuth]
@@ -28,6 +32,8 @@ public class SessionController : Controller
     [HttpPost("StopSession")]
     public IActionResult StopSession([FromBody] SessionStopDto sessionStopDto)
     {
+        sessionStopDto.TripClosingType = TapOutStatus.Staff;
+        sessionStopDto.StopStatus = SessionStopStatus.Staff;
         var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }
@@ -44,6 +50,8 @@ public class SessionController : Controller
     [HttpPost("ForceStopSession")]
     public IActionResult ForceStopSession([FromBody] SessionStopDto sessionStopDto)
     {
+        sessionStopDto.TripClosingType = TapOutStatus.SessionOut;
+        sessionStopDto.StopStatus = _loggedInUserService.GetLoggedInUser().UserType;
         var data = _sessionService.StopSession(sessionStopDto);
         return Ok(new { data });
     }

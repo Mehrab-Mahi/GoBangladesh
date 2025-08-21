@@ -13,4 +13,5 @@ public class Route : Entity
     public decimal PenaltyAmount { get; set; }
     [ForeignKey("OrganizationId")]
     public Organization Organization { get; set; }
+    public bool IsActive { get; set; } = true;
 }

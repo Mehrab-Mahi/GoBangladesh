@@ -13,4 +13,7 @@ public interface IBusService
     PayloadResponse UpdateLocation(LocationUpdateDto locationData);
     PayloadResponse GetAllForDropDown(string organizationId, string routId);
     PayloadResponse GetAllBusMapData(string organizationId, string busId, string routId);
+    PayloadResponse GetAllRunningBus();
+    PayloadResponse ActivateBus(BusActivationDto busActivation);
+    PayloadResponse DeactivateBus(BusActivationDto busActivation);
 }

@@ -19,4 +19,8 @@ public class TripDashBoardTableData
     public decimal Distance { get; set; }
     public decimal Fare { get; set; }
     public string Status { get; set; }
+    public string LastModifiedByUserType { get; set; }
+    public string TapInType { get; set; }
+    public string TapOutStatus { get; set; }
+    public string TransactionId { get; set; }
 }

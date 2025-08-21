@@ -2,11 +2,13 @@
 {
     public static class UserTypes
     {
+        public const string SuperAdmin = "SuperAdmin";
         public const string Public = "Public";
         public const string Private = "Private";
         public const string Staff = "Staff";
         public const string Agent = "Agent";
         public const string Admin = "Admin";
         public const string User = "User";
+        public const string TicketExaminer = "TicketExaminer";
     }
 }

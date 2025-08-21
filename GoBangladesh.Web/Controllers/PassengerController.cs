@@ -71,4 +71,12 @@ public class PassengerController : Controller
         var data = _passengerService.GetOnGoingTrip();
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("recentActivity")]
+    public IActionResult GetRecentActivity()
+    {
+        var data = _passengerService.GetRecentActivity();
+        return Ok(new { data });
+    }
 }

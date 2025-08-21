@@ -14,4 +14,5 @@ public class Bus : Entity
     public Organization Organization { get; set; }
     public string PresentLatitude { get; set; }
     public string PresentLongitude { get; set; }
+    public bool IsActive { get; set; } = true;
 }

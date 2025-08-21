@@ -65,6 +65,72 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.ToTable("AccessControls");
                 });
 
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.Account", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AccountName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AccountOrganizationName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AccountType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BranchCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BranchName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("District")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrganizationId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoutingNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("Accounts");
+                });
+
             modelBuilder.Entity("GoBangladesh.Domain.Entities.Bus", b =>
                 {
                     b.Property<string>("Id")
@@ -81,6 +147,9 @@ namespace GoBangladesh.Infra.Data.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -141,6 +210,9 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("OrganizationId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("PassengerStatus")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
 
@@ -149,6 +221,43 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("Cards");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.CardDue", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CardId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrganizationId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CardDue");
                 });
 
             modelBuilder.Entity("GoBangladesh.Domain.Entities.MailHost", b =>
@@ -297,6 +406,9 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("FocalPerson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -318,6 +430,83 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Organizations");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.OrganizationCardBalance", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CardId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrganizationId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationCardBalance");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.OrganizationSettlement", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FromOrganizationId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ToOrganizationId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationSettlement");
                 });
 
             modelBuilder.Entity("GoBangladesh.Domain.Entities.PassengerCardHistory", b =>
@@ -432,6 +621,9 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -483,6 +675,12 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("EndingLatitude")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EndingLongitude")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -503,6 +701,15 @@ namespace GoBangladesh.Infra.Data.Migrations
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("StartingLatitude")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StartingLongitude")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StopStatus")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
@@ -551,6 +758,40 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.ToTable("StaffBusMappings");
                 });
 
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.SystemSetting", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastModifiedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("SendRealOtp")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SystemOrganizationId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TokenExpireTime")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemSettings");
+                });
+
             modelBuilder.Entity("GoBangladesh.Domain.Entities.Transaction", b =>
                 {
                     b.Property<string>("Id")
@@ -579,6 +820,12 @@ namespace GoBangladesh.Infra.Data.Migrations
 
                     b.Property<DateTime>("LastModifiedTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Medium")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TransactionType")
                         .HasColumnType("nvarchar(max)");
@@ -642,6 +889,12 @@ namespace GoBangladesh.Infra.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StartingLongitude")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TapInType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TapOutStatus")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("TripEndTime")
@@ -738,6 +991,15 @@ namespace GoBangladesh.Infra.Data.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("GoBangladesh.Domain.Entities.Account", b =>
+                {
+                    b.HasOne("GoBangladesh.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("GoBangladesh.Domain.Entities.Bus", b =>
