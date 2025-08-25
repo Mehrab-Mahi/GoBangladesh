@@ -31,6 +31,7 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<OrganizationCardBalance> OrganizationCardBalance { get; set; }
         public DbSet<OrganizationSettlement> OrganizationSettlement { get; set; }
         public DbSet<CardDue> CardDue { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {

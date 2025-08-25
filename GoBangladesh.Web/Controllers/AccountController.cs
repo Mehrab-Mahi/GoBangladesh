@@ -40,6 +40,14 @@ public class AccountController : Controller
         var data = _accountService.GetById(id);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getByOrganizationId")]
+    public IActionResult GetByOrganizationId(string organizationId)
+    {
+        var data = _accountService.GetByOrganizationId(organizationId);
+        return Ok(new { data });
+    }
 
     [GoBangladeshAuth]
     [HttpPost("getAll")]
