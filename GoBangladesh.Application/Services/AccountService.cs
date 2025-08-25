@@ -474,4 +474,53 @@ public class AccountService : IAccountService
             Message = "Account deactivated successfully"
         };
     }
+
+    public PayloadResponse GetByOrganizationId(string organizationId)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        if (currentUser == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Account",
+                Message = "User not found"
+            };
+        }
+
+        if (string.IsNullOrEmpty(currentUser.OrganizationId))
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Account",
+                Message = "User is not assigned with any organization!"
+            };
+        }
+
+        var accountList = _accountRepository
+            .GetAll()
+            .Where(a => a.OrganizationId == organizationId)
+            .Include(a => a.Organization)
+            .ToList();
+
+        if (!accountList.Any())
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Account",
+                Message = "Account not found"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Account",
+            Message = "Account retrieved successfully",
+            Content = accountList
+        };
+    }
 }

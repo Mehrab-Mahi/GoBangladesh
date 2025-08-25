@@ -11,14 +11,20 @@ public class SettlementTransactionService : ISettlementTransactionService
     private readonly IRepository<OrganizationCardBalance> _organizationCardBalanceRepository;
     private readonly IRepository<OrganizationSettlement> _organizationSettlementRepository;
     private readonly IRepository<CardDue> _cardDueRepository;
+    private readonly IRepository<Transaction> _transactionRepository;
+    private readonly IRepository<Trip> _tripRepository;
 
     public SettlementTransactionService(IRepository<OrganizationCardBalance> organizationCardBalanceRepository,
         IRepository<OrganizationSettlement> organizationSettlementRepository,
-        IRepository<CardDue> cardDueRepository)
+        IRepository<CardDue> cardDueRepository,
+        IRepository<Transaction> transactionRepository,
+        IRepository<Trip> tripRepository)
     {
         _organizationCardBalanceRepository = organizationCardBalanceRepository;
         _organizationSettlementRepository = organizationSettlementRepository;
         _cardDueRepository = cardDueRepository;
+        _transactionRepository = transactionRepository;
+        _tripRepository = tripRepository;
     }
 
     public void SettleRecharge(string organizationId, string cardId, decimal modelAmount)
@@ -83,7 +89,8 @@ public class SettlementTransactionService : ISettlementTransactionService
                 ToOrganizationId = cardDue.OrganizationId,
                 Amount = cardDue.Amount,
                 TransactionId = cardDue.TransactionId,
-                TransactionType = TransactionType.BusFare
+                TransactionType = TransactionType.Due,
+                Status = SettlementStatus.Pending
             });
             _organizationSettlementRepository.SaveChanges();
             _cardDueRepository.SaveChanges();
@@ -96,7 +103,8 @@ public class SettlementTransactionService : ISettlementTransactionService
             ToOrganizationId = cardDue.OrganizationId,
             Amount = amount,
             TransactionId = cardDue.TransactionId,
-            TransactionType = TransactionType.BusFare
+            TransactionType = TransactionType.Due, 
+            Status = SettlementStatus.Pending
         });
         _organizationSettlementRepository.SaveChanges();
 
@@ -155,7 +163,8 @@ public class SettlementTransactionService : ISettlementTransactionService
                         ToOrganizationId = agentOrganizationId,
                         Amount = remainingAmount,
                         TransactionId = transactionId,
-                        TransactionType = TransactionType.Return
+                        TransactionType = TransactionType.Return, 
+                        Status = SettlementStatus.Pending
                     });
                     break;
                 }
@@ -166,7 +175,8 @@ public class SettlementTransactionService : ISettlementTransactionService
                     ToOrganizationId = agentOrganizationId,
                     Amount = organization.Balance,
                     TransactionId = transactionId,
-                    TransactionType = TransactionType.Return
+                    TransactionType = TransactionType.Return, 
+                    Status = SettlementStatus.Pending
                 });
                 remainingAmount -= organization.Balance;
                 organization.Balance = 0;
@@ -240,7 +250,8 @@ public class SettlementTransactionService : ISettlementTransactionService
                         ToOrganizationId = staffOrganizationId,
                         Amount = remainingAmount,
                         TransactionId = transactionId,
-                        TransactionType = TransactionType.BusFare
+                        TransactionType = TransactionType.BusFare,
+                        Status = SettlementStatus.Pending
                     });
                     break;
                 }
@@ -251,7 +262,8 @@ public class SettlementTransactionService : ISettlementTransactionService
                     ToOrganizationId = staffOrganizationId,
                     Amount = organization.Balance,
                     TransactionId = transactionId,
-                    TransactionType = TransactionType.Return
+                    TransactionType = TransactionType.Return,
+                    Status = SettlementStatus.Pending
                 });
                 remainingAmount -= organization.Balance;
                 organization.Balance = 0;
@@ -274,5 +286,75 @@ public class SettlementTransactionService : ISettlementTransactionService
             _organizationCardBalanceRepository.SaveChanges();
             _organizationSettlementRepository.SaveChanges();
         }
+    }
+
+    public void UpdateCardDetail(Card newCard, Card previousCard)
+    {
+        UpdateOrganizationWiseCardBalance(newCard.Id, previousCard.Id);
+        UpdatePreviousCardDue(newCard.Id, previousCard.Id);
+    }
+
+    private void UpdatePreviousCardDue(string newCardId, string previousCardId)
+    {
+        var cardDues = _cardDueRepository
+            .GetAll()
+            .Where(c => c.CardId == previousCardId)
+            .ToList();
+
+        if(!cardDues.Any()) return;
+
+        foreach (var cardDue in cardDues)
+        {
+            cardDue.CardId = newCardId;
+            _cardDueRepository.Update(cardDue);
+        }
+        _cardDueRepository.SaveChanges();
+
+        var transactionIds = cardDues
+            .Select(c => c.TransactionId)
+            .Distinct()
+            .ToList();
+
+        var transactions = _transactionRepository
+            .GetAll()
+            .Where(t => transactionIds.Contains(t.TransactionId))
+            .ToList();
+
+        foreach (var transaction in transactions)
+        {
+            transaction.CardId = newCardId;
+            _transactionRepository.Update(transaction);
+        }
+        _transactionRepository.SaveChanges();
+
+        var tripIds = transactions
+            .Select(t => t.TripId)
+            .ToList();
+
+        var trips = _tripRepository
+            .GetAll()
+            .Where(t => tripIds.Contains(t.Id))
+            .ToList();
+
+        foreach (var trip in trips)
+        {
+            trip.CardId = newCardId;
+            _tripRepository.Update(trip);
+        }
+        _tripRepository.SaveChanges();
+    }
+
+    private void UpdateOrganizationWiseCardBalance(string newCardId, string previousCardId)
+    {
+        var organizationCardBalances = _organizationCardBalanceRepository
+            .GetAll()
+            .Where(o => o.CardId == previousCardId)
+            .ToList();
+        foreach (var organizationCardBalance in organizationCardBalances)
+        {
+            organizationCardBalance.CardId = newCardId;
+            _organizationCardBalanceRepository.Update(organizationCardBalance);
+        }
+        _organizationCardBalanceRepository.SaveChanges();
     }
 }

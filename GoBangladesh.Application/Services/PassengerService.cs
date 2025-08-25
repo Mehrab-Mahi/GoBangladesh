@@ -22,6 +22,7 @@ public class PassengerService : IPassengerService
     private readonly IBaseRepository _baseRepository;
     private readonly IRepository<Organization> _organizationRepository;
     private readonly IRepository<Transaction> _transactionRepository;
+    private readonly ISettlementTransactionService _settlementTransactionService;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -30,7 +31,8 @@ public class PassengerService : IPassengerService
         ICardService cardService,
         IBaseRepository baseRepository, 
         IRepository<Organization> organizationRepository,
-        IRepository<Transaction> transactionRepository)
+        IRepository<Transaction> transactionRepository,
+        ISettlementTransactionService settlementTransactionService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -40,6 +42,7 @@ public class PassengerService : IPassengerService
         _baseRepository = baseRepository;
         _organizationRepository = organizationRepository;
         _transactionRepository = transactionRepository;
+        _settlementTransactionService = settlementTransactionService;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -435,6 +438,8 @@ public class PassengerService : IPassengerService
         _cardService.UnmapUserWithPreviousCard(passenger.Id, previousCard.Id);
         _cardService.MapUserWithCard(passenger.Id, newCard.Id);
         _cardService.MapUserWithCardHistory(passenger.Id, previousCard.Id);
+
+        _settlementTransactionService.UpdateCardDetail(newCard, previousCard);
 
         return new PayloadResponse()
         {

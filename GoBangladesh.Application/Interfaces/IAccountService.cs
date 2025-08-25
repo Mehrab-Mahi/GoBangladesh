@@ -12,4 +12,5 @@ public interface IAccountService
     PayloadResponse Delete(string id);
     PayloadResponse Activate(AccountActivationDto accountActivation);
     PayloadResponse Deactivate(AccountActivationDto accountActivation);
+    PayloadResponse GetByOrganizationId(string organizationId);
 }
