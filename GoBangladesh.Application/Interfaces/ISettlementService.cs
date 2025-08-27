@@ -13,4 +13,6 @@ public interface ISettlementService
     PayloadResponse GetInvoiceWiseTransactions(string invoiceNumber, int pageNo, int pageSize);
     PayloadResponse GetReceivableUnsettledInvoices(string organizationId, int pageNo, int pageSize);
     PayloadResponse GetReceivableSettledInvoices(string organizationId, int pageNo, int pageSize);
+    PayloadResponse Payment(InvoiceWisePayment payment);
+    PayloadResponse VerifyPayment(PaymentVerificationDto verification);
 }

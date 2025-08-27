@@ -12,13 +12,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace GoBangladesh.Application.Services;
 
-public class PausedCardStatusAutoChangeService : BackgroundService
+public class AutoPausedCardStatusChangeService : BackgroundService
 {
     private readonly CronExpression _cronExpression;
     private readonly TimeZoneInfo _timeZoneInfo;
     private readonly IServiceProvider _serviceProvider;
 
-    public PausedCardStatusAutoChangeService(IServiceProvider serviceProvider)
+    public AutoPausedCardStatusChangeService(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
         _cronExpression = CronExpression.Parse("0 * * * *"); // CRON: minute hour day month dayOfWeek

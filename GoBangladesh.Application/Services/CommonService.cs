@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using GoBangladesh.Application.DTOs.Dashboard;
 using GoBangladesh.Application.DTOs;
 
@@ -169,6 +170,21 @@ namespace GoBangladesh.Application.Services
             var cardIds = _baseRepository.Query<string>(query);
 
             return cardIds;
+        }
+
+        public string UploadMultipleFilesAndGetCommaSeparatedUrl(List<IFormFile> fileList, string fileSavePath)
+        {
+            if (!fileList.Any()) return string.Empty;
+            var uploadedFilePaths = new List<string>();
+
+            foreach (var file in fileList)
+            {
+                var fileName = GetFileName(file.FileName);
+                var uploadedFilePath = UploadFile(fileName, fileSavePath, file);
+                uploadedFilePaths.Add(uploadedFilePath);
+            }
+
+            return string.Join(",", uploadedFilePaths);
         }
 
         private string GetFileName(string fileName)

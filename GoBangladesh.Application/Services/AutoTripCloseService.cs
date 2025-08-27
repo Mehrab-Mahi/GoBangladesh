@@ -14,13 +14,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace GoBangladesh.Application.Services;
 
-public class TripAutoCloseService : BackgroundService
+public class AutoTripCloseService : BackgroundService
 {
     private readonly CronExpression _cronExpression;
     private readonly TimeZoneInfo _timeZoneInfo;
     private readonly IServiceProvider _serviceProvider;
 
-    public TripAutoCloseService(IServiceProvider serviceProvider)
+    public AutoTripCloseService(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
         _cronExpression = CronExpression.Parse("0 * * * *"); // CRON: minute hour day month dayOfWeek

@@ -20,5 +20,6 @@ namespace GoBangladesh.Application.Interfaces
         List<PassengerCardMappingDto> GetUserListByCardIds(List<string> cardId);
         User GetPassengerDataFromMappingDto(PassengerCardMappingDto passengerCardMappingDto);
         List<string> GetCardIdsFromPassengerId(string passengerId);
+        string UploadMultipleFilesAndGetCommaSeparatedUrl(List<IFormFile> file, string fileSavePath);
     }
 }

@@ -77,4 +77,20 @@ public class SettlementController : Controller
         var data = _settlementService.GetReceivableSettledInvoices(organizationId, pageNo, pageSize);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpPost("payment")]
+    public IActionResult Payment([FromForm] InvoiceWisePayment payment)
+    {
+        var data = _settlementService.Payment(payment);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("verifyPayment")]
+    public IActionResult VerifyPayment([FromBody] PaymentVerificationDto verification)
+    {
+        var data = _settlementService.VerifyPayment(verification);
+        return Ok(new { data });
+    }
 }

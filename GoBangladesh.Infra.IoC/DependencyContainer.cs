@@ -43,8 +43,10 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<ISettlementTransactionService, SettlementTransactionService>();
             services.AddScoped<ISettlementService, SettlementService>();
-            services.AddHostedService<TripAutoCloseService>();
-            services.AddHostedService<PausedCardStatusAutoChangeService>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
+            services.AddHostedService<AutoTripCloseService>();
+            services.AddHostedService<AutoPausedCardStatusChangeService>();
+            services.AddHostedService<AutoInvoiceGenerator>();
         }
     }
 }

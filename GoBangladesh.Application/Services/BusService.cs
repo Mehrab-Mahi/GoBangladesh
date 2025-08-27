@@ -616,6 +616,7 @@ public class BusService : IBusService
         var allRunningBus = _sessionRepository
             .GetAll()
             .Include(s => s.Bus)
+            .Include(s => s.Bus.Route)
             .Where(s => s.IsRunning && s.Bus.OrganizationId == currentUser.OrganizationId)
             .Select(s => s)
             .Distinct()
