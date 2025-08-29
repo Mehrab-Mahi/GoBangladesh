@@ -9,4 +9,6 @@ public interface IHistoryService
     PayloadResponse PassengerTripHistory(string id, int pageNo, int pageSize);
     PayloadResponse AgentHistory(string id, int pageNo, int pageSize);
     PayloadResponse SessionHistory(string id, int pageNo, int pageSize);
+    PayloadResponse TicketExaminerRechargeHistory(string id, int pageNo, int pageSize);
+    PayloadResponse TicketExaminerTripHistory(string id, int pageNo, int pageSize);
 }

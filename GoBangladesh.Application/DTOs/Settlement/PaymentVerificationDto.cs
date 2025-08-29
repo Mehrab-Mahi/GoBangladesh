@@ -2,6 +2,6 @@
 
 public class PaymentVerificationDto
 {
-    public string InvoiceNumber { get; set; }
+    public string InvoicePaymentId { get; set; }
     public bool IsVerified { get; set; } = true;
 }

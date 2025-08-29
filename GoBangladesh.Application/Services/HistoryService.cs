@@ -227,4 +227,75 @@ public class HistoryService : IHistoryService
             };
         }
     }
+
+    public PayloadResponse TicketExaminerRechargeHistory(string id, int pageNo, int pageSize)
+    {
+        try
+        {
+            var transactionHistory = _transactionRepository
+                .GetAll()
+                .Where(p => p.CreatedBy == id && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
+                .Include(t => t.Card)
+                .OrderByDescending(t => t.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var userList = _commonService.GetUserListByCardIds(transactionHistory.Select(t => t.CardId).ToList());
+
+            foreach (var history in transactionHistory)
+            {
+                var passenger = userList.FirstOrDefault(u => u.CardId == history.CardId);
+                history.Passenger = _commonService.GetPassengerDataFromMappingDto(passenger);
+                history.PassengerId = history.Passenger?.Id;
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "TicketExaminer transaction history",
+                Content = transactionHistory
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "TicketExaminer transaction history",
+                Message = $"TicketExaminer transaction history fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse TicketExaminerTripHistory(string id, int pageNo, int pageSize)
+    {
+        try
+        {
+            var tripHistory = _tripRepository
+                .GetAll()
+                .Where(t => t.CreatedBy == id)
+                .Include(t => t.Card)
+                .OrderByDescending(t => t.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "TicketExaminer trip history",
+                Content = tripHistory
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "TicketExaminer trip history",
+                Message = $"TicketExaminer trip history fetching failed because {ex.Message}"
+            };
+        }
+    }
 }

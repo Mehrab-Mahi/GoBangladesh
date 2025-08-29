@@ -53,4 +53,20 @@ public class HistoryController : Controller
         var data = _historyService.SessionHistory(id, pageNo, pageSize);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("ticketExaminerRecharge")]
+    public IActionResult TicketExaminerRechargeHistory(string id, int pageNo, int pageSize)
+    {
+        var data = _historyService.TicketExaminerRechargeHistory(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("ticketExaminerTrip")]
+    public IActionResult TicketExaminerTripHistory(string id, int pageNo, int pageSize)
+    {
+        var data = _historyService.TicketExaminerTripHistory(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
 }

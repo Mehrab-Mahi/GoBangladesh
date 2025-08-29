@@ -47,6 +47,14 @@ public class SettlementController : Controller
     }
     
     [GoBangladeshAuth]
+    [HttpGet("getPayableInReviewInvoices")]
+    public IActionResult GetPayableInReviewInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
+    {
+        var data = _settlementService.GetPayableInReviewInvoices(organizationId, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
     [HttpGet("getPayableSettledInvoices")]
     public IActionResult GetPayableSettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
     {
@@ -72,6 +80,14 @@ public class SettlementController : Controller
 
     [GoBangladeshAuth]
     [HttpGet("getReceivableSettledInvoices")]
+    public IActionResult GetReceivableInReviewInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
+    {
+        var data = _settlementService.GetReceivableInReviewInvoices(organizationId, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getReceivableSettledInvoices")]
     public IActionResult GetReceivableSettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
     {
         var data = _settlementService.GetReceivableSettledInvoices(organizationId, pageNo, pageSize);
@@ -80,7 +96,7 @@ public class SettlementController : Controller
 
     [GoBangladeshAuth]
     [HttpPost("payment")]
-    public IActionResult Payment([FromForm] InvoiceWisePayment payment)
+    public IActionResult Payment([FromForm] InvoiceWisePaymentDto payment)
     {
         var data = _settlementService.Payment(payment);
         return Ok(new { data });
@@ -91,6 +107,14 @@ public class SettlementController : Controller
     public IActionResult VerifyPayment([FromBody] PaymentVerificationDto verification)
     {
         var data = _settlementService.VerifyPayment(verification);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getInvoiceWisePayments")]
+    public IActionResult GetInvoiceWisePayments(string invoiceNumber)
+    {
+        var data = _settlementService.GetInvoiceWisePayments(invoiceNumber);
         return Ok(new { data });
     }
 }

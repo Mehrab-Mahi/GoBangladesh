@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace GoBangladesh.Application.DTOs.Settlement;
 
-public class InvoiceWisePayment
+public class InvoiceWisePaymentDto
 {
     public string InvoiceNumber { get; set; }
     public List<IFormFile> PaymentProof { get; set; }

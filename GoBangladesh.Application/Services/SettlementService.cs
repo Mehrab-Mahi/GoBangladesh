@@ -18,25 +18,19 @@ public class SettlementService : ISettlementService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IRepository<Invoice> _invoiceRepository;
-    private readonly IRepository<Organization> _organizationRepository;
-    private readonly IRepository<Account> _accountRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<InvoicePayment> _invoicePaymentRepository;
 
     public SettlementService(IBaseRepository baseRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
         IRepository<Invoice> invoiceRepository,
-        IRepository<Organization> organizationRepository,
-        IRepository<Account> accountRepository,
-        IRepository<User> userRepository)
+        IRepository<InvoicePayment> invoicePaymentRepository)
     {
         _baseRepository = baseRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _invoiceRepository = invoiceRepository;
-        _organizationRepository = organizationRepository;
-        _accountRepository = accountRepository;
-        _userRepository = userRepository;
+        _invoicePaymentRepository = invoicePaymentRepository;
     }
 
     public PayloadResponse GetSettlementPayableSummaryData(SettlementDataFilter filter)
@@ -278,7 +272,7 @@ public class SettlementService : ISettlementService
 
             var invoiceData = _invoiceRepository
                 .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Pending || i.Status == InvoiceStatus.InReview);
+                .Where(i => i.Status == InvoiceStatus.Unsettled || i.Status == InvoiceStatus.Partial);
 
             if (string.IsNullOrEmpty(organizationId))
             {
@@ -296,53 +290,10 @@ public class SettlementService : ISettlementService
 
             var rowCount = invoiceData.Count();
 
-            var finalInvoiceList = (from invoice in invoiceData
-                    join fromOrg in _organizationRepository.GetAll() on invoice.FromOrganizationId equals fromOrg.Id
-                    join toOrg in _organizationRepository.GetAll() on invoice.ToOrganizationId equals toOrg.Id
-                    join fromAccount in _accountRepository.GetAll() on invoice.SenderAccountId equals fromAccount.Id into fromAccountData
-                    from fromAcc in fromAccountData.DefaultIfEmpty()
-                    join toAccount in _accountRepository.GetAll() on invoice.ReceiverAccountId equals toAccount.Id into toAccountData
-                    from toAcc in toAccountData.DefaultIfEmpty()
-                    join user in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentBy equals user.Id into paidUserData
-                    from paymentBy in paidUserData.DefaultIfEmpty()
-                    join user1 in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentReceivedBy equals user1.Id into receivedUserData
-                    from receivedBy in receivedUserData.DefaultIfEmpty()
-                    orderby invoice.CreateTime descending
-                    select new InvoiceData()
-                    {
-                        Id = invoice.Id,
-                        InvoiceNumber = invoice.InvoiceNumber,
-                        FromOrganizationId = invoice.FromOrganizationId,
-                        ToOrganizationId = invoice.ToOrganizationId,
-                        FromOrganization = fromOrg,
-                        ToOrganization = toOrg,
-                        FromDate = invoice.FromDate,
-                        ToDate = invoice.ToDate,
-                        Amount = invoice.Amount,
-                        Status = invoice.Status,
-                        InvoiceFilePath = invoice.InvoiceFilePath,
-                        PaymentProof = GetPaymentProofList(invoice.PaymentProof),
-                        SenderAccountId = invoice.SenderAccountId,
-                        SenderAccount = fromAcc,
-                        ReceiverAccountId = invoice.ReceiverAccountId,
-                        ReceiverAccount = toAcc,
-                        PaymentBy = invoice.PaymentBy,
-                        PaymentTime = invoice.PaymentTime.Value,
-                        PaymentByUserData = string.IsNullOrEmpty(invoice.PaymentBy) ? null : new UserDto()
-                        {
-                            Id = paymentBy.Id,
-                            Name = paymentBy.Name,
-                            OrganizationName = paymentBy.Organization.Name
-                        },
-                        PaymentReceivedBy = invoice.PaymentReceivedBy,
-                        PaymentReceivedTime = invoice.PaymentReceivedTime,
-                        PaymentReceivedByUserData = string.IsNullOrEmpty(invoice.PaymentReceivedBy) ? null : new UserDto()
-                        {
-                            Id = receivedBy.Id,
-                            Name = receivedBy.Name,
-                            OrganizationName = receivedBy.Organization.Name
-                        }
-                    })
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -364,14 +315,65 @@ public class SettlementService : ISettlementService
         }
     }
 
-    private List<string> GetPaymentProofList(string paymentProof)
+    public PayloadResponse GetPayableInReviewInvoices(string organizationId, int pageNo, int pageSize)
     {
-        if (string.IsNullOrEmpty(paymentProof))
+        try
         {
-            return new List<string>();
-        }
+            var currentUser = _loggedInUserService.GetLoggedInUser();
 
-        return paymentProof.Split(',').ToList();
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "User not logged in"
+                };
+            }
+
+            var invoiceData = _invoiceRepository
+                .GetAll()
+                .Where(i => i.Status == InvoiceStatus.InReview);
+
+            if (string.IsNullOrEmpty(organizationId))
+            {
+                if (!currentUser.IsSuperAdmin)
+                {
+                    invoiceData = invoiceData
+                        .Where(i => i.FromOrganizationId == currentUser.OrganizationId);
+                }
+            }
+            else
+            {
+                invoiceData = invoiceData
+                    .Where(i => i.FromOrganizationId == organizationId);
+            }
+
+            var rowCount = invoiceData.Count();
+
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalInvoiceList, rowCount },
+                Message = "Data fetched successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Data fetching failed because {ex.Message}"
+            };
+        }
     }
 
     public PayloadResponse GetPayableSettledInvoices(string organizationId, int pageNo, int pageSize)
@@ -410,53 +412,10 @@ public class SettlementService : ISettlementService
 
             var rowCount = invoiceData.Count();
 
-            var finalInvoiceList = (from invoice in invoiceData
-                                    join fromOrg in _organizationRepository.GetAll() on invoice.FromOrganizationId equals fromOrg.Id
-                                    join toOrg in _organizationRepository.GetAll() on invoice.ToOrganizationId equals toOrg.Id
-                                    join fromAccount in _accountRepository.GetAll() on invoice.SenderAccountId equals fromAccount.Id into fromAccountData
-                                    from fromAcc in fromAccountData.DefaultIfEmpty()
-                                    join toAccount in _accountRepository.GetAll() on invoice.ReceiverAccountId equals toAccount.Id into toAccountData
-                                    from toAcc in toAccountData.DefaultIfEmpty()
-                                    join user in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentBy equals user.Id into paidUserData
-                                    from paymentBy in paidUserData.DefaultIfEmpty()
-                                    join user1 in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentReceivedBy equals user1.Id into receivedUserData
-                                    from receivedBy in receivedUserData.DefaultIfEmpty()
-                                    orderby invoice.CreateTime descending
-                                    select new InvoiceData()
-                                    {
-                                        Id = invoice.Id,
-                                        InvoiceNumber = invoice.InvoiceNumber,
-                                        FromOrganizationId = invoice.FromOrganizationId,
-                                        ToOrganizationId = invoice.ToOrganizationId,
-                                        FromOrganization = fromOrg,
-                                        ToOrganization = toOrg,
-                                        FromDate = invoice.FromDate,
-                                        ToDate = invoice.ToDate,
-                                        Amount = invoice.Amount,
-                                        Status = invoice.Status,
-                                        InvoiceFilePath = invoice.InvoiceFilePath,
-                                        PaymentProof = GetPaymentProofList(invoice.PaymentProof),
-                                        SenderAccountId = invoice.SenderAccountId,
-                                        SenderAccount = fromAcc,
-                                        ReceiverAccountId = invoice.ReceiverAccountId,
-                                        ReceiverAccount = toAcc,
-                                        PaymentBy = invoice.PaymentBy,
-                                        PaymentTime = invoice.PaymentTime,
-                                        PaymentByUserData = string.IsNullOrEmpty(invoice.PaymentBy) ? null : new UserDto()
-                                        {
-                                            Id = paymentBy.Id,
-                                            Name = paymentBy.Name,
-                                            OrganizationName = paymentBy.Organization.Name
-                                        },
-                                        PaymentReceivedBy = invoice.PaymentReceivedBy,
-                                        PaymentReceivedTime = invoice.PaymentReceivedTime,
-                                        PaymentReceivedByUserData = string.IsNullOrEmpty(invoice.PaymentReceivedBy) ? null : new UserDto()
-                                        {
-                                            Id = receivedBy.Id,
-                                            Name = receivedBy.Name,
-                                            OrganizationName = receivedBy.Organization.Name
-                                        }
-                                    })
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -482,7 +441,6 @@ public class SettlementService : ISettlementService
     {
         try
         {
-
             var extraCondition = $@"order by os.CreateTime desc
                                 OFFSET ({pageNo} - 1) * {pageSize} ROWS
                                 FETCH NEXT {pageSize} ROWS ONLY";
@@ -536,7 +494,7 @@ public class SettlementService : ISettlementService
 
             var invoiceData = _invoiceRepository
                 .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Pending || i.Status == InvoiceStatus.InReview);
+                .Where(i => i.Status == InvoiceStatus.Unsettled || i.Status == InvoiceStatus.Partial);
 
             if (string.IsNullOrEmpty(organizationId))
             {
@@ -554,53 +512,71 @@ public class SettlementService : ISettlementService
 
             var rowCount = invoiceData.Count();
 
-            var finalInvoiceList = (from invoice in invoiceData
-                                    join fromOrg in _organizationRepository.GetAll() on invoice.FromOrganizationId equals fromOrg.Id
-                                    join toOrg in _organizationRepository.GetAll() on invoice.ToOrganizationId equals toOrg.Id
-                                    join fromAccount in _accountRepository.GetAll() on invoice.SenderAccountId equals fromAccount.Id into fromAccountData
-                                    from fromAcc in fromAccountData.DefaultIfEmpty()
-                                    join toAccount in _accountRepository.GetAll() on invoice.ReceiverAccountId equals toAccount.Id into toAccountData
-                                    from toAcc in toAccountData.DefaultIfEmpty()
-                                    join user in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentBy equals user.Id into paidUserData
-                                    from paymentBy in paidUserData.DefaultIfEmpty()
-                                    join user1 in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentReceivedBy equals user1.Id into receivedUserData
-                                    from receivedBy in receivedUserData.DefaultIfEmpty()
-                                    orderby invoice.CreateTime descending
-                                    select new InvoiceData()
-                                    {
-                                        Id = invoice.Id,
-                                        InvoiceNumber = invoice.InvoiceNumber,
-                                        FromOrganizationId = invoice.FromOrganizationId,
-                                        ToOrganizationId = invoice.ToOrganizationId,
-                                        FromOrganization = fromOrg,
-                                        ToOrganization = toOrg,
-                                        FromDate = invoice.FromDate,
-                                        ToDate = invoice.ToDate,
-                                        Amount = invoice.Amount,
-                                        Status = invoice.Status,
-                                        InvoiceFilePath = invoice.InvoiceFilePath,
-                                        PaymentProof = GetPaymentProofList(invoice.PaymentProof),
-                                        SenderAccountId = invoice.SenderAccountId,
-                                        SenderAccount = fromAcc,
-                                        ReceiverAccountId = invoice.ReceiverAccountId,
-                                        ReceiverAccount = toAcc,
-                                        PaymentBy = invoice.PaymentBy,
-                                        PaymentTime = invoice.PaymentTime,
-                                        PaymentByUserData = string.IsNullOrEmpty(invoice.PaymentBy) ? null : new UserDto()
-                                        {
-                                            Id = paymentBy.Id,
-                                            Name = paymentBy.Name,
-                                            OrganizationName = paymentBy.Organization.Name
-                                        },
-                                        PaymentReceivedBy = invoice.PaymentReceivedBy,
-                                        PaymentReceivedTime = invoice.PaymentReceivedTime,
-                                        PaymentReceivedByUserData = string.IsNullOrEmpty(invoice.PaymentReceivedBy) ? null : new UserDto()
-                                        {
-                                            Id = receivedBy.Id,
-                                            Name = receivedBy.Name,
-                                            OrganizationName = receivedBy.Organization.Name
-                                        }
-                                    })
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalInvoiceList, rowCount },
+                Message = "Data fetched successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Data fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetReceivableInReviewInvoices(string organizationId, int pageNo, int pageSize)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "User not logged in"
+                };
+            }
+
+            var invoiceData = _invoiceRepository
+                .GetAll()
+                .Where(i => i.Status == InvoiceStatus.InReview);
+
+            if (string.IsNullOrEmpty(organizationId))
+            {
+                if (!currentUser.IsSuperAdmin)
+                {
+                    invoiceData = invoiceData
+                        .Where(i => i.ToOrganizationId == currentUser.OrganizationId);
+                }
+            }
+            else
+            {
+                invoiceData = invoiceData
+                    .Where(i => i.ToOrganizationId == organizationId);
+            }
+
+            var rowCount = invoiceData.Count();
+
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -658,53 +634,10 @@ public class SettlementService : ISettlementService
 
             var rowCount = invoiceData.Count();
 
-            var finalInvoiceList = (from invoice in invoiceData
-                                    join fromOrg in _organizationRepository.GetAll() on invoice.FromOrganizationId equals fromOrg.Id
-                                    join toOrg in _organizationRepository.GetAll() on invoice.ToOrganizationId equals toOrg.Id
-                                    join fromAccount in _accountRepository.GetAll() on invoice.SenderAccountId equals fromAccount.Id into fromAccountData
-                                    from fromAcc in fromAccountData.DefaultIfEmpty()
-                                    join toAccount in _accountRepository.GetAll() on invoice.ReceiverAccountId equals toAccount.Id into toAccountData
-                                    from toAcc in toAccountData.DefaultIfEmpty()
-                                    join user in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentBy equals user.Id into paidUserData
-                                    from paymentBy in paidUserData.DefaultIfEmpty()
-                                    join user1 in _userRepository.GetAll().Include(u => u.Organization) on invoice.PaymentReceivedBy equals user1.Id into receivedUserData
-                                    from receivedBy in receivedUserData.DefaultIfEmpty()
-                                    orderby invoice.CreateTime descending
-                                    select new InvoiceData()
-                                    {
-                                        Id = invoice.Id,
-                                        InvoiceNumber = invoice.InvoiceNumber,
-                                        FromOrganizationId = invoice.FromOrganizationId,
-                                        ToOrganizationId = invoice.ToOrganizationId,
-                                        FromOrganization = fromOrg,
-                                        ToOrganization = toOrg,
-                                        FromDate = invoice.FromDate,
-                                        ToDate = invoice.ToDate,
-                                        Amount = invoice.Amount,
-                                        Status = invoice.Status,
-                                        InvoiceFilePath = invoice.InvoiceFilePath,
-                                        PaymentProof = GetPaymentProofList(invoice.PaymentProof),
-                                        SenderAccountId = invoice.SenderAccountId,
-                                        SenderAccount = fromAcc,
-                                        ReceiverAccountId = invoice.ReceiverAccountId,
-                                        ReceiverAccount = toAcc,
-                                        PaymentBy = invoice.PaymentBy,
-                                        PaymentTime = invoice.PaymentTime,
-                                        PaymentByUserData = string.IsNullOrEmpty(invoice.PaymentBy) ? null : new UserDto()
-                                        {
-                                            Id = paymentBy.Id,
-                                            Name = paymentBy.Name,
-                                            OrganizationName = paymentBy.Organization.Name
-                                        },
-                                        PaymentReceivedBy = invoice.PaymentReceivedBy,
-                                        PaymentReceivedTime = invoice.PaymentReceivedTime,
-                                        PaymentReceivedByUserData = string.IsNullOrEmpty(invoice.PaymentReceivedBy) ? null : new UserDto()
-                                        {
-                                            Id = receivedBy.Id,
-                                            Name = receivedBy.Name,
-                                            OrganizationName = receivedBy.Organization.Name
-                                        }
-                                    })
+            var finalInvoiceList = invoiceData
+                .Include(i => i.FromOrganization)
+                .Include(i => i.ToOrganization)
+                .OrderByDescending(i => i.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -726,7 +659,7 @@ public class SettlementService : ISettlementService
         }
     }
 
-    public PayloadResponse Payment(InvoiceWisePayment payment)
+    public PayloadResponse Payment(InvoiceWisePaymentDto payment)
     {
         try
         {
@@ -736,18 +669,35 @@ public class SettlementService : ISettlementService
 
             if (!isConditionsAreSatisfied.IsSuccess) return isConditionsAreSatisfied;
 
-            invoice!.PaymentProof = _commonService
-                .UploadMultipleFilesAndGetCommaSeparatedUrl(payment.PaymentProof, "InvoicePaymentProof");
-            invoice.Status = InvoiceStatus.InReview;
-            invoice.PaymentBy = currentUser.Id;
-            invoice.PaymentTime = DateTime.UtcNow;
-            invoice.SenderAccountId = payment.SenderAccountId;
-            invoice.ReceiverAccountId = payment.ReceiverAccountId;
+            var existingInvoicePayment = _invoicePaymentRepository
+                .GetAll()
+                .FirstOrDefault(ip => ip.InvoiceNumber == payment.InvoiceNumber);
 
-            _invoiceRepository.Update(invoice);
-            _invoiceRepository.SaveChanges();
+            _invoicePaymentRepository.Insert(new InvoicePayment()
+            {
+                InvoiceNumber = payment.InvoiceNumber,
+                PaymentProof = _commonService
+                    .UploadMultipleFilesAndGetCommaSeparatedUrl(payment.PaymentProof, "InvoicePaymentProof"),
+                PaymentBy = currentUser.Id,
+                PaymentTime = DateTime.UtcNow,
+                SenderAccountId = payment.SenderAccountId,
+                ReceiverAccountId = payment.ReceiverAccountId,
+                Status = InvoicePaymentStatus.Pending
+            });
 
-            UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.InReview);
+            _invoicePaymentRepository.SaveChanges();
+
+            if (invoice!.Status != InvoiceStatus.InReview)
+            {
+                invoice.Status = InvoiceStatus.InReview;
+                _invoiceRepository.Update(invoice);
+                _invoiceRepository.SaveChanges();
+            }
+
+            if (existingInvoicePayment is null)
+            {
+                UpdateInvoiceWiseSettlementStatus(invoice!.InvoiceNumber, SettlementStatus.InReview);
+            }
 
             return new PayloadResponse()
             {
@@ -770,7 +720,31 @@ public class SettlementService : ISettlementService
     public PayloadResponse VerifyPayment(PaymentVerificationDto verification)
     {
         var currentUser = _loggedInUserService.GetLoggedInUser();
-        var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == verification.InvoiceNumber);
+
+        var invoicePayment = _invoicePaymentRepository.GetAll()
+            .FirstOrDefault(ip => ip.Id == verification.InvoicePaymentId);
+
+        if (invoicePayment == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Content = null,
+                Message = "Invoice payment record not found"
+            };
+        }
+
+        if(invoicePayment.Status != InvoicePaymentStatus.Pending)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Content = null,
+                Message = "Invoice payment is not in pending status"
+            };
+        }
+
+        var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == invoicePayment.InvoiceNumber);
 
         if (invoice == null)
         {
@@ -782,13 +756,13 @@ public class SettlementService : ISettlementService
             };
         }
 
-        if (invoice.Status != InvoiceStatus.InReview)
+        if (invoice.Status != InvoiceStatus.InReview && invoice.Status != InvoiceStatus.Partial )
         {
             return new PayloadResponse()
             {
                 IsSuccess = false,
                 Content = null,
-                Message = "Invoice is not in review state"
+                Message = "Invoice is not in review or partial payment state"
             };
         }
 
@@ -805,20 +779,82 @@ public class SettlementService : ISettlementService
             }
         }
 
-        invoice.Status = InvoiceStatus.Settled;
-        invoice.PaymentReceivedBy = currentUser.Id;
-        invoice.PaymentReceivedTime = DateTime.UtcNow;
+        if(verification.IsVerified)
+        {
+            invoicePayment.Status = InvoicePaymentStatus.Settled;
+            invoicePayment.PaymentReceivedBy = currentUser.Id;
+            invoicePayment.PaymentReceivedTime = DateTime.UtcNow;
+            _invoicePaymentRepository.Update(invoicePayment);
+            _invoicePaymentRepository.SaveChanges();
 
-        _invoiceRepository.Update(invoice);
-        _invoiceRepository.SaveChanges();
+            var existingInvoicePaymentsInReview = _invoicePaymentRepository.GetAll()
+                .Where(ip => ip.InvoiceNumber == invoicePayment.InvoiceNumber && ip.Status == InvoicePaymentStatus.Settled)
+                .ToList();
 
-        UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
+            var totalSettled = existingInvoicePaymentsInReview.Sum(ip => ip.Amount);
+
+            if (totalSettled >= invoice.Amount)
+            {
+                invoice.Status = InvoiceStatus.Settled;
+                _invoiceRepository.Update(invoice);
+                _invoiceRepository.SaveChanges();
+
+                UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
+            }
+            else
+            {
+                if (invoice.Status != InvoiceStatus.Partial)
+                {
+                    invoice.Status = InvoiceStatus.Partial;
+                    _invoiceRepository.Update(invoice);
+                    _invoiceRepository.SaveChanges();
+
+                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+                }
+            }
+        }
+        else
+        {
+            invoicePayment.Status = InvoicePaymentStatus.Rejected;
+            invoicePayment.PaymentReceivedBy = currentUser.Id;
+            invoicePayment.PaymentReceivedTime = DateTime.UtcNow;
+            _invoicePaymentRepository.Update(invoicePayment);
+            _invoicePaymentRepository.SaveChanges();
+
+            if(invoice.Status != InvoiceStatus.Settled)
+            {
+                invoice.Status = InvoiceStatus.Partial;
+                _invoiceRepository.Update(invoice);
+                _invoiceRepository.SaveChanges();
+
+                UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+            }
+        }
 
         return new PayloadResponse()
         {
             IsSuccess = true,
             Content = null,
-            Message = "Payment verification completed successfully"
+            Message = "Payment verification status updated successfully"
+        };
+    }
+
+    public PayloadResponse GetInvoiceWisePayments(string invoiceNumber)
+    {
+        var invoicePayments = _invoicePaymentRepository.GetAll()
+            .Where(ip => ip.InvoiceNumber == invoiceNumber)
+            .Include(ip => ip.PaymentByUser)
+            .Include(ip => ip.PaymentReceivedByUser)
+            .Include(ip => ip.SenderAccount)
+            .Include(ip => ip.ReceiverAccount)
+            .OrderBy(ip => ip.CreateTime)
+            .ToList();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            Content = invoicePayments,
+            Message = "Data fetched successfully"
         };
     }
 
@@ -831,7 +867,7 @@ public class SettlementService : ISettlementService
         _baseRepository.ExecuteQuery(query);
     }
 
-    private PayloadResponse CheckIfConditionsAreSatisfiedForPaymentProof(InvoiceWisePayment payment, User currentUser, Invoice invoice)
+    private PayloadResponse CheckIfConditionsAreSatisfiedForPaymentProof(InvoiceWisePaymentDto payment, User currentUser, Invoice invoice)
     {
         if (!payment.PaymentProof.Any())
         {
@@ -870,16 +906,6 @@ public class SettlementService : ISettlementService
                 IsSuccess = false,
                 Content = null,
                 Message = "Invoice already settled"
-            };
-        }
-
-        if (invoice.Status == InvoiceStatus.InReview)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Content = null,
-                Message = "Invoice is already in review!"
             };
         }
 

@@ -44,7 +44,7 @@ public class InvoiceService : IInvoiceService
                 FromDate = localTime.AddDays(-6).Date,
                 ToDate = localTime.Date,
                 Amount = settlement.TotalAmount,
-                Status = InvoiceStatus.Pending
+                Status = InvoiceStatus.Unsettled
             });
 
             UpdateSettlementTransactionDataForNewlyGeneratedInvoice(invoiceNumber,
@@ -60,7 +60,7 @@ public class InvoiceService : IInvoiceService
     {
         var query = $@"UPDATE OrganizationSettlement
                     SET InvoiceNumber = '{invoiceNumber}',
-                        Status = '{SettlementStatus.Generated}'
+                        Status = '{SettlementStatus.Unsettled}'
                     where FromOrganizationId = '{fromOrganizationId}'
                       and ToOrganizationId = '{toOrganizationId}'
                       and CreateTime <= '{date}'

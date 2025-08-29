@@ -9,10 +9,13 @@ public interface ISettlementService
     PayloadResponse GetSettlementReceivableSummaryData(SettlementDataFilter filter);
     PayloadResponse GetSettlementDetailData(SettlementDataFilter filter);
     PayloadResponse GetPayableUnsettledInvoices(string organizationId, int pageNo, int pageSize);
+    PayloadResponse GetPayableInReviewInvoices(string organizationId, int pageNo, int pageSize);
     PayloadResponse GetPayableSettledInvoices(string organizationId, int pageNo, int pageSize);
     PayloadResponse GetInvoiceWiseTransactions(string invoiceNumber, int pageNo, int pageSize);
     PayloadResponse GetReceivableUnsettledInvoices(string organizationId, int pageNo, int pageSize);
+    PayloadResponse GetReceivableInReviewInvoices(string organizationId, int pageNo, int pageSize);
     PayloadResponse GetReceivableSettledInvoices(string organizationId, int pageNo, int pageSize);
-    PayloadResponse Payment(InvoiceWisePayment payment);
+    PayloadResponse Payment(InvoiceWisePaymentDto payment);
     PayloadResponse VerifyPayment(PaymentVerificationDto verification);
+    PayloadResponse GetInvoiceWisePayments(string invoiceNumber);
 }
