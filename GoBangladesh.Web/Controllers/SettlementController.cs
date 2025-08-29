@@ -79,7 +79,7 @@ public class SettlementController : Controller
     }
 
     [GoBangladeshAuth]
-    [HttpGet("getReceivableSettledInvoices")]
+    [HttpGet("getReceivableInReviewInvoices")]
     public IActionResult GetReceivableInReviewInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
     {
         var data = _settlementService.GetReceivableInReviewInvoices(organizationId, pageNo, pageSize);
