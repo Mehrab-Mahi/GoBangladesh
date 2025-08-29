@@ -980,6 +980,9 @@ public class SettlementService : ISettlementService
                        SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
                        SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
                        SUM(CASE WHEN os.Status = 'In Review' THEN os.Amount ELSE 0 END)        AS InReviewAmount,
+                       SUM(CASE WHEN os.Status = 'Settled' THEN os.Amount ELSE 0 END)          AS SettledAmount,
+                       SUM(CASE WHEN os.Status = 'Pending' THEN os.Amount ELSE 0 END)          AS PendingAmount,
+                       SUM(CASE WHEN os.Status = 'Generated' THEN os.Amount ELSE 0 END)        AS InvoiceAmount,
                        SUM(Amount)                                                             AS TotalAmount
                 FROM OrganizationSettlement os
                          left join Organizations o on os.FromOrganizationId = o.Id
