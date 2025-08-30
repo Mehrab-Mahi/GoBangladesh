@@ -732,28 +732,42 @@ public class SettlementService : ISettlementService
     {
         try
         {
+            if (payment.PaymentData == null || !payment.PaymentData.Any())
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "Payment data is required"
+                };
+            }
+
             var currentUser = _loggedInUserService.GetLoggedInUser();
-            var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == payment.InvoiceNumber);
-            var isConditionsAreSatisfied = CheckIfConditionsAreSatisfiedForPaymentProof(payment, currentUser, invoice);
+            var invoiceNumber = payment.PaymentData.FirstOrDefault()!.InvoiceNumber;
+            var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == invoiceNumber);
+            var isConditionsAreSatisfied = CheckIfConditionsAreSatisfiedForPaymentProof(currentUser, invoice);
 
             if (!isConditionsAreSatisfied.IsSuccess) return isConditionsAreSatisfied;
 
             var existingInvoicePayment = _invoicePaymentRepository
                 .GetAll()
-                .FirstOrDefault(ip => ip.InvoiceNumber == payment.InvoiceNumber);
+                .FirstOrDefault(ip => ip.InvoiceNumber == invoiceNumber);
 
-            _invoicePaymentRepository.Insert(new InvoicePayment()
+            foreach (var paymentData in payment.PaymentData)
             {
-                InvoiceNumber = payment.InvoiceNumber,
-                PaymentProof = _commonService
-                    .UploadMultipleFilesAndGetCommaSeparatedUrl(payment.PaymentProof, "InvoicePaymentProof"),
-                PaymentBy = currentUser.Id,
-                PaymentTime = DateTime.UtcNow,
-                SenderAccountId = payment.SenderAccountId,
-                ReceiverAccountId = payment.ReceiverAccountId,
-                Status = InvoicePaymentStatus.Pending,
-                Amount = payment.Amount
-            });
+                _invoicePaymentRepository.Insert(new InvoicePayment()
+                {
+                    InvoiceNumber = paymentData.InvoiceNumber,
+                    PaymentProof = _commonService
+                        .UploadMultipleFilesAndGetCommaSeparatedUrl(paymentData.PaymentProof, "InvoicePaymentProof"),
+                    PaymentBy = currentUser.Id,
+                    PaymentTime = DateTime.UtcNow,
+                    SenderAccountId = paymentData.SenderAccountId,
+                    ReceiverAccountId = paymentData.ReceiverAccountId,
+                    Status = InvoicePaymentStatus.Pending,
+                    Amount = paymentData.Amount
+                });
+            }
 
             _invoicePaymentRepository.SaveChanges();
 
@@ -951,18 +965,8 @@ public class SettlementService : ISettlementService
         _baseRepository.ExecuteQuery(query);
     }
 
-    private PayloadResponse CheckIfConditionsAreSatisfiedForPaymentProof(InvoiceWisePaymentDto payment, User currentUser, Invoice invoice)
+    private PayloadResponse CheckIfConditionsAreSatisfiedForPaymentProof(User currentUser, Invoice invoice)
     {
-        if (!payment.PaymentProof.Any())
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Content = null,
-                Message = "Payment proof is required"
-            };
-        }
-
         if (currentUser == null)
         {
             return new PayloadResponse()

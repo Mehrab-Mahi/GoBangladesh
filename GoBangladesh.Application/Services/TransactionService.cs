@@ -87,14 +87,12 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var transaction = new Transaction()
-        {
-            Medium = medium
-        };
+        var transaction = new Transaction();
 
         try
         {
             transaction = AddRechargeTransaction(model, TransactionType.Recharge, card.Id);
+            transaction.Medium = medium;
         }
         catch (Exception ex)
         {
