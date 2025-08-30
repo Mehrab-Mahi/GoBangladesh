@@ -39,26 +39,50 @@ public class SettlementController : Controller
     }
     
     [GoBangladeshAuth]
-    [HttpGet("getPayableUnsettledInvoices")]
-    public IActionResult GetPayableUnsettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
+    [HttpPost("getPayableUnsettledInvoices")]
+    public IActionResult GetPayableUnsettledInvoices([FromBody] SettlementFilter filter)
     {
-        var data = _settlementService.GetPayableUnsettledInvoices(organizationId, pageNo, pageSize);
+        var data = _settlementService.GetPayableUnsettledInvoices(filter);
         return Ok(new { data });
     }
     
     [GoBangladeshAuth]
-    [HttpGet("getPayableInReviewInvoices")]
-    public IActionResult GetPayableInReviewInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
+    [HttpPost("getPayableInReviewInvoices")]
+    public IActionResult GetPayableInReviewInvoices([FromBody] SettlementFilter filter)
     {
-        var data = _settlementService.GetPayableInReviewInvoices(organizationId, pageNo, pageSize);
+        var data = _settlementService.GetPayableInReviewInvoices(filter);
         return Ok(new { data });
     }
     
     [GoBangladeshAuth]
-    [HttpGet("getPayableSettledInvoices")]
-    public IActionResult GetPayableSettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
+    [HttpPost("getPayableSettledInvoices")]
+    public IActionResult GetPayableSettledInvoices([FromBody] SettlementFilter filter)
     {
-        var data = _settlementService.GetPayableSettledInvoices(organizationId, pageNo, pageSize);
+        var data = _settlementService.GetPayableSettledInvoices(filter);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("getReceivableUnsettledInvoices")]
+    public IActionResult GetReceivableUnsettledInvoices([FromBody] SettlementFilter filter)
+    {
+        var data = _settlementService.GetReceivableUnsettledInvoices(filter);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("getReceivableInReviewInvoices")]
+    public IActionResult GetReceivableInReviewInvoices([FromBody] SettlementFilter filter)
+    {
+        var data = _settlementService.GetReceivableInReviewInvoices(filter);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
+    [HttpPost("getReceivableSettledInvoices")]
+    public IActionResult GetReceivableSettledInvoices([FromBody] SettlementFilter filter)
+    {
+        var data = _settlementService.GetReceivableSettledInvoices(filter);
         return Ok(new { data });
     }
 
@@ -67,30 +91,6 @@ public class SettlementController : Controller
     public IActionResult GetInvoiceWiseTransactions(string invoiceNumber, int pageNo = 1, int pageSize = 10)
     {
         var data = _settlementService.GetInvoiceWiseTransactions(invoiceNumber, pageNo, pageSize);
-        return Ok(new { data });
-    }
-
-    [GoBangladeshAuth]
-    [HttpGet("getReceivableUnsettledInvoices")]
-    public IActionResult GetReceivableUnsettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
-    {
-        var data = _settlementService.GetReceivableUnsettledInvoices(organizationId, pageNo, pageSize);
-        return Ok(new { data });
-    }
-
-    [GoBangladeshAuth]
-    [HttpGet("getReceivableInReviewInvoices")]
-    public IActionResult GetReceivableInReviewInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
-    {
-        var data = _settlementService.GetReceivableInReviewInvoices(organizationId, pageNo, pageSize);
-        return Ok(new { data });
-    }
-    
-    [GoBangladeshAuth]
-    [HttpGet("getReceivableSettledInvoices")]
-    public IActionResult GetReceivableSettledInvoices(string organizationId, int pageNo = 1, int pageSize = 10)
-    {
-        var data = _settlementService.GetReceivableSettledInvoices(organizationId, pageNo, pageSize);
         return Ok(new { data });
     }
 

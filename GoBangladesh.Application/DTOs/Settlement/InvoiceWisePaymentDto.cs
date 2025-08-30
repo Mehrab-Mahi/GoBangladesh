@@ -9,4 +9,5 @@ public class InvoiceWisePaymentDto
     public List<IFormFile> PaymentProof { get; set; }
     public string SenderAccountId { get; set; }
     public string ReceiverAccountId { get; set; }
+    public decimal Amount { get; set; }
 }

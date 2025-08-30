@@ -19,18 +19,21 @@ public class SettlementService : ISettlementService
     private readonly ICommonService _commonService;
     private readonly IRepository<Invoice> _invoiceRepository;
     private readonly IRepository<InvoicePayment> _invoicePaymentRepository;
+    private readonly IRepository<Organization> _organizationRepository;
 
     public SettlementService(IBaseRepository baseRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
         IRepository<Invoice> invoiceRepository,
-        IRepository<InvoicePayment> invoicePaymentRepository)
+        IRepository<InvoicePayment> invoicePaymentRepository,
+        IRepository<Organization> organizationRepository)
     {
         _baseRepository = baseRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _invoiceRepository = invoiceRepository;
         _invoicePaymentRepository = invoicePaymentRepository;
+        _organizationRepository = organizationRepository;
     }
 
     public PayloadResponse GetSettlementPayableSummaryData(SettlementDataFilter filter)
@@ -254,7 +257,7 @@ public class SettlementService : ISettlementService
         }
     }
 
-    public PayloadResponse GetPayableUnsettledInvoices(string organizationId, int pageNo, int pageSize)
+    public PayloadResponse GetPayableUnsettledInvoices(SettlementFilter filter) 
     {
         try
         {
@@ -269,34 +272,42 @@ public class SettlementService : ISettlementService
                     Message = "User not logged in"
                 };
             }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.Unsettled}' || i.Status = '{InvoiceStatus.Partial}') " };
 
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Unsettled || i.Status == InvoiceStatus.Partial);
-
-            if (string.IsNullOrEmpty(organizationId))
+            if (string.IsNullOrEmpty(filter.OrganizationId))
             {
                 if (!currentUser.IsSuperAdmin)
                 {
-                    invoiceData = invoiceData
-                        .Where(i => i.FromOrganizationId == currentUser.OrganizationId);
+                    condition.Add($" i.FromOrganizationId = '{currentUser.OrganizationId}' ");
                 }
             }
             else
             {
-                invoiceData = invoiceData
-                    .Where(i => i.FromOrganizationId == organizationId);
+                condition.Add($" i.FromOrganizationId = '{filter.OrganizationId}' ");
             }
 
-            var rowCount = invoiceData.Count();
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
 
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
 
             return new PayloadResponse()
             {
@@ -315,7 +326,7 @@ public class SettlementService : ISettlementService
         }
     }
 
-    public PayloadResponse GetPayableInReviewInvoices(string organizationId, int pageNo, int pageSize)
+    public PayloadResponse GetPayableInReviewInvoices(SettlementFilter filter)
     {
         try
         {
@@ -330,34 +341,42 @@ public class SettlementService : ISettlementService
                     Message = "User not logged in"
                 };
             }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.InReview}') " };
 
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.InReview);
-
-            if (string.IsNullOrEmpty(organizationId))
+            if (string.IsNullOrEmpty(filter.OrganizationId))
             {
                 if (!currentUser.IsSuperAdmin)
                 {
-                    invoiceData = invoiceData
-                        .Where(i => i.FromOrganizationId == currentUser.OrganizationId);
+                    condition.Add($" i.FromOrganizationId = '{currentUser.OrganizationId}' ");
                 }
             }
             else
             {
-                invoiceData = invoiceData
-                    .Where(i => i.FromOrganizationId == organizationId);
+                condition.Add($" i.FromOrganizationId = '{filter.OrganizationId}' ");
             }
 
-            var rowCount = invoiceData.Count();
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
 
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
 
             return new PayloadResponse()
             {
@@ -376,7 +395,7 @@ public class SettlementService : ISettlementService
         }
     }
 
-    public PayloadResponse GetPayableSettledInvoices(string organizationId, int pageNo, int pageSize)
+    public PayloadResponse GetPayableSettledInvoices(SettlementFilter filter)
     {
         try
         {
@@ -391,34 +410,249 @@ public class SettlementService : ISettlementService
                     Message = "User not logged in"
                 };
             }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.Settled}') " };
 
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Settled);
-
-            if (string.IsNullOrEmpty(organizationId))
+            if (string.IsNullOrEmpty(filter.OrganizationId))
             {
                 if (!currentUser.IsSuperAdmin)
                 {
-                    invoiceData = invoiceData
-                        .Where(i => i.FromOrganizationId == currentUser.OrganizationId);
+                    condition.Add($" i.FromOrganizationId = '{currentUser.OrganizationId}' ");
                 }
             }
             else
             {
-                invoiceData = invoiceData
-                    .Where(i => i.FromOrganizationId == organizationId);
+                condition.Add($" i.FromOrganizationId = '{filter.OrganizationId}' ");
             }
 
-            var rowCount = invoiceData.Count();
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
 
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalInvoiceList, rowCount },
+                Message = "Data fetched successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Data fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetReceivableUnsettledInvoices(SettlementFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "User not logged in"
+                };
+            }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.Unsettled}' || i.Status = '{InvoiceStatus.Partial}') " };
+
+            if (string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                if (!currentUser.IsSuperAdmin)
+                {
+                    condition.Add($" i.ToOrganizationId = '{currentUser.OrganizationId}' ");
+                }
+            }
+            else
+            {
+                condition.Add($" i.ToOrganizationId = '{filter.OrganizationId}' ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalInvoiceList, rowCount },
+                Message = "Data fetched successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Data fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetReceivableInReviewInvoices(SettlementFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "User not logged in"
+                };
+            }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.InReview}') " };
+
+            if (string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                if (!currentUser.IsSuperAdmin)
+                {
+                    condition.Add($" i.ToOrganizationId = '{currentUser.OrganizationId}' ");
+                }
+            }
+            else
+            {
+                condition.Add($" i.ToOrganizationId = '{filter.OrganizationId}' ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalInvoiceList, rowCount },
+                Message = "Data fetched successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Data fetching failed because {ex.Message}"
+            };
+        }
+    }
+
+    public PayloadResponse GetReceivableSettledInvoices(SettlementFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Content = null,
+                    Message = "User not logged in"
+                };
+            }
+            var condition = new List<string>
+                { $" (i.Status = '{InvoiceStatus.Settled}') " };
+
+            if (string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                if (!currentUser.IsSuperAdmin)
+                {
+                    condition.Add($" i.ToOrganizationId = '{currentUser.OrganizationId}' ");
+                }
+            }
+            else
+            {
+                condition.Add($" i.ToOrganizationId = '{filter.OrganizationId}' ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+            var dataQuery = GetInvoiceDataQuery();
+            var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
+
+            var rowCountQuery = GetInvoiceRowCountQuery();
+            var rowCount = _baseRepository.Query<int>($"{rowCountQuery} {whereCondition}").FirstOrDefault();
+
+            var finalInvoiceList = _baseRepository.Query<InvoiceData>($"{dataQuery} {whereCondition} {extraCondition}");
+
+            var organizationList = _organizationRepository.GetAll().ToList();
+
+            foreach (var invoice in finalInvoiceList)
+            {
+                invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
+                invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+            }
 
             return new PayloadResponse()
             {
@@ -476,189 +710,6 @@ public class SettlementService : ISettlementService
         }
     }
 
-    public PayloadResponse GetReceivableUnsettledInvoices(string organizationId, int pageNo, int pageSize)
-    {
-        try
-        {
-            var currentUser = _loggedInUserService.GetLoggedInUser();
-
-            if (currentUser == null)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    Content = null,
-                    Message = "User not logged in"
-                };
-            }
-
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Unsettled || i.Status == InvoiceStatus.Partial);
-
-            if (string.IsNullOrEmpty(organizationId))
-            {
-                if (!currentUser.IsSuperAdmin)
-                {
-                    invoiceData = invoiceData
-                        .Where(i => i.ToOrganizationId == currentUser.OrganizationId);
-                }
-            }
-            else
-            {
-                invoiceData = invoiceData
-                    .Where(i => i.ToOrganizationId == organizationId);
-            }
-
-            var rowCount = invoiceData.Count();
-
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
-                Message = "Data fetched successfully"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Message = $"Data fetching failed because {ex.Message}"
-            };
-        }
-    }
-
-    public PayloadResponse GetReceivableInReviewInvoices(string organizationId, int pageNo, int pageSize)
-    {
-        try
-        {
-            var currentUser = _loggedInUserService.GetLoggedInUser();
-
-            if (currentUser == null)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    Content = null,
-                    Message = "User not logged in"
-                };
-            }
-
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.InReview);
-
-            if (string.IsNullOrEmpty(organizationId))
-            {
-                if (!currentUser.IsSuperAdmin)
-                {
-                    invoiceData = invoiceData
-                        .Where(i => i.ToOrganizationId == currentUser.OrganizationId);
-                }
-            }
-            else
-            {
-                invoiceData = invoiceData
-                    .Where(i => i.ToOrganizationId == organizationId);
-            }
-
-            var rowCount = invoiceData.Count();
-
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
-                Message = "Data fetched successfully"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Message = $"Data fetching failed because {ex.Message}"
-            };
-        }
-    }
-
-    public PayloadResponse GetReceivableSettledInvoices(string organizationId, int pageNo, int pageSize)
-    {
-        try
-        {
-            var currentUser = _loggedInUserService.GetLoggedInUser();
-
-            if (currentUser == null)
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    Content = null,
-                    Message = "User not logged in"
-                };
-            }
-
-            var invoiceData = _invoiceRepository
-                .GetAll()
-                .Where(i => i.Status == InvoiceStatus.Settled);
-
-            if (string.IsNullOrEmpty(organizationId))
-            {
-                if (!currentUser.IsSuperAdmin)
-                {
-                    invoiceData = invoiceData
-                        .Where(i => i.ToOrganizationId == currentUser.OrganizationId);
-                }
-            }
-            else
-            {
-                invoiceData = invoiceData
-                    .Where(i => i.ToOrganizationId == organizationId);
-            }
-
-            var rowCount = invoiceData.Count();
-
-            var finalInvoiceList = invoiceData
-                .Include(i => i.FromOrganization)
-                .Include(i => i.ToOrganization)
-                .OrderByDescending(i => i.CreateTime)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
-                Message = "Data fetched successfully"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                Message = $"Data fetching failed because {ex.Message}"
-            };
-        }
-    }
-
     public PayloadResponse Payment(InvoiceWisePaymentDto payment)
     {
         try
@@ -682,7 +733,8 @@ public class SettlementService : ISettlementService
                 PaymentTime = DateTime.UtcNow,
                 SenderAccountId = payment.SenderAccountId,
                 ReceiverAccountId = payment.ReceiverAccountId,
-                Status = InvoicePaymentStatus.Pending
+                Status = InvoicePaymentStatus.Pending,
+                Amount = payment.Amount
             });
 
             _invoicePaymentRepository.SaveChanges();
@@ -926,6 +978,29 @@ public class SettlementService : ISettlementService
         {
             IsSuccess = true
         };
+    }
+
+    private string GetInvoiceExtraCondition(int pageNo, int pageSize)
+    {
+        return $@"
+                group by i.Id, i.InvoiceNumber, FromOrganizationId, ToOrganizationId, FromDate, ToDate, i.Amount, i.Status,
+                         i.CreateTime, i.LastModifiedTime, i.CreatedBy, i.LastModifiedBy, i.IsDeleted, InvoiceFilePath
+                order by i.CreateTime desc
+                offset {(pageNo - 1) * pageSize} rows fetch next {pageSize} rows only";
+    }
+
+    private string GetInvoiceDataQuery()
+    {
+        return @"select i.*,
+                       SUM(case when ip.Status = 'Settled' then ip.Amount end)            as PaidAmount,
+                       i.Amount - SUM(case when ip.Status = 'Settled' then ip.Amount end) as DueAmount
+                from Invoices i
+                         left join InvoicePayment ip on i.InvoiceNumber = ip.InvoiceNumber";
+    }
+
+    private string GetInvoiceRowCountQuery()
+    {
+        return "select count(*) as count from Invoices i";
     }
 
     private List<SettlementDetailData> GetDetailData(string query, string whereCondition, string extraCondition)
