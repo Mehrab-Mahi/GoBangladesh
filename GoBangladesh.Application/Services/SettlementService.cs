@@ -273,7 +273,7 @@ public class SettlementService : ISettlementService
                 };
             }
             var condition = new List<string>
-                { $" (i.Status = '{InvoiceStatus.Unsettled}' || i.Status = '{InvoiceStatus.Partial}') " };
+                { $" (i.Status = '{InvoiceStatus.Unsettled}' or i.Status = '{InvoiceStatus.Partial}') " };
 
             if (string.IsNullOrEmpty(filter.OrganizationId))
             {
@@ -309,10 +309,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -378,10 +381,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -447,10 +453,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -480,7 +489,7 @@ public class SettlementService : ISettlementService
                 };
             }
             var condition = new List<string>
-                { $" (i.Status = '{InvoiceStatus.Unsettled}' || i.Status = '{InvoiceStatus.Partial}') " };
+                { $" (i.Status = '{InvoiceStatus.Unsettled}' or i.Status = '{InvoiceStatus.Partial}') " };
 
             if (string.IsNullOrEmpty(filter.OrganizationId))
             {
@@ -516,10 +525,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -585,10 +597,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -654,10 +669,13 @@ public class SettlementService : ISettlementService
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
             }
 
+            var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
+            var dropDownData = _baseRepository.Query<ValueLabel>($"{dropDownQuery} {whereCondition}");
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalInvoiceList, rowCount },
+                Content = new { data = finalInvoiceList, rowCount, dropDownData },
                 Message = "Data fetched successfully"
             };
         }
@@ -908,6 +926,20 @@ public class SettlementService : ISettlementService
             Content = invoicePayments,
             Message = "Data fetched successfully"
         };
+    }
+
+    private string GetDropDownDataQueryForPayableInvoiceData()
+    {
+        return @"select distinct o.Id as Value, o.Name as Label
+                from Invoices i
+                         left join Organizations o on i.ToOrganizationId = o.Id";
+    }
+
+    private string GetDropDownDataQueryForReceivableInvoiceData()
+    {
+        return @"select distinct o.Id as Value, o.Name as Label
+                from Invoices i
+                         left join Organizations o on i.FromOrganizationId = o.Id";
     }
 
     private void UpdateInvoiceWiseSettlementStatus(string invoiceNumber, string settlementStatus)

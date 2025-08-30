@@ -501,7 +501,7 @@ public class AccountService : IAccountService
 
         var accountList = _accountRepository
             .GetAll()
-            .Where(a => a.OrganizationId == organizationId)
+            .Where(a => a.OrganizationId == organizationId && a.IsActive)
             .Include(a => a.Organization)
             .ToList();
 
