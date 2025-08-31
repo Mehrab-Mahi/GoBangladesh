@@ -234,7 +234,7 @@ public class HistoryService : IHistoryService
         {
             var transactionHistory = _transactionRepository
                 .GetAll()
-                .Where(p => p.CreatedBy == id && (p.TransactionType == TransactionType.Recharge || p.TransactionType == TransactionType.Return))
+                .Where(p => p.CreatedBy == id && p.TransactionType == TransactionType.Recharge)
                 .Include(t => t.Card)
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)

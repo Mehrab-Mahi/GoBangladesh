@@ -828,7 +828,7 @@ public class SettlementService : ISettlementService
             };
         }
 
-        var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == invoicePayment.InvoiceNumber);
+        var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.InvoiceNumber == invoicePayment.InvoiceNumber);
 
         if (invoice == null)
         {
@@ -930,7 +930,9 @@ public class SettlementService : ISettlementService
             .Include(ip => ip.PaymentByUser)
             .Include(ip => ip.PaymentReceivedByUser)
             .Include(ip => ip.SenderAccount)
+            .Include(ip => ip.SenderAccount.Organization)
             .Include(ip => ip.ReceiverAccount)
+            .Include(ip => ip.ReceiverAccount.Organization)
             .OrderBy(ip => ip.CreateTime)
             .ToList();
 
