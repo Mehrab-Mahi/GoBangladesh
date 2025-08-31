@@ -1,11 +1,13 @@
-﻿using GoBangladesh.Application.Interfaces;
+﻿using GoBangladesh.Application.DTOs.TicketChecker;
+using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
-using System.Linq;
-using System;
-using GoBangladesh.Application.Util;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace GoBangladesh.Application.Services;
 
@@ -243,18 +245,27 @@ public class HistoryService : IHistoryService
 
             var userList = _commonService.GetUserListByCardIds(transactionHistory.Select(t => t.CardId).ToList());
 
+            var data = new List<TicketExaminerRechargeHistoryDto>();
+
             foreach (var history in transactionHistory)
             {
                 var passenger = userList.FirstOrDefault(u => u.CardId == history.CardId);
-                history.Passenger = _commonService.GetPassengerDataFromMappingDto(passenger);
-                history.PassengerId = history.Passenger?.Id;
+                
+                data.Add(new TicketExaminerRechargeHistoryDto()
+                {
+                    PassengerName = passenger != null? passenger.Name : string.Empty,
+                    CardNumber = history.Card.CardNumber,
+                    Amount = history.Amount,
+                    TransactionId = history.TransactionId,
+                    TransactionTime = history.CreateTime
+                });
             }
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "TicketExaminer transaction history",
-                Content = transactionHistory
+                Content = data
             };
         }
         catch (Exception ex)
@@ -276,16 +287,43 @@ public class HistoryService : IHistoryService
                 .GetAll()
                 .Where(t => t.CreatedBy == id)
                 .Include(t => t.Card)
+                .Include(t => t.Session)
+                .Include(t => t.Session.Bus)
                 .OrderByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
 
+            var transactionIdList = _transactionRepository.GetAll()
+                .Where(tr => tripHistory.Select(t => t.Id).Contains(tr.TripId))
+                .ToList();
+
+            var userList = _commonService.GetUserListByCardIds(tripHistory.Select(t => t.CardId).ToList());
+
+            var data = new List<TicketExaminerTripHistoryDto>();
+
+            foreach (var history in tripHistory)
+            {
+                var passenger = userList.FirstOrDefault(u => u.CardId == history.CardId);
+                var transaction = transactionIdList.FirstOrDefault(tr => tr.TripId == history.Id);
+
+                data.Add(new TicketExaminerTripHistoryDto()
+                {
+                    PassengerName = passenger != null? passenger.Name : string.Empty,
+                    CardNumber = history.Card.CardNumber,
+                    BusNumber = history.Session.Bus.BusNumber,
+                    Amount = history.Amount,
+                    IsRunning = history.IsRunning,
+                    TransactionId = transaction != null ? transaction.TransactionId : string.Empty,
+                    TripStartTime = history.TripStartTime,
+                });
+            }
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "TicketExaminer trip history",
-                Content = tripHistory
+                Content = data
             };
         }
         catch (Exception ex)

@@ -383,12 +383,27 @@ public class TicketExaminerService : ITicketExaminerService
 
         if (runningTrip == null)
         {
+            var anotherBusTrip = _tripRepository
+                .GetAll()
+                .FirstOrDefault(t => t.CardId == card.Id && t.IsRunning);
+
+            if (anotherBusTrip != null)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Ticket",
+                    Content = "Not Tapped",
+                    Message = "Passenger has already an ongoing trip on another bus!"
+                };
+            }
+
             return new PayloadResponse
             {
                 IsSuccess = false,
                 PayloadType = "Ticket",
                 Content = "Not Tapped",
-                Message = "Card is not tapped properly."
+                Message = "Card is not tapped."
             };
         }
 

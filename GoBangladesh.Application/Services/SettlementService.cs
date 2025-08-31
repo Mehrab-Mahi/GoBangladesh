@@ -54,17 +54,17 @@ public class SettlementService : ISettlementService
             {
                 if (!currentUser.IsSuperAdmin)
                 {
-                    condition.Add($" FromOrganizationId = '{currentUser.OrganizationId}' ");
+                    condition.Add($" os.FromOrganizationId = '{currentUser.OrganizationId}' ");
                 }
             }
             else
             {
-                condition.Add($" FromOrganizationId = '{filter.FromOrganizationId}' ");
+                condition.Add($" os.FromOrganizationId = '{filter.FromOrganizationId}' ");
             }
 
             if (!string.IsNullOrEmpty(filter.ToOrganizationId))
             {
-                condition.Add($" ToOrganizationId = '{filter.ToOrganizationId}' ");
+                condition.Add($" os.ToOrganizationId = '{filter.ToOrganizationId}' ");
             }
 
             if (filter.StartDate != null || filter.EndDate != null)
@@ -887,7 +887,11 @@ public class SettlementService : ISettlementService
             }
             else
             {
-                if (invoice.Status != InvoiceStatus.Partial)
+                var pendingPayments = _invoicePaymentRepository
+                    .GetAll()
+                    .Count(ip => ip.InvoiceNumber == invoicePayment.InvoiceNumber && ip.Status == InvoicePaymentStatus.Pending);
+
+                if (pendingPayments == 0)
                 {
                     invoice.Status = InvoiceStatus.Partial;
                     _invoiceRepository.Update(invoice);
@@ -905,13 +909,32 @@ public class SettlementService : ISettlementService
             _invoicePaymentRepository.Update(invoicePayment);
             _invoicePaymentRepository.SaveChanges();
 
-            if(invoice.Status != InvoiceStatus.Settled)
-            {
-                invoice.Status = InvoiceStatus.Partial;
-                _invoiceRepository.Update(invoice);
-                _invoiceRepository.SaveChanges();
+            var pendingPayments = _invoicePaymentRepository
+                .GetAll()
+                .Count(ip => ip.InvoiceNumber == invoicePayment.InvoiceNumber && ip.Status == InvoicePaymentStatus.Pending);
 
-                UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+            if (pendingPayments == 0)
+            {
+                var existingInvoicePaymentsInReview = _invoicePaymentRepository.GetAll()
+                    .Where(ip => ip.InvoiceNumber == invoicePayment.InvoiceNumber && ip.Status == InvoicePaymentStatus.Settled)
+                    .ToList();
+                var totalSettled = existingInvoicePaymentsInReview.Sum(ip => ip.Amount);
+
+                if(totalSettled >= invoice.Amount)
+                {
+                    invoice.Status = InvoiceStatus.Settled;
+                    _invoiceRepository.Update(invoice);
+                    _invoiceRepository.SaveChanges();
+                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
+                }
+                else
+                {
+                    invoice.Status = InvoiceStatus.Partial;
+                    _invoiceRepository.Update(invoice);
+                    _invoiceRepository.SaveChanges();
+
+                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+                }
             }
         }
 
@@ -1111,20 +1134,31 @@ public class SettlementService : ISettlementService
 
     private string GetSummaryDataQuery()
     {
-        return @"SELECT os.ToOrganizationId                                                     as ReceiverOrganizationId,
-                       oo.Name                                                                 AS ReceiverOrganization,
-                       os.FromOrganizationId                                                   as SenderOrganizationId,
-                       o.Name                                                                  AS SenderOrganization,
-                       SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
-                       SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
-                       SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
-                       SUM(CASE WHEN os.Status = 'In Review' THEN os.Amount ELSE 0 END)        AS InReviewAmount,
-                       SUM(CASE WHEN os.Status = 'Settled' THEN os.Amount ELSE 0 END)          AS SettledAmount,
-                       SUM(CASE WHEN os.Status = 'Pending' THEN os.Amount ELSE 0 END)          AS PendingAmount,
-                       SUM(CASE WHEN os.Status = 'Generated' THEN os.Amount ELSE 0 END)        AS InvoiceAmount,
-                       SUM(Amount)                                                             AS TotalAmount
+        return @"WITH PaymentSummary AS (
+                    SELECT
+                        InvoiceNumber,
+                        SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
+                        SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
+                    FROM InvoicePayment
+                    GROUP BY InvoiceNumber
+                )
+                SELECT
+                    os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+                    oo.Name                                                                 AS ReceiverOrganization,
+                    os.FromOrganizationId                                                   AS SenderOrganizationId,
+                    o.Name                                                                  AS SenderOrganization,
+                    SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
+                    SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
+                    SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
+                    SUM(ps.InReviewAmount)                                                  AS InReviewAmount,
+                    SUM(ps.SettledAmount)                                                   AS SettledAmount,
+                    SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
+                    SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
+                    SUM(os.Amount)                                                          AS TotalAmount
                 FROM OrganizationSettlement os
-                         left join Organizations o on os.FromOrganizationId = o.Id
-                         left join Organizations oo on os.ToOrganizationId = oo.Id";
+                LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
+                LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
+                LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
+                LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id";
     }
 }
