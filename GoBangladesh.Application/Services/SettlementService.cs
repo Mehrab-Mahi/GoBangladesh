@@ -744,7 +744,7 @@ public class SettlementService : ISettlementService
 
             var currentUser = _loggedInUserService.GetLoggedInUser();
             var invoiceNumber = payment.PaymentData.FirstOrDefault()!.InvoiceNumber;
-            var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.Id == invoiceNumber);
+            var invoice = _invoiceRepository.GetAll().FirstOrDefault(i => i.InvoiceNumber == invoiceNumber);
             var isConditionsAreSatisfied = CheckIfConditionsAreSatisfiedForPaymentProof(currentUser, invoice);
 
             if (!isConditionsAreSatisfied.IsSuccess) return isConditionsAreSatisfied;
