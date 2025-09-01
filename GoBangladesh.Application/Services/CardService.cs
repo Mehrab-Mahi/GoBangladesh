@@ -212,7 +212,7 @@ public class CardService : ICardService
     {
         var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
 
-        if (card != null)
+        if (card is { Status: CardStatus.InUse or CardStatus.NotUsed })
         {
             return new PayloadResponse()
             {

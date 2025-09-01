@@ -18,13 +18,15 @@ public class SessionService : ISessionService
     private readonly IRepository<Trip> _tripRepository;
     private readonly IBaseRepository _baseRepository;
     private readonly ITransactionService _transactionService;
+    private readonly IRepository<Bus> _busRepository;
 
     public SessionService(ILoggedInUserService loggedInUserService,
         IRepository<Session> sessionRepository, 
         IRepository<User> userRepository,
         IRepository<Trip> tripRepository,
         IBaseRepository baseRepository,
-        ITransactionService transactionService)
+        ITransactionService transactionService,
+        IRepository<Bus> busRepository)
     {
         _loggedInUserService = loggedInUserService;
         _sessionRepository = sessionRepository;
@@ -32,6 +34,7 @@ public class SessionService : ISessionService
         _tripRepository = tripRepository;
         _baseRepository = baseRepository;
         _transactionService = transactionService;
+        _busRepository = busRepository;
     }
 
     public PayloadResponse StartSession(SessionStartDto sessionStartDto)
@@ -340,6 +343,26 @@ public class SessionService : ISessionService
             return new PayloadResponse()
             {
                 IsSuccess = true
+            };
+        }
+
+        var bus = _busRepository.GetConditional(b => b.Id == session.BusId);
+
+        if(bus == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Bus not found!"
+            };
+        }
+
+        if (!bus.IsActive)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Bus is inactive!"
             };
         }
 

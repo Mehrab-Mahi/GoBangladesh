@@ -369,28 +369,21 @@ public class AgentService : IAgentService
                                        THEN Amount
                                    ELSE 0 END) AS TodayTotalAmount
                     FROM Transactions
-                    WHERE TransactionType = 'Recharge'
-                      AND CreatedBy = '{id}'";
+                    WHERE CreatedBy = '{id}'";
 
         var rechargeData = _baseRepository
-            .Query<RechargeInfo>(query)
+            .Query<RechargeInfo>( $"{query} and TransactionType = 'Recharge' ")
             .FirstOrDefault();
-
-        if (rechargeData == null)
-        {
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Organization",
-                Message = "Organization not found"
-            };
-        }
+        
+        var returnData = _baseRepository
+            .Query<RechargeInfo>( $"{query} and TransactionType = 'Return' ")
+            .FirstOrDefault();
 
         return new PayloadResponse()
         {
             IsSuccess = true,
             PayloadType = "Agent",
-            Content = rechargeData,
+            Content = new { rechargeData, returnData},
             Message = "Agent recharge data has been sent!"
         };
         }

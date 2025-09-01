@@ -347,7 +347,7 @@ namespace GoBangladesh.Application.Services
             {
                 var session = _sessionService.CheckIfSessionRunningForLoggedInUser(user.Id);
 
-                if (!session.IsSuccess)
+                if (session.IsSuccess)
                 {
                     return new PayloadResponse()
                     {

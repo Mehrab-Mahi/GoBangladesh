@@ -16,4 +16,5 @@ public interface IBusService
     PayloadResponse GetAllRunningBus();
     PayloadResponse ActivateBus(BusActivationDto busActivation);
     PayloadResponse DeactivateBus(BusActivationDto busActivation);
+    PayloadResponse GetAllActiveBuses(BusDataFilter filter);
 }

@@ -368,6 +368,17 @@ public class TicketExaminerService : ITicketExaminerService
 
         if (card is null || card.Status != CardStatus.InUse)
         {
+            if (card is not null && card.Status == CardStatus.NotUsed)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    PayloadType = "Ticket",
+                    Content = "Invalid",
+                    Message = "Card is not activated, please recharge first!"
+                };
+            }
+
             return new PayloadResponse
             {
                 IsSuccess = false,

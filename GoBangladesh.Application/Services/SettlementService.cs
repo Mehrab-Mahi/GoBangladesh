@@ -78,7 +78,7 @@ public class SettlementService : ISettlementService
 
             var query = GetSummaryDataQuery();
 
-            var rowCount = GetSummaryRowCountData(query, groupByCondition, whereCondition);
+            var rowCount = GetSummaryRowCountData(groupByCondition, whereCondition);
 
             var data = GetSummaryData(query, whereCondition, groupByCondition,
                 extraCondition);
@@ -160,7 +160,7 @@ public class SettlementService : ISettlementService
 
             var query = GetSummaryDataQuery();
 
-            var rowCount = GetSummaryRowCountData(query, groupByCondition, whereCondition);
+            var rowCount = GetSummaryRowCountData(groupByCondition, whereCondition);
 
             var data = GetSummaryData(query, whereCondition, groupByCondition,
                 extraCondition);
@@ -1054,7 +1054,11 @@ public class SettlementService : ISettlementService
     {
         return @"select i.*,
                        SUM(case when ip.Status = 'Settled' then ip.Amount end)            as PaidAmount,
-                       i.Amount - SUM(case when ip.Status = 'Settled' then ip.Amount end) as DueAmount
+                       i.Amount - SUM(case when ip.Status = 'Settled' then ip.Amount end) as DueAmount,
+                       case when (SUM(case when ip.Status = 'Settled' then ip.Amount end) +
+                                  SUM(case when ip.Status = 'Pending' then ip.Amount end)) < i.Amount
+                       then 1
+                       else 0 end                                                     as IsPaymentButtonAvailable
                 from Invoices i
                          left join InvoicePayment ip on i.InvoiceNumber = ip.InvoiceNumber";
     }
@@ -1117,15 +1121,38 @@ public class SettlementService : ISettlementService
         return data;
     }
 
-    private int GetSummaryRowCountData(string query, string groupByCondition, string whereCondition)
+    private int GetSummaryRowCountData(string groupByCondition, string whereCondition)
     {
-        var finalQuery = $@"
-                            with data as (
-                                {query}
-                                {whereCondition}
-                                {groupByCondition}
-                            )
-                            select count(*) as count from data";
+        var finalQuery = $@"WITH PaymentSummary AS (
+                            SELECT InvoiceNumber,
+                                   SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
+                                   SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
+                            FROM InvoicePayment
+                            GROUP BY InvoiceNumber
+                        ),
+                        data AS (
+                            SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+                                   oo.Name                                                                 AS ReceiverOrganization,
+                                   os.FromOrganizationId                                                   AS SenderOrganizationId,
+                                   o.Name                                                                  AS SenderOrganization,
+                                   SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
+                                   SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
+                                   SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
+                                   SUM(ps.InReviewAmount)                                                  AS InReviewAmount,
+                                   SUM(ps.SettledAmount)                                                   AS SettledAmount,
+                                   SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
+                                   SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
+                                   SUM(os.Amount)                                                          AS TotalAmount
+                            FROM OrganizationSettlement os
+                                     LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
+                                     LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
+                                     LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
+                                     LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id
+                            {whereCondition}
+                            {groupByCondition}
+                        )
+                        SELECT COUNT(*) as count
+                        FROM data";
 
         var countData = _baseRepository.Query<int>(finalQuery).FirstOrDefault();
 

@@ -102,4 +102,12 @@ public class BusController : Controller
         var data = _busService.DeactivateBus(busActivation);
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpPost("getAllActiveBuses")]
+    public IActionResult GetAllActiveBuses([FromBody] BusDataFilter filter)
+    {
+        var data = _busService.GetAllActiveBuses(filter);
+        return Ok(new { data });
+    }
 }

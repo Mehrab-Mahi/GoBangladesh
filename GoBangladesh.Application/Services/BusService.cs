@@ -743,6 +743,89 @@ public class BusService : IBusService
         };
     }
 
+    public PayloadResponse GetAllActiveBuses(BusDataFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Bus",
+                    Message = "Bus not found"
+                };
+            }
+
+            var condition = new List<string> { " IsActive = 1 " };
+
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        PayloadType = "Bus",
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
+
+                filter.OrganizationId = currentUser.OrganizationId;
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" (BusNumber like '%{filter.SearchQuery}%' or BusName like '%{filter.SearchQuery}%') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Buses", whereCondition);
+
+            var finalQueryData = _commonService.GetFinalData<Bus>("Buses", whereCondition, extraCondition);
+
+            var busIds = finalQueryData.Select(q => q.Id).ToList();
+
+            var busData = _busRepository.GetAll()
+                .Where(u => busIds.Contains(u.Id))
+                .Include(u => u.Organization)
+                .Include(u => u.Route)
+                .ToList();
+
+            var processedData = GetProcessedData(busData);
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Content = new { data = processedData, rowCount },
+                Message = "Bus data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = $"Bus fetching is failed because {ex.Message}!"
+            };
+        }
+    }
+
     private bool IfDuplicateBusNumber(string busNumber)
     {
         var bus = _busRepository.GetConditional(b => b.BusName == busNumber);
