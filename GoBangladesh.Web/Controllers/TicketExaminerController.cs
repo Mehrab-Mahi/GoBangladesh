@@ -70,4 +70,13 @@ public class TicketExaminerController : Controller
         var data = _ticketCheckerService.StartPenaltyTrip(tapRequest);
         return Ok(new { data });
     }
+    
+    
+    [GoBangladeshAuth]
+    [HttpGet("statistics")]
+    public IActionResult GetStatistics()
+    {
+        var data = _ticketCheckerService.GetStatistics();
+        return Ok(new { data });
+    }
 }

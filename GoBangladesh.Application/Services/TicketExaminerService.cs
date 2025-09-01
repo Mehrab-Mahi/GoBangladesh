@@ -22,6 +22,7 @@ public class TicketExaminerService : ITicketExaminerService
     private readonly ICommonService _commonService;
     private readonly ICardService _cardService;
     private readonly ITransactionService _transactionService;
+    private readonly IBaseRepository _baseRepository;
 
     public TicketExaminerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -29,7 +30,8 @@ public class TicketExaminerService : ITicketExaminerService
         IRepository<Trip> tripRepository, 
         ICardService cardService,
         IRepository<Session> sessionRepository,
-        ITransactionService transactionService)
+        ITransactionService transactionService,
+        IBaseRepository baseRepository)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -38,6 +40,7 @@ public class TicketExaminerService : ITicketExaminerService
         _cardService = cardService;
         _sessionRepository = sessionRepository;
         _transactionService = transactionService;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse TicketCheckerCreate(TicketCheckerCreateRequest user)
@@ -444,6 +447,122 @@ public class TicketExaminerService : ITicketExaminerService
         });
 
         return response;
+    }
+
+    public PayloadResponse GetStatistics()
+    {
+        try
+        {
+            var currentUser = _loggedInUserService.GetLoggedInUser();
+
+            if (currentUser is not { UserType: UserTypes.TicketExaminer })
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Agent",
+                    Message = currentUser == null ?
+                        "No user found" :
+                        "User is not TicketExaminer!"
+                };
+            }
+
+            var penaltyTripDataQuery = GetPenaltyTripDataQuery(currentUser.Id);
+            var penaltyTripData = _baseRepository
+                .Query<TicketExaminerPenaltyTripStatistics>(penaltyTripDataQuery)
+                .FirstOrDefault();
+
+            var rechargeDataQuery = GetRechargeDataQuery(currentUser.Id);
+            var rechargeData = _baseRepository
+                .Query<TicketExaminerRechargeStatistics>(rechargeDataQuery)
+                .FirstOrDefault();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { penaltyTripData, rechargeData }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Ticket Examiner",
+                Message = $"Statistics fetching is failed because {ex.Message}!"
+            };
+        }
+    }
+
+    private string GetRechargeDataQuery(string currentUserId)
+    {
+        return $@"SELECT SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time'), 0)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time') + 1, 0)
+                               THEN 1
+                           ELSE 0 END) AS ThisMonthRechargeCount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time'), 0)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time') + 1, 0)
+                               THEN t.Amount
+                           ELSE 0 END) AS ThisMonthTotalRechargeAmount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(DAY, 1, CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE))
+                               THEN 1
+                           ELSE 0 END) AS TodayRechargeCount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(DAY, 1, CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE))
+                               THEN t.Amount
+                           ELSE 0 END) AS TodayTotalRechargeAmount
+            FROM Transactions t
+            WHERE t.CreatedBy = '{currentUserId}'
+              AND t.TransactionType = 'Recharge'";
+    }
+
+    private string GetPenaltyTripDataQuery(string currentUserId)
+    {
+        return $@"SELECT SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time'), 0)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time') + 1, 0)
+                               THEN 1
+                           ELSE 0 END) AS ThisMonthPenaltyTripCount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time'), 0)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(MONTH, DATEDIFF(MONTH, 0, SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time') + 1, 0)
+                               THEN t.Amount
+                           ELSE 0 END) AS ThisMonthTotalPenaltyTripAmount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(DAY, 1, CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE))
+                               THEN 1
+                           ELSE 0 END) AS TodayPenaltyTripCount,
+                   SUM(CASE
+                           WHEN t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                >= CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE)
+                            AND t.CreateTime AT TIME ZONE 'UTC' AT TIME ZONE 'Bangladesh Standard Time'
+                                < DATEADD(DAY, 1, CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'Bangladesh Standard Time' AS DATE))
+                               THEN t.Amount
+                           ELSE 0 END) AS TodayTotalPenaltyTripAmount
+            FROM Transactions t
+                     LEFT JOIN Trips tr ON t.TripId = tr.Id
+            WHERE tr.CreatedBy = '{currentUserId}'
+              AND tr.IsRunning = 0";
     }
 
     private bool IfDuplicateEmail(string emailAddress)

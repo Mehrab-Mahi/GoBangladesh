@@ -12,4 +12,5 @@ public interface ITicketExaminerService
     PayloadResponse Delete(string id);
     PayloadResponse GetTripInfoByCard(string sessionId, string cardNumber);
     PayloadResponse StartPenaltyTrip(TicketExaminerPenaltyTripRequest tapRequest);
+    PayloadResponse GetStatistics();
 }
