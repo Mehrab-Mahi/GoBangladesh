@@ -89,6 +89,14 @@ public class CardController : Controller
     }
     
     [GoBangladeshAuth]
+    [HttpGet("GetCardDetailByCardNumberForReturn")]
+    public IActionResult GetCardDetailByCardNumberForReturn(string cardNumber)
+    {
+        var data = _cardService.GetCardDetailByCardNumberForReturn(cardNumber);
+        return Ok(new { data });
+    }
+    
+    [GoBangladeshAuth]
     [HttpPost("ActivateCard")]
     public IActionResult ActivateCard([FromBody] CardActivationDto cardActivation)
     {

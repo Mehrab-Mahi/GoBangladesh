@@ -67,6 +67,7 @@ public class OrganizationService : IOrganizationService
                 Email = model.Email,
                 MobileNumber = model.MobileNumber,
                 Designation = model.Designation,
+                Address = model.Address,
                 OrganizationType = model.OrganizationType
             };
 
@@ -184,6 +185,7 @@ public class OrganizationService : IOrganizationService
             organization.Email = model.Email;
             organization.MobileNumber = model.MobileNumber;
             organization.Designation = model.Designation;
+            organization.Address = model.Address;
             organization.OrganizationType = model.OrganizationType;
 
             _organizationRepository.Update(organization);
@@ -266,12 +268,16 @@ public class OrganizationService : IOrganizationService
                                count(distinct b.Id)  as TotalBus,
                                count(distinct u.Id)  as TotalStaff,
                                count(distinct u1.Id) as TotalAgent,
-                               count(distinct u2.Id) as TotalPassenger
+                               count(distinct u2.Id) as TotalPassenger,
+                               count(distinct u3.Id) as TotalTicketExaminer,
+                               count(distinct r.Id)  as TotalRoute
                         from Organizations o
                                  left join Buses b on o.Id = b.OrganizationId
                                  left join Users u on o.Id = u.OrganizationId and u.UserType = 'Staff'
                                  left join Users u1 on o.Id = u1.OrganizationId and u1.UserType = 'Agent'
                                  left join Users u2 on o.Id = u2.OrganizationId and u2.UserType in ('Public', 'Private')
+                                 left join Users u3 on o.Id = u3.OrganizationId and u3.UserType in ('TicketExaminer')
+                                 left join Routes r on o.Id = r.OrganizationId
                         where o.Id = '{id}'
                         group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
                                  o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType, o.IsActive";

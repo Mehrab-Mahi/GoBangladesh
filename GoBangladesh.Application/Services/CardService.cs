@@ -806,4 +806,41 @@ public class CardService : ICardService
             Message = "Card has been deactivated successfully!"
         };
     }
+
+    public PayloadResponse GetCardDetailByCardNumberForReturn(string cardNumber)
+    {
+        var card = _cardRepository
+            .GetAll()
+            .Where(c => c.CardNumber == cardNumber)
+            .Include(c =>c.Organization)
+            .FirstOrDefault();
+
+        if(card == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card not found!"
+            };
+        }
+
+        if(card.Status != CardStatus.InUse)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "Card status needs to be in use!"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            PayloadType = "Card",
+            Content = card, 
+            Message = "Card data has been fetched successfully!"
+        };
+    }
 }

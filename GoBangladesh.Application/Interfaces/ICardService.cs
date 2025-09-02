@@ -26,4 +26,5 @@ public interface ICardService
     Card? GetPassengerCardDetailByPassengerId(string passengerId);
     PayloadResponse ActivateCard(CardActivationDto cardActivation);
     PayloadResponse DeactivateCard(CardActivationDto cardActivation);
+    PayloadResponse GetCardDetailByCardNumberForReturn(string cardNumber);
 }
