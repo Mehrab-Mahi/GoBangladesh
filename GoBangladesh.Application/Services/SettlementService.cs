@@ -1055,8 +1055,8 @@ public class SettlementService : ISettlementService
         return @"select i.*,
                        SUM(case when ip.Status = 'Settled' then ip.Amount end)            as PaidAmount,
                        i.Amount - SUM(case when ip.Status = 'Settled' then ip.Amount end) as DueAmount,
-                       case when (SUM(case when ip.Status = 'Settled' then ip.Amount end) +
-                                  SUM(case when ip.Status = 'Pending' then ip.Amount end)) < i.Amount
+                       case when (coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end),0) +
+                                  coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end),0)) < i.Amount
                        then 1
                        else 0 end                                                     as IsPaymentButtonAvailable
                 from Invoices i
