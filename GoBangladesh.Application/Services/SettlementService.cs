@@ -1055,6 +1055,7 @@ public class SettlementService : ISettlementService
         return @"select i.*,
                        coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end),0)            as PaidAmount,
                        i.Amount - coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end),0) as DueAmount,
+                       coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end),0)     as    PendingAmount,
                        case when (coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end),0) +
                                   coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end),0)) < i.Amount
                        then 1
