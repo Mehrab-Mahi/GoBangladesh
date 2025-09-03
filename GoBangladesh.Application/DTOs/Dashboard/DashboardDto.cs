@@ -12,6 +12,11 @@ public class DashboardDto
     public DashboardCommonData DataOfToday { get; set; }
     public DashboardCommonData DataOfThisMonth { get; set; }
     public DashboardCommonData DataOfAllTime { get; set; }
+    public decimal InHandAmount { get; set; }
+    public decimal PayableAmount { get; set; }
+    public decimal ReceivableAmount { get; set; }
+    public decimal DueAmount { get; set; }
+    public decimal ObsoleteAmount { get; set; }
 }
 
 public class DashboardCommonData

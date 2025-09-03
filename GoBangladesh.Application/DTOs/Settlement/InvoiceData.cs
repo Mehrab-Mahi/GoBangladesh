@@ -8,4 +8,7 @@ public class InvoiceData : Invoice
     public decimal DueAmount { get; set; }
     public decimal PendingAmount { get; set; }
     public bool IsPaymentButtonAvailable { get; set; }
+    public decimal InvoiceTripAmount { get; set; }
+    public decimal InvoiceReturnAmount { get; set; }
+    public decimal InvoiceDueAmount { get; set; }
 }

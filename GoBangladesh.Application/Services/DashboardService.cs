@@ -71,6 +71,11 @@ public class DashboardService : IDashboardService
             dashboardData!.DataOfToday = GetDataForToday(currentUser, organizationId);
             dashboardData.DataOfThisMonth = GetDataForThisMonth(currentUser, organizationId);
             dashboardData.DataOfAllTime = GetDataForallTime(currentUser, organizationId);
+            dashboardData.InHandAmount = GetInHandAmount(currentUser, organizationId);
+            dashboardData.PayableAmount = GetPayableAmount(currentUser, organizationId);
+            dashboardData.ReceivableAmount = GetReceivableAmount(currentUser, organizationId);
+            dashboardData.DueAmount = GetDueAmount(currentUser, organizationId);
+            dashboardData.ObsoleteAmount = GetObsoleteAmount(currentUser, organizationId);
 
             return new PayloadResponse()
             {
@@ -89,6 +94,163 @@ public class DashboardService : IDashboardService
                 Message = $"Dashboard data fetch failed because {ex.Message}!"
             };
         }
+    }
+
+    private decimal GetObsoleteAmount(User currentUser, string organizationId)
+    {
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            if (!currentUser.IsSuperAdmin)
+            {
+                organizationId = currentUser.OrganizationId;
+            }
+        }
+
+        var query = $@"
+                    select coalesce(sum(Balance), 0) as ObsoleteAmount
+                    from Cards
+                    where Status = 'Obsolete'
+                    {(string.IsNullOrEmpty(organizationId) ? string.Empty : $"and OrganizationId = '{organizationId}'")}";
+
+        return _baseRepository
+            .Query<decimal>(query)
+            .FirstOrDefault();
+    }
+
+    private decimal GetDueAmount(User currentUser, string organizationId)
+    {
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            if (!currentUser.IsSuperAdmin)
+            {
+                organizationId = currentUser.OrganizationId;
+            }
+        }
+
+        var query = $@"
+                    select coalesce(sum(Amount), 0) as DueAmount
+                    from CardDue
+                    {(string.IsNullOrEmpty(organizationId) ? string.Empty : $"where OrganizationId = '{organizationId}'")}";
+
+        return _baseRepository
+            .Query<decimal>(query)
+            .FirstOrDefault();
+    }
+
+    private decimal GetReceivableAmount(User currentUser, string organizationId)
+    {
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            if (!currentUser.IsSuperAdmin)
+            {
+                organizationId = currentUser.OrganizationId;
+            }
+        }
+
+        var query = $@"with pending_amount as (
+                            select coalesce(sum(Amount), 0) pendingAmountWithoutInvoice
+                            from OrganizationSettlement
+                            where InvoiceNumber is null {(string.IsNullOrEmpty(organizationId) ? string.Empty : $" and ToOrganizationId = '{organizationId}'")}
+                        ),
+                        invoice_data as (
+                            select i.*,
+                                   coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) as PaidAmount,
+                                   i.Amount -
+                                   coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) as DueAmount,
+                                   coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end), 0) as PendingAmount,
+                                   case
+                                       when (coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) +
+                                             coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end), 0)) < i.Amount
+                                           then 1
+                                       else 0
+                                   end as IsPaymentButtonAvailable
+                            from Invoices i
+                                     left join InvoicePayment ip on i.InvoiceNumber = ip.InvoiceNumber
+                            group by i.Id, i.InvoiceNumber, FromOrganizationId, ToOrganizationId, FromDate, ToDate, i.Amount,
+                                     i.Status,
+                                     i.CreateTime, i.LastModifiedTime, i.CreatedBy, i.LastModifiedBy, i.IsDeleted,
+                                     InvoiceFilePath
+                        ),
+                        unsettled_invoice_amount as (
+                            select coalesce(sum(Amount), 0) - coalesce(sum(PaidAmount), 0) as pendingAmountWithInvoice
+                            from invoice_data {(string.IsNullOrEmpty(organizationId) ? string.Empty : $" Where ToOrganizationId = '{organizationId}'")}
+                        )
+                        select
+                            coalesce(pa.pendingAmountWithoutInvoice,0) + coalesce(ua.pendingAmountWithInvoice,0) as TotalPendingAmount
+                        from pending_amount pa
+                        cross join unsettled_invoice_amount ua";
+
+        return _baseRepository
+            .Query<decimal>(query)
+            .FirstOrDefault();
+    }
+
+    private decimal GetPayableAmount(User currentUser, string organizationId)
+    {
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            if (!currentUser.IsSuperAdmin)
+            {
+                organizationId = currentUser.OrganizationId;
+            }
+        }
+
+        var query = $@"with pending_amount as (
+                            select coalesce(sum(Amount), 0) pendingAmountWithoutInvoice
+                            from OrganizationSettlement
+                            where InvoiceNumber is null {(string.IsNullOrEmpty(organizationId) ? string.Empty : $" and FromOrganizationId = '{organizationId}'")}
+                        ),
+                        invoice_data as (
+                            select i.*,
+                                   coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) as PaidAmount,
+                                   i.Amount -
+                                   coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) as DueAmount,
+                                   coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end), 0) as PendingAmount,
+                                   case
+                                       when (coalesce(SUM(case when ip.Status = 'Settled' then ip.Amount end), 0) +
+                                             coalesce(SUM(case when ip.Status = 'Pending' then ip.Amount end), 0)) < i.Amount
+                                           then 1
+                                       else 0
+                                   end as IsPaymentButtonAvailable
+                            from Invoices i
+                                     left join InvoicePayment ip on i.InvoiceNumber = ip.InvoiceNumber
+                            group by i.Id, i.InvoiceNumber, FromOrganizationId, ToOrganizationId, FromDate, ToDate, i.Amount,
+                                     i.Status,
+                                     i.CreateTime, i.LastModifiedTime, i.CreatedBy, i.LastModifiedBy, i.IsDeleted,
+                                     InvoiceFilePath
+                        ),
+                        unsettled_invoice_amount as (
+                            select coalesce(sum(Amount), 0) - coalesce(sum(PaidAmount), 0) as pendingAmountWithInvoice
+                            from invoice_data {(string.IsNullOrEmpty(organizationId) ? string.Empty : $" Where FromOrganizationId = '{organizationId}'")}
+                        )
+                        select
+                            coalesce(pa.pendingAmountWithoutInvoice,0) + coalesce(ua.pendingAmountWithInvoice,0) as TotalPendingAmount
+                        from pending_amount pa
+                        cross join unsettled_invoice_amount ua";
+
+        return _baseRepository
+            .Query<decimal>(query)
+            .FirstOrDefault();
+    }
+
+    private decimal GetInHandAmount(User currentUser, string organizationId)
+    {
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            if (!currentUser.IsSuperAdmin)
+            {
+                organizationId = currentUser.OrganizationId;
+            }
+        }
+
+        var query = $@"
+                    select sum(Balance) as InHandAmount 
+                    from Cards 
+                    {(string.IsNullOrEmpty(organizationId) ? string.Empty : $"where OrganizationId = '{organizationId}'")}";
+
+       return _baseRepository
+            .Query<decimal>(query)
+            .FirstOrDefault();
     }
 
     public PayloadResponse GetTripDashboardData(TripDashboardFilter filter)

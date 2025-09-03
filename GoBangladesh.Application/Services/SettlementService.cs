@@ -303,10 +303,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
@@ -327,6 +339,26 @@ public class SettlementService : ISettlementService
                 Message = $"Data fetching failed because {ex.Message}"
             };
         }
+    }
+
+    private List<InvoiceWiseSettlementData> GetInvoiceWiseSettlementData(List<string> invoiceNumberList)
+    {
+        if (!invoiceNumberList.Any())
+        {
+            return new List<InvoiceWiseSettlementData>();
+        }
+
+        var query = $@"select InvoiceNumber,
+                           coalesce(sum(case when TransactionType = 'BusFare' then Amount end), 0) as InvoiceTripAmount,
+                           coalesce(sum(case when TransactionType = 'Return' then Amount end), 0)  as InvoiceReturnAmount,
+                           coalesce(sum(case when TransactionType = 'Due' then Amount end), 0)     as InvoiceDueAmount
+                    from OrganizationSettlement
+                    where InvoiceNumber in ('{string.Join("','", invoiceNumberList)}')
+                    group by InvoiceNumber";
+
+        return _baseRepository
+            .Query<InvoiceWiseSettlementData>(query)
+            .ToList();
     }
 
     public PayloadResponse GetPayableInReviewInvoices(SettlementFilter filter)
@@ -375,10 +407,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
@@ -447,10 +491,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForPayableInvoiceData();
@@ -519,10 +575,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
@@ -591,10 +659,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
@@ -663,10 +743,22 @@ public class SettlementService : ISettlementService
 
             var organizationList = _organizationRepository.GetAll().ToList();
 
+            var invoiceWiseSettlementData = GetInvoiceWiseSettlementData(finalInvoiceList.Select(i => i.InvoiceNumber).ToList());
+
             foreach (var invoice in finalInvoiceList)
             {
                 invoice.FromOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.FromOrganizationId);
                 invoice.ToOrganization = organizationList.FirstOrDefault(o => o.Id == invoice.ToOrganizationId);
+
+                var settlementData = invoiceWiseSettlementData
+                    .FirstOrDefault(iws => iws.InvoiceNumber == invoice.InvoiceNumber);
+
+                if (settlementData != null)
+                {
+                    invoice.InvoiceTripAmount = settlementData.InvoiceTripAmount;
+                    invoice.InvoiceReturnAmount = settlementData.InvoiceReturnAmount;
+                    invoice.InvoiceDueAmount = settlementData.InvoiceDueAmount;
+                }
             }
 
             var dropDownQuery = GetDropDownDataQueryForReceivableInvoiceData();
