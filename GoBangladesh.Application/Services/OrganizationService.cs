@@ -280,7 +280,7 @@ public class OrganizationService : IOrganizationService
                                  left join Routes r on o.Id = r.OrganizationId
                         where o.Id = '{id}'
                         group by o.Id, o.Name, o.FocalPerson, o.Email, o.MobileNumber, o.CreateTime, o.LastModifiedTime, o.CreatedBy,
-                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType, o.IsActive";
+                                 o.LastModifiedBy, o.IsDeleted, o.Code, o.Designation, o.OrganizationType, o.IsActive, o.Address";
 
             var organizationData = _baseRepository
                 .Query<OrganizationDataDto>(query)
