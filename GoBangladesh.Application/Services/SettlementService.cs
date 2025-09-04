@@ -83,12 +83,14 @@ public class SettlementService : ISettlementService
             var data = GetSummaryData(query, whereCondition, groupByCondition,
                 extraCondition);
 
+            var cardData = GetCardData(whereCondition, groupByCondition);
+
             var dropDownData = GetDropDownDataForPayableSummaryData(whereCondition, groupByCondition);
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { dropDownData, data, rowCount },
+                Content = new { dropDownData, data, cardData, rowCount },
                 Message = "Data fetched successfully"
             };
         }
@@ -101,6 +103,39 @@ public class SettlementService : ISettlementService
                 Message = ex.Message
             };
         }
+    }
+
+    private SettlementCardData GetCardData(string whereCondition, string groupByCondition)
+    {
+        var query = $@"WITH PaymentSummary AS (SELECT InvoiceNumber,
+                                               SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
+                                               SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
+                                        FROM InvoicePayment
+                                        GROUP BY InvoiceNumber),
+                     final_data as (SELECT os.ToOrganizationId,
+                                           os.FromOrganizationId,
+                                           SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
+                                           SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
+                                           SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
+                                           SUM(coalesce(ps.InReviewAmount, 0))                                     AS InReviewAmount,
+                                           SUM(coalesce(ps.SettledAmount, 0))                                      AS SettledAmount,
+                                           SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
+                                           SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
+                                           SUM(os.Amount)                                                          AS TotalAmount
+                                    FROM OrganizationSettlement os
+                                             LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
+                                             LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
+                                             LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
+                                             LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id
+                                    {whereCondition}
+                                    {groupByCondition})
+                select sum(TotalAmount)    as TotalAmount,
+                       sum(SettledAmount)  as SettledAmount,
+                       sum(InReviewAmount) as InReviewAmount,
+                       sum(PendingAmount)  as PendingAmount
+                from final_data";
+
+        return _baseRepository.Query<SettlementCardData>(query).FirstOrDefault();
     }
 
     private List<ValueLabel> GetDropDownDataForPayableSummaryData(string whereCondition, string groupByCondition)
@@ -165,12 +200,14 @@ public class SettlementService : ISettlementService
             var data = GetSummaryData(query, whereCondition, groupByCondition,
                 extraCondition);
 
+            var cardData = GetCardData(whereCondition, groupByCondition);
+
             var dropDownData = GetDropDownDataForReceivableSummaryData(whereCondition, groupByCondition);
 
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { dropDownData, data, rowCount },
+                Content = new { dropDownData, data, cardData, rowCount },
                 Message = "Data fetched successfully"
             };
         }
