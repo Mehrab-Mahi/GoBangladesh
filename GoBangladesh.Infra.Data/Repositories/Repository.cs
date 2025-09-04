@@ -58,6 +58,8 @@ namespace GoBangladesh.Infra.Data.Repositories
 
         private string GetCurrentUserId()
         {
+            if(_httpContextAccessor.HttpContext is null) return null;
+
             var authorization = _httpContextAccessor.HttpContext!.Request.Headers["Authorization"].ToString();
 
             if (string.IsNullOrEmpty(authorization)) return null;
