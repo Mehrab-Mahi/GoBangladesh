@@ -302,6 +302,14 @@ namespace GoBangladesh.Application.Services
 
                 if (card != null)
                 {
+                    if(card.Balance < 0)
+                    {
+                        return new PayloadResponse()
+                        {
+                            IsSuccess = false,
+                            Message = "User card has negative balance. Please recharge the card before deactivating the account."
+                        };
+                    }
                     _cardService.UpdateCardStatus(card.CardNumber, CardStatus.Paused);
                 }
             }

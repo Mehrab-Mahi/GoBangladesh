@@ -244,8 +244,8 @@ public class DashboardService : IDashboardService
         }
 
         var query = $@"
-                    select sum(Balance) as InHandAmount 
-                    from Cards 
+                    select sum(Balance) as InHandAmount
+                    from OrganizationCardBalance 
                     {(string.IsNullOrEmpty(organizationId) ? string.Empty : $"where OrganizationId = '{organizationId}'")}";
 
        return _baseRepository

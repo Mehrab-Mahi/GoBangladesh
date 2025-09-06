@@ -129,7 +129,7 @@ public class SettlementTransactionService : ISettlementTransactionService
 
         if (checkIfSameOrg != null)
         {
-            if(checkIfSameOrg.Balance >= remainingAmount)
+            if(checkIfSameOrg.Balance > remainingAmount)
             {
                 checkIfSameOrg.Balance -= remainingAmount;
                 _organizationCardBalanceRepository.Update(checkIfSameOrg);
@@ -203,7 +203,7 @@ public class SettlementTransactionService : ISettlementTransactionService
 
         if (checkIfSameOrg != null)
         {
-            if (checkIfSameOrg.Balance >= remainingAmount)
+            if (checkIfSameOrg.Balance > remainingAmount)
             {
                 checkIfSameOrg.Balance -= remainingAmount;
                 _organizationCardBalanceRepository.Update(checkIfSameOrg);
