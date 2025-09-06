@@ -468,7 +468,7 @@ public class PassengerService : IPassengerService
             }
 
             var condition = new List<string> { " u.UserType in ('Public', 'Private') " };
-            var extraCondition = $@"ORDER BY CreateTime desc
+            var extraCondition = $@"ORDER BY c.LastModifiedTime desc, u.LastModifiedTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 

@@ -151,7 +151,7 @@ public class CardService : ICardService
             {
                 IsSuccess = false,
                 PayloadType = "Card",
-                Message = "Card is already registered!"
+                Message = "Card is invalid!"
             };
         }
 

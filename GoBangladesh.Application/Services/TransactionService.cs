@@ -171,6 +171,16 @@ public class TransactionService : ITransactionService
             };
         }
 
+        if (card.Status == CardStatus.NotUsed)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = "Need to recharge!"
+            };
+        }
+
         if (card.Status != CardStatus.InUse)
         {
             return new PayloadResponse()
