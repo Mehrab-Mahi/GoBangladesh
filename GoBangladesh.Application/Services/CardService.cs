@@ -780,6 +780,16 @@ public class CardService : ICardService
             };
         }
 
+        if(card.Balance < 0)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Card",
+                Message = "You can't deactivate a card with negative balance!"
+            };
+        }
+
         card.Status = CardStatus.Paused;
 
         _cardRepository.Update(card);
