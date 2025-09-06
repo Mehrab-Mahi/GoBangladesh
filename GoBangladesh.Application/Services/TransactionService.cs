@@ -461,7 +461,7 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
-
+            _settlementService.SettleTrip(card, session.Bus.OrganizationId, transaction.Amount, transaction.TransactionId);
             return new PayloadResponse()
             {
                 IsSuccess = true,
