@@ -663,6 +663,8 @@ public class TransactionService : ITransactionService
 
     public void ForceTripStopLinkedWIthSession(Trip trip, Route route, string latitude, string longitude, string tapOutStatus)
     {
+        var card = _cardRepository.GetConditional(c => c.Id == trip.CardId);
+        var currentUser = _loggedInUserService.GetLoggedInUser();
         try
         {
             trip.EndingLatitude = latitude;
@@ -699,6 +701,7 @@ public class TransactionService : ITransactionService
         try
         {
             UpdateCardAmount(trip.Card, trip.Amount, TransactionOperation.Subtract);
+            _settlementService.SettleTrip(card, currentUser.OrganizationId, transaction.Amount, transaction.TransactionId);
         }
         catch
         {

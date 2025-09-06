@@ -43,7 +43,7 @@ public class InvoiceService : IInvoiceService
                 ToOrganizationId = settlement.ReceiverOrganizationId,
                 FromDate = localTime.AddDays(-6).Date,
                 ToDate = localTime.Date,
-                Amount = Math.Ceiling(settlement.TotalAmount),
+                Amount = settlement.TotalAmount,
                 Status = InvoiceStatus.Unsettled
             });
 

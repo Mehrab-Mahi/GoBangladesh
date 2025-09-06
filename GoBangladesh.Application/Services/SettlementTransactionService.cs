@@ -253,6 +253,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                         TransactionType = TransactionType.BusFare,
                         Status = SettlementStatus.Pending
                     });
+                    remainingAmount = 0;
                     break;
                 }
 
