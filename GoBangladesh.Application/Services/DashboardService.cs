@@ -71,8 +71,8 @@ public class DashboardService : IDashboardService
             dashboardData!.DataOfToday = GetDataForToday(currentUser, organizationId);
             dashboardData.DataOfThisMonth = GetDataForThisMonth(currentUser, organizationId);
             dashboardData.DataOfAllTime = GetDataForallTime(currentUser, organizationId);
-            dashboardData.InHandAmount = GetInHandAmount(currentUser, organizationId);
             dashboardData.PayableAmount = GetPayableAmount(currentUser, organizationId);
+            dashboardData.InHandAmount = GetInHandAmount(currentUser, organizationId) + dashboardData.PayableAmount;
             dashboardData.ReceivableAmount = GetReceivableAmount(currentUser, organizationId);
             dashboardData.DueAmount = GetDueAmount(currentUser, organizationId);
             dashboardData.ObsoleteAmount = GetObsoleteAmount(currentUser, organizationId);
