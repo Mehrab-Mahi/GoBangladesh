@@ -13,5 +13,6 @@ public class SettlementSummaryData
     public decimal SettledAmount { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal InvoiceAmount { get; set; }
+    public decimal UnsettledAmount { get; set; }
     public decimal TotalAmount { get; set; }
 }

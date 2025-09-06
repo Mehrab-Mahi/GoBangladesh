@@ -1295,6 +1295,7 @@ public class SettlementService : ISettlementService
                     SELECT
                         InvoiceNumber,
                         SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
+                        SUM(CASE WHEN Status = 'Unsettled' THEN Amount ELSE 0 END) AS UnsettledAmount,
                         SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
                     FROM InvoicePayment
                     GROUP BY InvoiceNumber
@@ -1309,6 +1310,7 @@ public class SettlementService : ISettlementService
                     SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
                     SUM(ps.InReviewAmount)                                                  AS InReviewAmount,
                     SUM(ps.SettledAmount)                                                   AS SettledAmount,
+                    SUM(ps.UnsettledAmount)                                                 AS UnsettledAmount,
                     SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
                     SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
                     SUM(os.Amount)                                                          AS TotalAmount
