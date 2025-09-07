@@ -197,7 +197,8 @@ public class HistoryService : IHistoryService
                 .GetAll()
                 .Where(t => t.SessionId == id)
                 .Include(t => t.Card)
-                .OrderByDescending(t => t.CreateTime)
+                .OrderByDescending(t => t.IsRunning)
+                .ThenByDescending(t => t.CreateTime)
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
