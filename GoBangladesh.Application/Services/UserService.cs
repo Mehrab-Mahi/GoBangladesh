@@ -291,6 +291,20 @@ namespace GoBangladesh.Application.Services
                 };
             }
 
+            var card = _cardService.GetPassengerCardDetailByPassengerId(model.UserId);
+
+            if (user.UserType is UserTypes.Public or UserTypes.Private)
+            {
+                if (card is { Balance: < 0 })
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "User card has negative balance. Please recharge the card before deactivating the account."
+                    };
+                }
+            }
+
             user.IsActive = false;
 
             _userRepo.Update(user);
@@ -298,18 +312,8 @@ namespace GoBangladesh.Application.Services
 
             if (user.UserType is UserTypes.Public or UserTypes.Private)
             {
-                var card = _cardService.GetPassengerCardDetailByPassengerId(model.UserId);
-
                 if (card != null)
                 {
-                    if(card.Balance < 0)
-                    {
-                        return new PayloadResponse()
-                        {
-                            IsSuccess = false,
-                            Message = "User card has negative balance. Please recharge the card before deactivating the account."
-                        };
-                    }
                     _cardService.UpdateCardStatus(card.CardNumber, CardStatus.Paused);
                 }
             }
