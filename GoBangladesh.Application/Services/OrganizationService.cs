@@ -523,13 +523,19 @@ public class OrganizationService : IOrganizationService
                 };
             }
 
+            var runningBusOrgIds = _baseRepository.Query<string>(@"
+                        select distinct b.OrganizationId
+                        from Sessions s
+                        left join Buses b on s.BusId = b.Id
+                        where s.IsRunning = 1");
+
             List<OrganizationDropdownDto> organizationData;
 
             if (currentUser.IsSuperAdmin)
             {
                 organizationData = _organizationRepository
                     .GetAll()
-                    .Where(o => o.IsActive)
+                    .Where(o => o.IsActive && runningBusOrgIds.Contains(o.Id))
                     .Select(o => new OrganizationDropdownDto()
                     {
                         Id = o.Id,
@@ -557,7 +563,8 @@ public class OrganizationService : IOrganizationService
                 {
                     organizationData = _organizationRepository
                         .GetAll()
-                        .Where(org => org.OrganizationType == OrganizationTypes.Public)
+                        .Where(org => org.OrganizationType == OrganizationTypes.Public &&
+                                      runningBusOrgIds.Contains(org.Id))
                         .Select(o => new OrganizationDropdownDto()
                         {
                             Id = o.Id,
@@ -571,7 +578,8 @@ public class OrganizationService : IOrganizationService
                 {
                     organizationData = _organizationRepository
                         .GetAll()
-                        .Where(org => org.OrganizationType == OrganizationTypes.Public || org.Id == organization.Id)
+                        .Where(org => (org.OrganizationType == OrganizationTypes.Public || org.Id == organization.Id) &&
+                                      runningBusOrgIds.Contains(org.Id))
                         .Select(o => new OrganizationDropdownDto()
                         {
                             Id = o.Id,

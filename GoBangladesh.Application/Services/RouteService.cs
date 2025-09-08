@@ -18,18 +18,21 @@ public class RouteService : IRouteService
     private readonly IRepository<Session> _sessionRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly IBaseRepository _baseRepository;
 
     public RouteService(IRepository<Route> routeRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService, 
         IRepository<Bus> busRepository, 
-        IRepository<Session> sessionRepository)
+        IRepository<Session> sessionRepository,
+        IBaseRepository baseRepository)
     {
         _routeRepository = routeRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _busRepository = busRepository;
         _sessionRepository = sessionRepository;
+        _baseRepository = baseRepository;
     }
 
     public PayloadResponse RouteInsert(RouteCreateRequest model)
@@ -340,9 +343,17 @@ public class RouteService : IRouteService
                 };
             }
 
+            var runningBusRoutes = _baseRepository.Query<string>($@"
+                                select distinct b.RouteId
+                                from Sessions s
+                                         left join Buses b on s.BusId = b.Id
+                                where s.IsRunning = 1 and b.OrganizationId = '{organizationId}'");
+
             var allRoute = _routeRepository
                 .GetAll()
-                .Where(r => r.OrganizationId == organizationId && r.IsActive);
+                .Where(r => r.OrganizationId == organizationId &&
+                            r.IsActive &&
+                            runningBusRoutes.Contains(r.Id));
 
             var routeData = allRoute.Select(r => new ValueLabel()
             {
