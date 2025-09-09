@@ -18,4 +18,5 @@ public interface ISettlementService
     PayloadResponse Payment(InvoiceWisePaymentDto payment);
     PayloadResponse VerifyPayment(PaymentVerificationDto verification);
     PayloadResponse GetInvoiceWisePayments(string invoiceNumber);
+    PayloadResponse GetInvoiceCount(string fromOrganizationId, string toOrganization);
 }

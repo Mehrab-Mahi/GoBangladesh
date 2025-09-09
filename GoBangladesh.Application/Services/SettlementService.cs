@@ -1096,6 +1096,35 @@ public class SettlementService : ISettlementService
         };
     }
 
+    public PayloadResponse GetInvoiceCount(string fromOrganizationId, string toOrganization)
+    {
+        var whereCondition = string.Empty;
+
+        if (!string.IsNullOrEmpty(fromOrganizationId))
+        {
+            whereCondition = $" where FromOrganizationId = '{fromOrganizationId}' ";
+        }
+
+        if (!string.IsNullOrEmpty(toOrganization))
+        {
+            whereCondition = $" where ToOrganizationId = '{toOrganization}' ";
+        }
+
+        var query = $@"select coalesce(sum(case when Status in ('Unsettled', 'Partial') then 1 else 0 end), 0) as PendingInvoices,
+                           coalesce(sum(case when Status = 'In Review' then 1 else 0 end), 0)               as InReviewInvoices,
+                           coalesce(sum(case when Status = 'Settled' then 1 else 0 end), 0)                 as SettledInvoices
+                    from Invoices {whereCondition}";
+
+        var data = _baseRepository.Query<InvoiceCountDto>(query).FirstOrDefault();
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            Content = data,
+            Message = "Data fetched successfully"
+        };
+    }
+
     private string GetDropDownDataQueryForPayableInvoiceData()
     {
         return @"select distinct o.Id as Value, o.Name as Label

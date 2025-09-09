@@ -770,7 +770,7 @@ public class TransactionService : ITransactionService
 
         try
         {
-            transaction = AddReturnTransaction(model, TransactionType.Return, card.Id);
+            transaction = AddReturnTransaction(model, TransactionType.Return, card.Id, currentUser.UserType);
         }
         catch (Exception ex)
         {
@@ -807,7 +807,7 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private Transaction AddReturnTransaction(ReturnRequest model, string transactionType, string cardId)
+    private Transaction AddReturnTransaction(ReturnRequest model, string transactionType, string cardId, string userType)
     {
         var agentId = _loggedInUserService.GetLoggedInUser();
         var transaction = new Transaction()
@@ -815,7 +815,8 @@ public class TransactionService : ITransactionService
             TransactionType = transactionType,
             Amount = model.Amount,
             CardId = cardId,
-            AgentId = agentId.Id
+            AgentId = agentId.Id,
+            Medium = userType
         };
 
         _transactionRepository.Insert(transaction);

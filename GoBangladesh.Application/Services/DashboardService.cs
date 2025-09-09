@@ -488,7 +488,7 @@ public class DashboardService : IDashboardService
                                u.PassengerId,
                                u.Name                         as PassengerName,
                                c.CardNumber                   as CardNumber,
-                               'Agent'                        as RechargeMedium,
+                               t.Medium                       as RechargeMedium,
                                a.Name                         as RechargerName,
                                t.Amount,
                                t.TransactionType

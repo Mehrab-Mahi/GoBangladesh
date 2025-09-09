@@ -118,6 +118,7 @@ public class HistoryService : IHistoryService
                 .Include(t => t.Trip.Session)
                 .Include(t => t.Trip.Session.Bus)
                 .Include(t => t.Trip.Session.Bus.Route)
+                .Include(t => t.Trip.Session.Bus.Route.Organization)
                 .OrderByDescending(t => t.CreateTime);
 
             var rowCount = transactionHistory.Count();

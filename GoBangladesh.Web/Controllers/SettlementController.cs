@@ -117,4 +117,12 @@ public class SettlementController : Controller
         var data = _settlementService.GetInvoiceWisePayments(invoiceNumber);
         return Ok(new { data });
     }
+    
+    [GoBangladeshAuth]
+    [HttpGet("getInvoiceCount")]
+    public IActionResult GetInvoiceCount(string fromOrganizationId, string toOrganization) 
+    {
+        var data = _settlementService.GetInvoiceCount(fromOrganizationId, toOrganization);
+        return Ok(new { data });
+    }
 }
