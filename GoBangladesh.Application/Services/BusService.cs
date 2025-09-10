@@ -587,7 +587,7 @@ public class BusService : IBusService
     private int GetRunningTripsCountOnBus(string busId)
     {
         var query = $@"
-                    select count(t.Id)
+                    select count(distinct case when t.IsRunning = 1 then t.Id end)
                     from Sessions s
                              left join Buses b on s.BusId = b.Id
                              left join Trips t on s.Id = t.SessionId

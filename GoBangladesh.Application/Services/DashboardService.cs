@@ -672,7 +672,8 @@ public class DashboardService : IDashboardService
     private TripDashboardCardData GetTripDashboardCardData(string whereCondition)
     {
         var query = $@"
-                        select count(distinct t.Id) as TotalTrips,
+                        select count(distinct case when t.IsRunning = 0 then t.Id end) as TotalTrips,
+                               count(distinct case when t.IsRunning = 1 then t.Id end) as TotalRunningTrips,
                                count(distinct c.Id) as TotalPassengers,
                                sum(t.Amount) as TotalFare,
                                count(distinct b.Id) as TotalBus
