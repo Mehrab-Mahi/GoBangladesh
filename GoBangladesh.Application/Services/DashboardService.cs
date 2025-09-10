@@ -590,7 +590,7 @@ public class DashboardService : IDashboardService
     private SessionDashboardCardData GetSessionDashboardCardData(string whereCondition)
     {
         var query = $@"
-                       select count(s.Id) as TotalSession,
+                       select sum(case when s.IsRunning = 0 then 1 else 0 end) as TotalSession,
                        sum(case when s.IsRunning = 1 then 1 else 0 end) as TotalRunningSession,
                        count(distinct b.Id) as TotalBus,
                        count(distinct u.Id) as TotalStaff

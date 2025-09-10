@@ -9,10 +9,7 @@ public class SettlementSummaryData
     public decimal BusFareAmount { get; set; }
     public decimal ReturnAmount { get; set; }
     public decimal DueAmount { get; set; }
-    public decimal InReviewAmount { get; set; }
-    public decimal SettledAmount { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal InvoiceAmount { get; set; }
-    public decimal UnsettledAmount { get; set; }
     public decimal TotalAmount { get; set; }
 }

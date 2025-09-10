@@ -107,35 +107,31 @@ public class SettlementService : ISettlementService
 
     private SettlementCardData GetCardData(string whereCondition, string groupByCondition)
     {
-        var query = $@"WITH PaymentSummary AS (SELECT InvoiceNumber,
-                                               SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
-                                               SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
-                                        FROM InvoicePayment
-                                        GROUP BY InvoiceNumber),
-                     final_data as (SELECT os.ToOrganizationId,
-                                           os.FromOrganizationId,
-                                           SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
-                                           SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
-                                           SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
-                                           SUM(coalesce(ps.InReviewAmount, 0))                                     AS InReviewAmount,
-                                           SUM(coalesce(ps.SettledAmount, 0))                                      AS SettledAmount,
-                                           SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
-                                           SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
-                                           SUM(os.Amount)                                                          AS TotalAmount
-                                    FROM OrganizationSettlement os
-                                             LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
-                                             LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
-                                             LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
-                                             LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id
-                                    {whereCondition}
-                                    {groupByCondition})
-                select sum(TotalAmount)    as TotalAmount,
-                       sum(SettledAmount)  as SettledAmount,
-                       sum(InReviewAmount) as InReviewAmount,
-                       sum(PendingAmount)  as PendingAmount
-                from final_data";
+        var query = $@"with final_data as (SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+                                                   oo.Name                                                                 AS ReceiverOrganization,
+                                                   os.FromOrganizationId                                                   AS SenderOrganizationId,
+                                                   o.Name                                                                  AS SenderOrganization,
+                                                   SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
+                                                   SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
+                                                   SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
+                                                   SUM(CASE WHEN os.Status = 'Pending' THEN os.Amount ELSE 0 END)          AS PendingAmount,
+                                                   SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
+                                                   SUM(os.Amount)                                                          AS TotalAmount
+                                            FROM OrganizationSettlement os
+                                                     LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
+                                                     LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id
+                                            {whereCondition} 
+                                            {groupByCondition})
+                        select sum(TotalAmount)                       as TotalAmount,
+                               sum(InvoiceAmount)                     as InvoiceAmount,
+                               sum(PendingAmount)                     as PendingAmount,
+                               count(distinct ReceiverOrganizationId) as TotalReceiverOrganization,
+                               count(distinct SenderOrganizationId)   as TotalSenderOrganization
+                        from final_data";
 
-        return _baseRepository.Query<SettlementCardData>(query).FirstOrDefault();
+        return _baseRepository
+            .Query<SettlementCardData>(query)
+            .FirstOrDefault();
     }
 
     private List<ValueLabel> GetDropDownDataForPayableSummaryData(string whereCondition, string groupByCondition)
@@ -1282,29 +1278,17 @@ public class SettlementService : ISettlementService
 
     private int GetSummaryRowCountData(string groupByCondition, string whereCondition)
     {
-        var finalQuery = $@"WITH PaymentSummary AS (
-                            SELECT InvoiceNumber,
-                                   SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
-                                   SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
-                            FROM InvoicePayment
-                            GROUP BY InvoiceNumber
-                        ),
-                        data AS (
-                            SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+        var finalQuery = $@"SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
                                    oo.Name                                                                 AS ReceiverOrganization,
                                    os.FromOrganizationId                                                   AS SenderOrganizationId,
                                    o.Name                                                                  AS SenderOrganization,
                                    SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
                                    SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
                                    SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
-                                   SUM(ps.InReviewAmount)                                                  AS InReviewAmount,
-                                   SUM(ps.SettledAmount)                                                   AS SettledAmount,
-                                   SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
+                                   SUM(CASE WHEN os.Status = 'Pending' THEN os.Amount ELSE 0 END)          AS PendingAmount,
                                    SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
                                    SUM(os.Amount)                                                          AS TotalAmount
                             FROM OrganizationSettlement os
-                                     LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
-                                     LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
                                      LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
                                      LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id
                             {whereCondition}
@@ -1320,33 +1304,18 @@ public class SettlementService : ISettlementService
 
     private string GetSummaryDataQuery()
     {
-        return @"WITH PaymentSummary AS (
-                    SELECT
-                        InvoiceNumber,
-                        SUM(CASE WHEN Status = 'Pending' THEN Amount ELSE 0 END) AS InReviewAmount,
-                        SUM(CASE WHEN Status = 'Unsettled' THEN Amount ELSE 0 END) AS UnsettledAmount,
-                        SUM(CASE WHEN Status = 'Settled' THEN Amount ELSE 0 END) AS SettledAmount
-                    FROM InvoicePayment
-                    GROUP BY InvoiceNumber
-                )
-                SELECT
-                    os.ToOrganizationId                                                     AS ReceiverOrganizationId,
-                    oo.Name                                                                 AS ReceiverOrganization,
-                    os.FromOrganizationId                                                   AS SenderOrganizationId,
-                    o.Name                                                                  AS SenderOrganization,
-                    SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
-                    SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
-                    SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
-                    SUM(ps.InReviewAmount)                                                  AS InReviewAmount,
-                    SUM(ps.SettledAmount)                                                   AS SettledAmount,
-                    SUM(ps.UnsettledAmount)                                                 AS UnsettledAmount,
-                    SUM(CASE WHEN os.InvoiceNumber IS NULL THEN os.Amount ELSE 0 END)       AS PendingAmount,
-                    SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
-                    SUM(os.Amount)                                                          AS TotalAmount
+        return @"SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+                       oo.Name                                                                 AS ReceiverOrganization,
+                       os.FromOrganizationId                                                   AS SenderOrganizationId,
+                       o.Name                                                                  AS SenderOrganization,
+                       SUM(CASE WHEN os.TransactionType = 'BusFare' THEN os.Amount ELSE 0 END) AS BusFareAmount,
+                       SUM(CASE WHEN os.TransactionType = 'Return' THEN os.Amount ELSE 0 END)  AS ReturnAmount,
+                       SUM(CASE WHEN os.TransactionType = 'Due' THEN os.Amount ELSE 0 END)     AS DueAmount,
+                       SUM(CASE WHEN os.Status = 'Pending' THEN os.Amount ELSE 0 END)          AS PendingAmount,
+                       SUM(CASE WHEN os.InvoiceNumber IS NOT NULL THEN os.Amount ELSE 0 END)   AS InvoiceAmount,
+                       SUM(os.Amount)                                                          AS TotalAmount
                 FROM OrganizationSettlement os
-                LEFT JOIN Invoices i ON os.InvoiceNumber = i.InvoiceNumber
-                LEFT JOIN PaymentSummary ps ON i.InvoiceNumber = ps.InvoiceNumber
-                LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
-                LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id";
+                         LEFT JOIN Organizations o ON os.FromOrganizationId = o.Id
+                         LEFT JOIN Organizations oo ON os.ToOrganizationId = oo.Id";
     }
 }
