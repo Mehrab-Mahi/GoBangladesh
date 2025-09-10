@@ -120,9 +120,9 @@ public class SettlementController : Controller
     
     [GoBangladeshAuth]
     [HttpGet("getInvoiceCount")]
-    public IActionResult GetInvoiceCount(string fromOrganizationId, string toOrganization) 
+    public IActionResult GetInvoiceCount(string fromOrganizationId, string toOrganizationId) 
     {
-        var data = _settlementService.GetInvoiceCount(fromOrganizationId, toOrganization);
+        var data = _settlementService.GetInvoiceCount(fromOrganizationId, toOrganizationId);
         return Ok(new { data });
     }
 }
