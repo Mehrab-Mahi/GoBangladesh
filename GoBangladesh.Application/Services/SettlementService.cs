@@ -1278,7 +1278,7 @@ public class SettlementService : ISettlementService
 
     private int GetSummaryRowCountData(string groupByCondition, string whereCondition)
     {
-        var finalQuery = $@"SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
+        var finalQuery = $@"with data as (SELECT os.ToOrganizationId                                                     AS ReceiverOrganizationId,
                                    oo.Name                                                                 AS ReceiverOrganization,
                                    os.FromOrganizationId                                                   AS SenderOrganizationId,
                                    o.Name                                                                  AS SenderOrganization,
