@@ -6,4 +6,5 @@ public class SessionDashboardCardData
     public int TotalRunningSession { get; set; }
     public int TotalBus { get; set; }
     public int TotalStaff { get; set; }
+    public int TotalAmount { get; set; }
 }

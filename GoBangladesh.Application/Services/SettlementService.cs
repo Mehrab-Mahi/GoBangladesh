@@ -325,6 +325,13 @@ public class SettlementService : ISettlementService
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
             }
 
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
             var dataQuery = GetInvoiceDataQuery();
             var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
@@ -429,6 +436,13 @@ public class SettlementService : ISettlementService
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
             }
 
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
             var dataQuery = GetInvoiceDataQuery();
             var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
@@ -511,6 +525,13 @@ public class SettlementService : ISettlementService
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
+
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
@@ -597,6 +618,13 @@ public class SettlementService : ISettlementService
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
             }
 
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
             var dataQuery = GetInvoiceDataQuery();
             var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
@@ -681,6 +709,13 @@ public class SettlementService : ISettlementService
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
             }
 
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
             var dataQuery = GetInvoiceDataQuery();
             var extraCondition = GetInvoiceExtraCondition(filter.PageNo, filter.PageSize);
@@ -763,6 +798,13 @@ public class SettlementService : ISettlementService
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
                 condition.Add($" i.InvoiceNumber like '%{filter.SearchQuery}%' ");
+            }
+
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($" (i.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);

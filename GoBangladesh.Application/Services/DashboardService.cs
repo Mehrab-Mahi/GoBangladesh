@@ -260,7 +260,7 @@ public class DashboardService : IDashboardService
             var currentUser = _loggedInUserService.GetLoggedInUser();
 
             var condition = new List<string>();
-            var extraCondition = $@" order by t.CreateTime desc
+            var extraCondition = $@" order by t.IsRunning desc, t.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
@@ -333,7 +333,7 @@ public class DashboardService : IDashboardService
                                     group by s.Id, s.SessionCode, o.Name, b.BusNumber, b.BusName, r.TripStartPlace, r.TripEndPlace, u.Name, u.MobileNumber,
                                              s.StartTime, s.EndTime, s.StartingLatitude, s.StartingLongitude, s.EndingLatitude, s.EndingLongitude,
                                              s.IsRunning, s.CreateTime, s.StopStatus
-                                    order by s.CreateTime desc
+                                    order by s.IsRunning desc, s.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
@@ -422,8 +422,7 @@ public class DashboardService : IDashboardService
             {
                 var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
 
-                condition.Add($@" (t.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}'
-                                or t.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+                condition.Add($" (t.CreateTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
             }
 
             if (!string.IsNullOrEmpty(filter.AgentId))
@@ -590,15 +589,20 @@ public class DashboardService : IDashboardService
     private SessionDashboardCardData GetSessionDashboardCardData(string whereCondition)
     {
         var query = $@"
-                       select sum(case when s.IsRunning = 0 then 1 else 0 end) as TotalSession,
-                       sum(case when s.IsRunning = 1 then 1 else 0 end) as TotalRunningSession,
-                       count(distinct b.Id) as TotalBus,
-                       count(distinct u.Id) as TotalStaff
-                from Sessions s
-                         left join Buses b on s.BusId = b.Id
-                         left join Routes r on b.RouteId = r.Id
-                         left join Organizations o on b.OrganizationId = o.Id
-                         left join Users u on s.UserId = u.Id and u.UserType in ('Staff') {whereCondition}";
+                        SELECT SUM(CASE WHEN s.IsRunning = 0 THEN 1 ELSE 0 END) AS TotalSession,
+                               SUM(CASE WHEN s.IsRunning = 1 THEN 1 ELSE 0 END) AS TotalRunningSession,
+                               COUNT(DISTINCT b.Id)                             AS TotalBus,
+                               COUNT(DISTINCT u.Id)                             AS TotalStaff,
+                               SUM(ISNULL(tot.Amount, 0))                       AS TotalAmount
+                        FROM Sessions s
+                                 LEFT JOIN Buses b ON s.BusId = b.Id
+                                 LEFT JOIN Routes r ON b.RouteId = r.Id
+                                 LEFT JOIN Organizations o ON b.OrganizationId = o.Id
+                                 LEFT JOIN Users u ON s.UserId = u.Id
+                            AND u.UserType = 'Staff'
+                                 OUTER APPLY (SELECT SUM(Amount) AS Amount
+                                              FROM Trips t
+                                              WHERE t.SessionId = s.Id) AS tot {whereCondition}";
 
         var sessionDashboardCardData = _baseRepository
             .Query<SessionDashboardCardData>(query)
