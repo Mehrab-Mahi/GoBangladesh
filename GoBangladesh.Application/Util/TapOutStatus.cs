@@ -7,4 +7,5 @@ public class TapOutStatus
     public const string Staff = "Staff";
     public const string SessionOut = "Session-Out";
     public const string MobileApp = "Mobile App";
+    public const string Penalty = "Penalty";
 }

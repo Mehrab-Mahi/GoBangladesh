@@ -55,7 +55,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var medium = string.Empty;
+        string medium;
 
         if (currentUser.UserType == UserTypes.Agent)
         {
@@ -248,11 +248,11 @@ public class TransactionService : ITransactionService
             IsMinimumBalanceAvailable(card, session.Bus.Route.PenaltyAmount) :
             IsMinimumBalanceAvailable(card, session.Bus.Route.MinimumBalance);
 
-        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
-
-        var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(card.Id, tapRequest.SessionId);
+        var cardSessionVerification = IfCardIsOnAnyOngoingTripOnAnotherSession(card, tapRequest, currentUser);
 
         if (!cardSessionVerification.IsSuccess) return cardSessionVerification;
+
+        if (!minimumBalanceCheck.IsSuccess) return minimumBalanceCheck;
 
         var trip = _tripRepository
             .GetAll()
@@ -282,7 +282,6 @@ public class TransactionService : ITransactionService
                 };
             }
         }
-
 
         if (!trip.IsRunning)
         {
@@ -344,47 +343,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        var transaction = new Transaction();
-
-        try
-        {
-            transaction = AddBusFareTransaction(TransactionType.BusFare, card.Id, trip);
-        }
-        catch (Exception ex)
-        {
-            RollBackTrip(trip);
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Tap",
-                Message = $"Bus fare transaction has been failed because {ex.Message}"
-            };
-        }
-
-        try
-        {
-            UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
-            _settlementService.SettleTrip(card, currentUser.OrganizationId, transaction.Amount, transaction.TransactionId);
-
-            return new PayloadResponse()
-            {
-                IsSuccess = true,
-                PayloadType = "Tap",
-                Message = "Bus fare deduction has been successful!"
-            };
-        }
-        catch (Exception ex)
-        {
-            RollBackTrip(trip);
-            DeleteTransaction(transaction);
-
-            return new PayloadResponse()
-            {
-                IsSuccess = false,
-                PayloadType = "Tap",
-                Message = $"Recharge has been failed because {ex.Message}!"
-            };
-        }
+        return BusFareTransaction(card, trip, currentUser.OrganizationId);
     }
 
     public PayloadResponse ForceTripStop(ForceStopTripDto forceStop)
@@ -451,6 +410,51 @@ public class TransactionService : ITransactionService
             };
         }
 
+        return BusFareTransaction(card, trip, session.Bus.OrganizationId);
+    }
+
+    private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(Card card, TapRequest tapRequest, User currentUser)
+    {
+        var trip = _tripRepository
+            .GetAll()
+            .Where(t => t.CardId == card.Id && t.SessionId != tapRequest.SessionId && t.IsRunning)
+            .Include(t => t.Session)
+            .Include(t => t.Session.Bus)
+            .Include(t => t.Session.Bus.Route)
+            .FirstOrDefault();
+
+        if (trip == null) return new PayloadResponse()
+        {
+            IsSuccess = true
+        };
+
+        try
+        {
+            trip.EndingLatitude = tapRequest.Latitude;
+            trip.EndingLongitude = tapRequest.Longitude;
+            trip.TripEndTime = DateTime.UtcNow;
+            trip.IsRunning = false;
+            trip.Amount = trip.Session.Bus.Route.PenaltyAmount;
+            trip.TapOutStatus = TapOutStatus.Penalty;
+
+            _tripRepository.Update(trip);
+            _tripRepository.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Tap",
+                Message = $"Trip fare addition has been failed because {ex.Message}"
+            };
+        }
+
+        return BusFareTransaction(card, trip, currentUser.OrganizationId);
+    }
+    
+    private PayloadResponse BusFareTransaction(Card card, Trip trip, string settlementOrganizationId)
+    {
         var transaction = new Transaction();
 
         try
@@ -463,19 +467,20 @@ public class TransactionService : ITransactionService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Trip",
-                Message = $"Force stop failed because {ex.Message}"
+                PayloadType = "Tap",
+                Message = $"Bus fare transaction has been failed because {ex.Message}"
             };
         }
 
         try
         {
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
-            _settlementService.SettleTrip(card, session.Bus.OrganizationId, transaction.Amount, transaction.TransactionId);
+            _settlementService.SettleTrip(card, settlementOrganizationId, transaction.Amount, transaction.TransactionId);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Trip",
+                PayloadType = "Tap",
                 Message = "Bus fare deduction has been successful!"
             };
         }
@@ -487,32 +492,10 @@ public class TransactionService : ITransactionService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Trip",
-                Message = $"Force stop failed because {ex.Message}!"
+                PayloadType = "Tap",
+                Message = $"Bus fare deduction has been failed because {ex.Message}!"
             };
         }
-    }
-
-    private PayloadResponse IfCardIsOnAnyOngoingTripOnAnotherSession(string cardId, string sessionId)
-    {
-        var trip = _tripRepository
-            .GetAll()
-            .Where(t => t.CardId == cardId && t.SessionId != sessionId && t.IsRunning)
-            .Include(t => t.Session)
-            .Include(t => t.Session.Bus)
-            .FirstOrDefault();
-
-        if (trip == null) return new PayloadResponse()
-        {
-            IsSuccess = true
-        };
-
-        return new PayloadResponse()
-        {
-            IsSuccess = false,
-            PayloadType = "Tap",
-            Message = $"Passenger has already ongoing trip on Bus Name: {trip.Session.Bus.BusName}, Bus Number: {trip.Session.Bus.BusNumber}"
-        };
     }
 
     private TripFareDistanceDto GetTripFareAndDistance(Trip trip, Route route)
@@ -572,7 +555,7 @@ public class TransactionService : ITransactionService
                 IsSuccess = true,
                 Content = true,
                 PayloadType = "Transaction",
-                Message = $"Passenger balance is upper than the limit"
+                Message = "Passenger balance is upper than the limit"
             };
         }
         catch (Exception ex)
