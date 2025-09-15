@@ -343,23 +343,45 @@ public class RouteService : IRouteService
                 };
             }
 
-            var runningBusRoutes = _baseRepository.Query<string>($@"
+            List<string> runningBusRoutes;
+
+            var allRoute = _routeRepository
+                .GetAll()
+                .Where(r => r.IsActive);
+
+            if (string.IsNullOrEmpty(organizationId))
+            {
+                runningBusRoutes = _baseRepository.Query<string>($@"
+                                select distinct b.RouteId
+                                from Sessions s
+                                         left join Buses b on s.BusId = b.Id
+                                where s.IsRunning = 1");
+
+                allRoute = _routeRepository
+                    .GetAll()
+                    .Where(r => runningBusRoutes.Contains(r.Id));
+            }
+            else
+            {
+                runningBusRoutes = _baseRepository.Query<string>($@"
                                 select distinct b.RouteId
                                 from Sessions s
                                          left join Buses b on s.BusId = b.Id
                                 where s.IsRunning = 1 and b.OrganizationId = '{organizationId}'");
 
-            var allRoute = _routeRepository
-                .GetAll()
-                .Where(r => r.OrganizationId == organizationId &&
-                            r.IsActive &&
-                            runningBusRoutes.Contains(r.Id));
+                allRoute = _routeRepository
+                    .GetAll()
+                    .Where(r => r.OrganizationId == organizationId &&
+                                runningBusRoutes.Contains(r.Id));
+            }
 
-            var routeData = allRoute.Select(r => new ValueLabel()
-            {
-                Value = r.Id,
-                Label = $"{r.TripStartPlace} - {r.TripEndPlace}"
-            }).ToList();
+            var routeData = allRoute
+                .Select(r => new ValueLabel()
+                {
+                    Value = r.Id,
+                    Label = $"{r.TripStartPlace} - {r.TripEndPlace}"
+                })
+                .ToList();
 
             return new PayloadResponse()
             {

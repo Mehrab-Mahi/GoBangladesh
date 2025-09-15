@@ -406,7 +406,11 @@ public class BusService : IBusService
                 };
             }
 
-            var allBus = _busRepository.GetAll().Where(b => b.IsActive);
+            var allBus = _sessionRepository
+                .GetAll()
+                .Where(s => s.IsRunning)
+                .Include(s => s.Bus)
+                .Select(s => s.Bus);
 
             if (!string.IsNullOrEmpty(routeId)) 
             {
@@ -421,10 +425,11 @@ public class BusService : IBusService
                 }
 
                 var busData = allBus.Select(b => new ValueLabel()
-                {
-                    Value = b.Id,
-                    Label = b.BusNumber
-                }).ToList();
+                    {
+                        Value = b.Id,
+                        Label = b.BusNumber
+                    })
+                    .ToList();
 
                 return new PayloadResponse()
                 {
