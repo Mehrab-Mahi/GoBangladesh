@@ -333,16 +333,6 @@ public class RouteService : IRouteService
     {
         try
         {
-            if (string.IsNullOrEmpty(organizationId))
-            {
-                return new PayloadResponse()
-                {
-                    IsSuccess = false,
-                    PayloadType = "Route",
-                    Message = "Need organization!"
-                };
-            }
-
             List<string> runningBusRoutes;
 
             var allRoute = _routeRepository
