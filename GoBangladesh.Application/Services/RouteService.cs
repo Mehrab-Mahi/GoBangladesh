@@ -357,9 +357,7 @@ public class RouteService : IRouteService
                                          left join Buses b on s.BusId = b.Id
                                 where s.IsRunning = 1");
 
-                allRoute = _routeRepository
-                    .GetAll()
-                    .Where(r => runningBusRoutes.Contains(r.Id));
+                allRoute = allRoute.Where(r => runningBusRoutes.Contains(r.Id));
             }
             else
             {
@@ -369,10 +367,9 @@ public class RouteService : IRouteService
                                          left join Buses b on s.BusId = b.Id
                                 where s.IsRunning = 1 and b.OrganizationId = '{organizationId}'");
 
-                allRoute = _routeRepository
-                    .GetAll()
+                allRoute = allRoute
                     .Where(r => r.OrganizationId == organizationId &&
-                                runningBusRoutes.Contains(r.Id));
+                                               runningBusRoutes.Contains(r.Id));
             }
 
             var routeData = allRoute
