@@ -44,6 +44,7 @@ namespace GoBangladesh.Infra.IoC
             services.AddScoped<ISettlementTransactionService, SettlementTransactionService>();
             services.AddScoped<ISettlementService, SettlementService>();
             services.AddScoped<IInvoiceService, InvoiceService>();
+            services.AddScoped<IContactService, ContactService>();
             services.AddHostedService<AutoTripCloseService>();
             services.AddHostedService<AutoPausedCardStatusChangeService>();
             services.AddHostedService<AutoInvoiceGenerator>();

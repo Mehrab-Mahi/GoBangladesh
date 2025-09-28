@@ -11,7 +11,6 @@
     <Compile Remove="Controllers\AssetTypeController.cs" />
     <Compile Remove="Controllers\BloodBankController.cs" />
     <Compile Remove="Controllers\CampaignController.cs" />
-    <Compile Remove="Controllers\ContactController.cs" />
     <Compile Remove="Controllers\DepartmentController.cs" />
     <Compile Remove="Controllers\DesignationController.cs" />
     <Compile Remove="Controllers\EmployeeController.cs" />
