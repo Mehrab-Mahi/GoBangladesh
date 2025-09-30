@@ -916,9 +916,9 @@ public class SettlementService : ISettlementService
 
             if (!isConditionsAreSatisfied.IsSuccess) return isConditionsAreSatisfied;
 
-            var existingInvoicePayment = _invoicePaymentRepository
-                .GetAll()
-                .FirstOrDefault(ip => ip.InvoiceNumber == invoiceNumber);
+            //var existingInvoicePayment = _invoicePaymentRepository
+            //    .GetAll()
+            //    .FirstOrDefault(ip => ip.InvoiceNumber == invoiceNumber);
 
             foreach (var paymentData in payment.PaymentData)
             {
@@ -945,10 +945,32 @@ public class SettlementService : ISettlementService
                 _invoiceRepository.SaveChanges();
             }
 
-            if (existingInvoicePayment is null)
-            {
-                UpdateInvoiceWiseSettlementStatus(invoice!.InvoiceNumber, SettlementStatus.InReview);
-            }
+            var totalPaymentAmount = payment.PaymentData.Sum(pd => pd.Amount);
+
+            var query = @$"
+                            DECLARE @incoming DECIMAL(10,2) = {totalPaymentAmount};
+
+                            WITH cte AS
+                            (
+                                SELECT
+                                    Id,
+                                    RemainingAmount,
+                                    SUM(RemainingAmount) OVER (ORDER BY RemainingAmount) AS running_total
+                                FROM OrganizationSettlement
+                                WHERE Status = 'Unsettled' and InvoiceNumber = '{invoice!.InvoiceNumber}'
+                            )
+                            UPDATE os
+                            SET
+                                Status =
+                                    CASE
+                                        WHEN c.running_total <= @incoming THEN 'In Review'
+                                        WHEN c.running_total - c.RemainingAmount < @incoming
+                                             AND c.running_total >  @incoming THEN 'In Review'
+                                    END
+                            FROM OrganizationSettlement os
+                            JOIN cte c ON os.Id = c.Id;";
+
+            _baseRepository.ExecuteQuery(query);
 
             return new PayloadResponse()
             {
@@ -1050,7 +1072,7 @@ public class SettlementService : ISettlementService
                 _invoiceRepository.Update(invoice);
                 _invoiceRepository.SaveChanges();
 
-                UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
+                //UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
             }
             else
             {
@@ -1064,9 +1086,11 @@ public class SettlementService : ISettlementService
                     _invoiceRepository.Update(invoice);
                     _invoiceRepository.SaveChanges();
 
-                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+                    //UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
                 }
             }
+
+            UpdateInvoiceWiseSettlementStatusAfterPayment(totalSettled, invoice.InvoiceNumber);
         }
         else
         {
@@ -1092,7 +1116,7 @@ public class SettlementService : ISettlementService
                     invoice.Status = InvoiceStatus.Settled;
                     _invoiceRepository.Update(invoice);
                     _invoiceRepository.SaveChanges();
-                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
+                    //UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Settled);
                 }
                 else
                 {
@@ -1100,8 +1124,10 @@ public class SettlementService : ISettlementService
                     _invoiceRepository.Update(invoice);
                     _invoiceRepository.SaveChanges();
 
-                    UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
+                    //UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
                 }
+
+                UpdateInvoiceWiseSettlementStatusAfterPayment(totalSettled, invoice.InvoiceNumber);
             }
         }
 
@@ -1111,6 +1137,40 @@ public class SettlementService : ISettlementService
             Content = null,
             Message = "Payment verification status updated successfully"
         };
+    }
+
+    private void UpdateInvoiceWiseSettlementStatusAfterPayment(decimal totalSettled, string invoiceNumber)
+    {
+        var query = @$"
+                    DECLARE @incoming DECIMAL(10,2) = {totalSettled};
+                    WITH cte AS
+                    (
+                        SELECT
+                            Id,
+                            RemainingAmount,
+                            SUM(RemainingAmount) OVER (ORDER BY RemainingAmount) AS running_total
+                        FROM OrganizationSettlement
+                        WHERE Status in ('In Review', 'Partial') and InvoiceNumber = '{invoiceNumber}'
+                    )
+                    UPDATE os
+                    SET
+                        Status =
+                            CASE
+                                WHEN c.running_total <= @incoming THEN 'Settled'
+                                WHEN c.running_total - c.RemainingAmount < @incoming
+                                     AND c.running_total >  @incoming THEN 'Partial'
+                            END,
+                        RemainingAmount =
+                            CASE
+                                WHEN c.running_total <= @incoming THEN 0
+                                WHEN c.running_total - c.RemainingAmount < @incoming
+                                     AND c.running_total > @incoming
+                                     THEN c.running_total - @incoming
+                            END
+                    FROM OrganizationSettlement os
+                    JOIN cte c ON os.Id = c.Id;";
+
+        _baseRepository.ExecuteQuery(query);
     }
 
     public PayloadResponse GetInvoiceWisePayments(string invoiceNumber)

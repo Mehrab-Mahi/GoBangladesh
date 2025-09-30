@@ -88,6 +88,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                 FromOrganizationId = organizationId,
                 ToOrganizationId = cardDue.OrganizationId,
                 Amount = cardDue.Amount,
+                RemainingAmount = cardDue.Amount,
                 TransactionId = cardDue.TransactionId,
                 TransactionType = TransactionType.Due,
                 Status = SettlementStatus.Pending
@@ -102,6 +103,7 @@ public class SettlementTransactionService : ISettlementTransactionService
             FromOrganizationId = organizationId,
             ToOrganizationId = cardDue.OrganizationId,
             Amount = amount,
+            RemainingAmount = amount,
             TransactionId = cardDue.TransactionId,
             TransactionType = TransactionType.Due, 
             Status = SettlementStatus.Pending
@@ -162,6 +164,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                         FromOrganizationId = organization.OrganizationId,
                         ToOrganizationId = agentOrganizationId,
                         Amount = remainingAmount,
+                        RemainingAmount = remainingAmount,
                         TransactionId = transactionId,
                         TransactionType = TransactionType.Return, 
                         Status = SettlementStatus.Pending
@@ -174,6 +177,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                     FromOrganizationId = organization.OrganizationId,
                     ToOrganizationId = agentOrganizationId,
                     Amount = organization.Balance,
+                    RemainingAmount = organization.Balance,
                     TransactionId = transactionId,
                     TransactionType = TransactionType.Return, 
                     Status = SettlementStatus.Pending
@@ -249,6 +253,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                         FromOrganizationId = organization.OrganizationId,
                         ToOrganizationId = staffOrganizationId,
                         Amount = remainingAmount,
+                        RemainingAmount = remainingAmount,
                         TransactionId = transactionId,
                         TransactionType = TransactionType.BusFare,
                         Status = SettlementStatus.Pending
@@ -262,6 +267,7 @@ public class SettlementTransactionService : ISettlementTransactionService
                     FromOrganizationId = organization.OrganizationId,
                     ToOrganizationId = staffOrganizationId,
                     Amount = organization.Balance,
+                    RemainingAmount = organization.Balance,
                     TransactionId = transactionId,
                     TransactionType = TransactionType.Return,
                     Status = SettlementStatus.Pending
