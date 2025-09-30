@@ -966,6 +966,7 @@ public class SettlementService : ISettlementService
                                         WHEN c.running_total <= @incoming THEN 'In Review'
                                         WHEN c.running_total - c.RemainingAmount < @incoming
                                              AND c.running_total >  @incoming THEN 'In Review'
+                                        ELSE Status    
                                     END
                             FROM OrganizationSettlement os
                             JOIN cte c ON os.Id = c.Id;";
@@ -1159,6 +1160,7 @@ public class SettlementService : ISettlementService
                                 WHEN c.running_total <= @incoming THEN 'Settled'
                                 WHEN c.running_total - c.RemainingAmount < @incoming
                                      AND c.running_total >  @incoming THEN 'Partial'
+                                ELSE Status
                             END,
                         RemainingAmount =
                             CASE
@@ -1166,6 +1168,7 @@ public class SettlementService : ISettlementService
                                 WHEN c.running_total - c.RemainingAmount < @incoming
                                      AND c.running_total > @incoming
                                      THEN c.running_total - @incoming
+                                ELSE RemainingAmount
                             END
                     FROM OrganizationSettlement os
                     JOIN cte c ON os.Id = c.Id;";
