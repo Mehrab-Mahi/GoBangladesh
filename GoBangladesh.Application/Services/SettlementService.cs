@@ -1095,7 +1095,7 @@ public class SettlementService : ISettlementService
                 }
             }
 
-            UpdateInvoiceWiseSettlementStatusAfterPayment(totalSettled, invoice.InvoiceNumber);
+            UpdateInvoiceWiseSettlementStatusAfterPayment(invoicePayment.Amount, invoice.InvoiceNumber);
         }
         else
         {
@@ -1132,7 +1132,7 @@ public class SettlementService : ISettlementService
                     //UpdateInvoiceWiseSettlementStatus(invoice.InvoiceNumber, SettlementStatus.Partial);
                 }
 
-                UpdateInvoiceWiseSettlementStatusAfterPayment(totalSettled, invoice.InvoiceNumber);
+                //UpdateInvoiceWiseSettlementStatusAfterPayment(totalSettled, invoice.InvoiceNumber);
             }
         }
 
@@ -1148,6 +1148,7 @@ public class SettlementService : ISettlementService
     {
         var query = @$"
                     DECLARE @incoming DECIMAL(10,2) = {totalSettled};
+
                     WITH ordered AS (SELECT p.*,
                                             ROW_NUMBER() OVER (ORDER BY RemainingAmount, Id) AS order_key
                                      FROM OrganizationSettlement p
@@ -1166,13 +1167,13 @@ public class SettlementService : ISettlementService
                                      AND c.running_total >  @incoming THEN 'Partial'
                                 ELSE Status
                             END,
-                        RemainingAmount =
+                        os.RemainingAmount =
                             CASE
                                 WHEN c.running_total <= @incoming THEN 0
                                 WHEN c.running_total - c.RemainingAmount < @incoming
                                      AND c.running_total > @incoming
                                      THEN c.running_total - @incoming
-                                ELSE RemainingAmount
+                                ELSE os.RemainingAmount
                             END
                     FROM OrganizationSettlement os
                     JOIN cte c ON os.Id = c.Id;";
