@@ -950,15 +950,19 @@ public class SettlementService : ISettlementService
             var query = @$"
                             DECLARE @incoming DECIMAL(10,2) = {totalPaymentAmount};
 
-                            WITH cte AS
-                            (
+                            WITH ordered AS (
+                                SELECT
+                                    p.*,
+                                    ROW_NUMBER() OVER (ORDER BY RemainingAmount, Id) AS order_key
+                                FROM OrganizationSettlement p
+                                WHERE Status = 'Unsettled' and InvoiceNumber = '{invoice!.InvoiceNumber}'
+                            )
+                            , cte AS (
                                 SELECT
                                     Id,
                                     RemainingAmount,
-                                    SUM(RemainingAmount) OVER (ORDER BY RemainingAmount) AS running_total
-                                FROM OrganizationSettlement
-                                WHERE Status = 'Unsettled' and InvoiceNumber = '{invoice!.InvoiceNumber}'
-                            )
+                                    SUM(RemainingAmount) OVER (ORDER BY order_key) AS running_total
+                                FROM ordered)
                             UPDATE os
                             SET
                                 Status =
@@ -1144,15 +1148,15 @@ public class SettlementService : ISettlementService
     {
         var query = @$"
                     DECLARE @incoming DECIMAL(10,2) = {totalSettled};
-                    WITH cte AS
-                    (
-                        SELECT
-                            Id,
-                            RemainingAmount,
-                            SUM(RemainingAmount) OVER (ORDER BY RemainingAmount) AS running_total
-                        FROM OrganizationSettlement
-                        WHERE Status in ('In Review', 'Partial') and InvoiceNumber = '{invoiceNumber}'
-                    )
+                    WITH ordered AS (SELECT p.*,
+                                            ROW_NUMBER() OVER (ORDER BY RemainingAmount, Id) AS order_key
+                                     FROM OrganizationSettlement p
+                                     WHERE Status in ('In Review', 'Partial')
+                                       and InvoiceNumber = '{invoiceNumber}')
+                       , cte AS (SELECT Id,
+                                        RemainingAmount,
+                                        SUM(RemainingAmount) OVER (ORDER BY order_key) AS running_total
+                                 FROM ordered)
                     UPDATE os
                     SET
                         Status =
