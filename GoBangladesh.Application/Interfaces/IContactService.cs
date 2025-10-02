@@ -9,4 +9,5 @@ public interface IContactService
     PayloadResponse GetAllUnreadContacts(int pageNo, int pageSize);
     PayloadResponse GetAllReadContacts(int pageNo, int pageSize);
     PayloadResponse MarkAsRead(MarkAsReadDto markAsReadData);
+    PayloadResponse GetAllContactCount();
 }

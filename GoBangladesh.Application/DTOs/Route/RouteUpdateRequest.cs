@@ -1,4 +1,6 @@
-﻿namespace GoBangladesh.Application.DTOs.Route;
+﻿using System.Collections.Generic;
+
+namespace GoBangladesh.Application.DTOs.Route;
 
 public class RouteUpdateRequest
 {
@@ -10,4 +12,5 @@ public class RouteUpdateRequest
     public decimal BaseFare { get; set; }
     public decimal MinimumBalance { get; set; }
     public decimal PenaltyAmount { get; set; }
+    public List<StoppageDto> StoppageList { get; set; }
 }

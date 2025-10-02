@@ -52,9 +52,13 @@ public class ContactService : IContactService
     {
         try
         {
-            var data = _contactRepository
+            var contacts = _contactRepository
                 .GetAll()
-                .Where(c => !c.IsRead)
+                .Where(c => !c.IsRead);
+
+            var rowCount = contacts.Count();
+
+            var data = contacts
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -62,7 +66,7 @@ public class ContactService : IContactService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = data,
+                Content = new {data, rowCount},
                 Message = "Unread contacts retrieved successfully."
             };
         }
@@ -80,9 +84,13 @@ public class ContactService : IContactService
     {
         try
         {
-            var data = _contactRepository
+            var contacts = _contactRepository
                 .GetAll()
-                .Where(c => c.IsRead)
+                .Where(c => c.IsRead);
+
+            var rowCount = contacts.Count();
+
+            var data = contacts
                 .Skip((pageNo - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -90,7 +98,7 @@ public class ContactService : IContactService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = data,
+                Content = new {data, rowCount},
                 Message = "Read contacts retrieved successfully."
             };
         }
@@ -147,5 +155,27 @@ public class ContactService : IContactService
                 Message = "An error occurred while marking the contact as read. Please try again later."
             };
         }
+    }
+
+    public PayloadResponse GetAllContactCount()
+    {
+        var unreadContacts = _contactRepository
+            .GetAll()
+            .Count(c => !c.IsRead);
+
+        var readContacts = _contactRepository
+            .GetAll()
+            .Count(c => c.IsRead);
+
+        return new PayloadResponse
+        {
+            IsSuccess = true,
+            Content = new
+            {
+                unreadContacts,
+                readContacts
+            },
+            Message = "Contact counts retrieved successfully."
+        };
     }
 }

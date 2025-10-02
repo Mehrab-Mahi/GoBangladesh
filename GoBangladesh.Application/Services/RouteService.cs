@@ -19,13 +19,15 @@ public class RouteService : IRouteService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IBaseRepository _baseRepository;
+    private readonly IRepository<Stoppage> _stoppageRepository;
 
     public RouteService(IRepository<Route> routeRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService, 
         IRepository<Bus> busRepository, 
         IRepository<Session> sessionRepository,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        IRepository<Stoppage> stoppageRepository)
     {
         _routeRepository = routeRepository;
         _loggedInUserService = loggedInUserService;
@@ -33,6 +35,7 @@ public class RouteService : IRouteService
         _busRepository = busRepository;
         _sessionRepository = sessionRepository;
         _baseRepository = baseRepository;
+        _stoppageRepository = stoppageRepository;
     }
 
     public PayloadResponse RouteInsert(RouteCreateRequest model)
@@ -65,6 +68,11 @@ public class RouteService : IRouteService
             _routeRepository.Insert(route);
             _routeRepository.SaveChanges();
 
+            if (model.StoppageList.Any())
+            {
+                UpdateRouteStoppageList(route.Id, model.StoppageList);
+            }
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -81,6 +89,29 @@ public class RouteService : IRouteService
                 Message = $"Route creation is failed because {ex.Message}!"
             };
         }
+    }
+
+    private void UpdateRouteStoppageList(string routeId, List<StoppageDto> stoppageList)
+    {
+        var existingStoppageList = _stoppageRepository.GetAll()
+            .Where(s => s.RouteId == routeId)
+            .ToList();
+
+        _stoppageRepository.Delete(existingStoppageList);
+
+        foreach (var stoppage in stoppageList)
+        {
+            _stoppageRepository.Insert(new Stoppage()
+            {
+                RouteId = routeId,
+                Name = stoppage.Name,
+                SortOrder = stoppage.SortOrder,
+                Latitude = stoppage.Latitude,
+                Longitude = stoppage.Longitude
+            });
+        }
+
+        _stoppageRepository.SaveChanges();
     }
 
     public PayloadResponse RouteUpdate(RouteUpdateRequest model)
@@ -109,6 +140,11 @@ public class RouteService : IRouteService
 
             _routeRepository.Update(route);
             _routeRepository.SaveChanges();
+
+            if (model.StoppageList.Any())
+            {
+                UpdateRouteStoppageList(route.Id, model.StoppageList);
+            }
 
             return new PayloadResponse()
             {
@@ -147,11 +183,16 @@ public class RouteService : IRouteService
                 };
             }
 
+            var stoppageList = _stoppageRepository.GetAll()
+                .Where(s => s.RouteId == route.Id)
+                .OrderBy(s => s.SortOrder)
+                .ToList();
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Route",
-                Content = route,
+                Content = new { route, stoppageList},
                 Message = "Route has been found"
             };
         }

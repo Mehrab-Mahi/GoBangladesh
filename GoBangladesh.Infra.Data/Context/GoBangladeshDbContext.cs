@@ -34,6 +34,7 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoicePayment> InvoicePayment { get; set; }
         public DbSet<Contact> Contacts { get; set; }
+        public DbSet<Stoppage> Stoppages { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {
