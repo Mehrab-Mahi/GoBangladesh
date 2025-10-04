@@ -141,10 +141,7 @@ public class RouteService : IRouteService
             _routeRepository.Update(route);
             _routeRepository.SaveChanges();
 
-            if (model.StoppageList.Any())
-            {
-                UpdateRouteStoppageList(route.Id, model.StoppageList);
-            }
+            UpdateRouteStoppageList(route.Id, model.StoppageList);
 
             return new PayloadResponse()
             {

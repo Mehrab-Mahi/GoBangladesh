@@ -489,6 +489,7 @@ public class BusService : IBusService
                 .Where(s => s.IsRunning)
                 .Include(s => s.Bus)
                 .Include(s => s.Bus.Organization)
+                .Include(s => s.Bus.Route)
                 .Select(b => b.Bus);
 
             if (!string.IsNullOrEmpty(routId))
@@ -516,7 +517,8 @@ public class BusService : IBusService
                         BusName = b.BusName,
                         OrganizationName = b.Organization.Name,
                         PresentLatitude = b.PresentLatitude,
-                        PresentLongitude = b.PresentLongitude
+                        PresentLongitude = b.PresentLongitude,
+                        Route = $"{b.Route.TripStartPlace} - {b.Route.TripEndPlace}"
                     })
                     .ToList();
 

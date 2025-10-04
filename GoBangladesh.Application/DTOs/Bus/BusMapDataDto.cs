@@ -11,4 +11,5 @@ public class BusMapDataDto
     public string PresentLatitude { get; set; }
     public string PresentLongitude { get; set; }
     public int RunningTrips { get; set; }
+    public string Route { get; set; }
 }
