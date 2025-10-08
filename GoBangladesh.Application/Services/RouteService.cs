@@ -514,6 +514,34 @@ public class RouteService : IRouteService
         };
     }
 
+    public PayloadResponse GetStoppagesByRouteId(string routeId)
+    {
+        try
+        {
+            var stoppageList = _stoppageRepository.GetAll()
+                .Where(s => s.RouteId == routeId)
+                .OrderBy(s => s.SortOrder)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Route",
+                Content = stoppageList,
+                Message = "Stoppage list has been found"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Route",
+                Message = $"Stoppage list fetching has been failed because {ex.Message}"
+            };
+        }
+    }
+
     private void DeactivateBusesInThisRoute(string routeId)
     {
         var busList = _busRepository.GetAll()

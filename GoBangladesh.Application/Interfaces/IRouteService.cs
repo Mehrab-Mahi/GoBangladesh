@@ -14,4 +14,5 @@ public interface IRouteService
     PayloadResponse RouteDropdownForMobile(string organizationId);
     PayloadResponse ActivateRoute(RouteActivationDto routeActivation);
     PayloadResponse DeactivateRoute(RouteActivationDto routeActivation);
+    PayloadResponse GetStoppagesByRouteId(string routeId);
 }

@@ -1,8 +1,6 @@
-﻿using GoBangladesh.Application.DTOs.Bus;
-using GoBangladesh.Application.DTOs.Route;
+﻿using GoBangladesh.Application.DTOs.Route;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
-using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -86,6 +84,14 @@ public class RouteController : Controller
     public IActionResult DeactivateRoute([FromBody] RouteActivationDto routeActivation)
     {
         var data = _routeService.DeactivateRoute(routeActivation);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpGet("getStoppagesByRouteId")]
+    public IActionResult GetStoppagesByRouteId(string routeId)
+    {
+        var data = _routeService.GetStoppagesByRouteId(routeId); 
         return Ok(new { data });
     }
 }
