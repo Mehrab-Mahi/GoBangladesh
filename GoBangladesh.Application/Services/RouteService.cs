@@ -518,10 +518,34 @@ public class RouteService : IRouteService
     {
         try
         {
+            var route = _routeRepository
+                .GetAll()
+                .FirstOrDefault(r => r.Id == routeId);
+
+            if (route == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Route",
+                    Message = "Route not found!"
+                };
+            }
+
             var stoppageList = _stoppageRepository.GetAll()
                 .Where(s => s.RouteId == routeId)
                 .OrderBy(s => s.SortOrder)
                 .ToList();
+
+            if (!stoppageList.Any())
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Route",
+                    Message = "No stoppage found for this route!"
+                };
+            }
 
             var stoppage = string.Join("-", stoppageList.Select(s => s.Name));
 
