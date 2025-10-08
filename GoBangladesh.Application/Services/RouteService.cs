@@ -523,11 +523,13 @@ public class RouteService : IRouteService
                 .OrderBy(s => s.SortOrder)
                 .ToList();
 
+            var stoppage = string.Join("-", stoppageList.Select(s => s.Name));
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
                 PayloadType = "Route",
-                Content = stoppageList,
+                Content = stoppage,
                 Message = "Stoppage list has been found"
             };
         }
