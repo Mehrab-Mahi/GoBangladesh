@@ -196,6 +196,8 @@ public class RouteService : IRouteService
                 };
             }
 
+            route.RoutePath = null;
+
             var stoppageList = _stoppageRepository.GetAll()
                 .Where(s => s.RouteId == route.Id)
                 .OrderBy(s => s.SortOrder)
@@ -279,6 +281,11 @@ public class RouteService : IRouteService
                 .Where(u => routeIds.Contains(u.Id))
                 .Include(r => r.Organization)
                 .ToList();
+
+            foreach (var route in routeData)
+            {
+                route.RoutePath = null;
+            }
 
             return new PayloadResponse()
             {
