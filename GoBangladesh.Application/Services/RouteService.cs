@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GoBangladesh.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 
 namespace GoBangladesh.Application.Services;
 
@@ -62,7 +63,8 @@ public class RouteService : IRouteService
                 PerKmFare = model.PerKmFare,
                 BaseFare = model.BaseFare,
                 MinimumBalance = model.MinimumBalance,
-                PenaltyAmount = model.PenaltyAmount
+                PenaltyAmount = model.PenaltyAmount,
+                RoutePath = GetRoutePath(model.StoppageList)
             };
 
             _routeRepository.Insert(route);
@@ -89,6 +91,19 @@ public class RouteService : IRouteService
                 Message = $"Route creation is failed because {ex.Message}!"
             };
         }
+    }
+
+    private LineString GetRoutePath(List<StoppageDto> modelStoppageList)
+    {
+        var coordinates = modelStoppageList
+            .Select(s => new Coordinate(double.Parse(s.Longitude), double.Parse(s.Latitude)))
+            .ToArray();
+
+        var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+        var lineString = geometryFactory.CreateLineString(coordinates);
+
+        return lineString;
     }
 
     private void UpdateRouteStoppageList(string routeId, List<StoppageDto> stoppageList)
@@ -137,6 +152,7 @@ public class RouteService : IRouteService
             route.MinimumBalance = model.MinimumBalance;
             route.PenaltyAmount = model.PenaltyAmount;
             route.OrganizationId = model.OrganizationId;
+            route.RoutePath = GetRoutePath(model.StoppageList);
 
             _routeRepository.Update(route);
             _routeRepository.SaveChanges();

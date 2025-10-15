@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using NetTopologySuite.Geometries;
 
 namespace GoBangladesh.Domain.Entities;
 
@@ -14,4 +15,5 @@ public class Route : Entity
     [ForeignKey("OrganizationId")]
     public Organization Organization { get; set; }
     public bool IsActive { get; set; } = true;
+    public LineString RoutePath { get; set; }
 }

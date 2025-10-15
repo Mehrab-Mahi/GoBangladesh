@@ -17,4 +17,5 @@ public interface IBusService
     PayloadResponse ActivateBus(BusActivationDto busActivation);
     PayloadResponse DeactivateBus(BusActivationDto busActivation);
     PayloadResponse GetAllActiveBuses(BusDataFilter filter);
+    PayloadResponse CheckIfBusIsOnRoute(LocationUpdateDto locationData);
 }

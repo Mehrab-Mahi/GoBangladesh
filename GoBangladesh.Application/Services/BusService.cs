@@ -20,6 +20,7 @@ public class BusService : IBusService
     private readonly IRepository<Session> _sessionRepository;
     private readonly IBaseRepository _baseRepository;
     private readonly ISessionService _sessionService;
+    private readonly IRepository<SystemSetting> _systemSettingRepository;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
@@ -27,7 +28,8 @@ public class BusService : IBusService
         IRepository<Session> sessionRepository,
         IBaseRepository baseRepository,
         IRepository<Route> routeRepository,
-        ISessionService sessionService)
+        ISessionService sessionService,
+        IRepository<SystemSetting> systemSettingRepository)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
@@ -36,6 +38,7 @@ public class BusService : IBusService
         _baseRepository = baseRepository;
         _routeRepository = routeRepository;
         _sessionService = sessionService;
+        _systemSettingRepository = systemSettingRepository;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -836,6 +839,80 @@ public class BusService : IBusService
                 Message = $"Bus fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse CheckIfBusIsOnRoute(LocationUpdateDto locationData)
+    {
+        var bus = _busRepository
+            .GetAll()
+            .Include(b => b.Route)
+            .FirstOrDefault(b => b.Id == locationData.BusId);
+
+        if (bus == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Bus not found"
+            };
+        }
+
+        if(bus.Route == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Bus route not found"
+            };
+        }
+
+        if (bus.Route.RoutePath == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Bus route path is not set yet!"
+            };
+        }
+
+        var query = $@"SELECT 
+                            RoutePath.STDistance(geography::Point({double.Parse(locationData.Latitude)}, {double.Parse(locationData.Longitude)}, 4326)) AS DistanceMeters
+                        FROM Routes
+                        WHERE Id = '{bus.RouteId}';";
+
+        var distance = _baseRepository.Query<double?>(query).FirstOrDefault();
+
+        if (distance is null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                PayloadType = "Bus",
+                Message = "Distance can't be calculated!"
+            };
+        }
+
+        var minimumDistanceToCheck = _systemSettingRepository.GetAll().FirstOrDefault()!.MinimumDistanceInMeterFromRoute;
+
+        if (distance <= minimumDistanceToCheck)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                PayloadType = "Bus",
+                Message = "Bus is on route"
+            };
+        }
+
+        return new PayloadResponse()
+        {
+            IsSuccess = false,
+            PayloadType = "Bus",
+            Message = "Bus is off route"
+        };
     }
 
     private bool IfDuplicateBusNumber(string busNumber)

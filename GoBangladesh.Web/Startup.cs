@@ -31,7 +31,13 @@ namespace GoBangladesh.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<GoBangladeshDbContext>(options =>
-              options.UseSqlServer(Configuration.GetConnectionString(Enum.GetName(typeof(DbConnection), DbConnection.GoBangladeshConnection_Local))));
+                options.UseSqlServer(
+                    Configuration.GetConnectionString(
+                        Enum.GetName(typeof(DbConnection), DbConnection.GoBangladeshConnection_Local)
+                    ),
+                    sqlOptions => sqlOptions.UseNetTopologySuite()
+                )
+            );
 
             services.AddCors(options =>
             {

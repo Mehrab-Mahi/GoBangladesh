@@ -1,5 +1,6 @@
 ﻿using GoBangladesh.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace GoBangladesh.Infra.Data.Context
 {
@@ -39,6 +40,14 @@ namespace GoBangladesh.Infra.Data.Context
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<Route>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+
+                entity.Property(r => r.RoutePath)
+                    .HasColumnType("geography");
+            });
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using GoBangladesh.Application.DTOs.Bus;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoBangladesh.Web.Controllers;
@@ -108,6 +109,15 @@ public class BusController : Controller
     public IActionResult GetAllActiveBuses([FromBody] BusDataFilter filter)
     {
         var data = _busService.GetAllActiveBuses(filter);
+        return Ok(new { data });
+    }
+
+
+    [GoBangladeshAuth]
+    [HttpPost("checkIfBusIsOnRoute")]
+    public IActionResult CheckIfBusIsOnRoute([FromBody] LocationUpdateDto locationData)
+    {
+        var data = _busService.CheckIfBusIsOnRoute(locationData);
         return Ok(new { data });
     }
 }
