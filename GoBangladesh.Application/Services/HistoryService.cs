@@ -128,6 +128,14 @@ public class HistoryService : IHistoryService
                 .Take(pageSize)
                 .ToList();
 
+            foreach (var transaction in data)
+            {
+                if (!string.IsNullOrEmpty(transaction.TripId) && transaction.Trip != null)
+                {
+                    transaction.Trip.Session.Bus.Route.Organization = null;
+                }
+            }
+
             return new PayloadResponse()
             {
                 IsSuccess = true,

@@ -172,6 +172,7 @@ public class BusService : IBusService
             if (busData != null && bus != null)
             {
                 busData.Route = bus.Route;
+                busData.Route.RoutePath = null;
                 busData.Organization = bus.Organization;
             }
 
@@ -314,6 +315,11 @@ public class BusService : IBusService
                 IsSessionRunning = runningBuses.Contains(b.Id)
             })
             .ToList();
+
+        foreach (var data in finalData)
+        {
+            data.Route.RoutePath = null;
+        }
 
         return finalData;
     }
@@ -636,6 +642,11 @@ public class BusService : IBusService
             .Select(s => s)
             .Distinct()
             .ToList();
+
+        foreach (var session in allRunningBus)
+        {
+            session.Bus.Route.RoutePath = null;
+        }
 
         return new PayloadResponse()
         {
