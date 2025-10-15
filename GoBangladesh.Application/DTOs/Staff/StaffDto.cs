@@ -13,6 +13,7 @@ public class StaffDto
     public string Address { get; set; }
     public string Gender { get; set; }
     public string UserType { get; set; }
+    public string StaffType { get; set; }
     public string ImageUrl { get; set; }
     public string OrganizationId { get; set; }
     public string Code { get; set; }

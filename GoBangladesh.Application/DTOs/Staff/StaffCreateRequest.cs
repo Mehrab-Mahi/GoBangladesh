@@ -13,6 +13,7 @@ public class StaffCreateRequest
     public string Address { get; set; }
     public string Gender { get; set; }
     public string UserType { get; set; }
+    public string StaffType { get; set; }
     public IFormFile ProfilePicture { get; set; }
     public string OrganizationId { get; set; }
 }

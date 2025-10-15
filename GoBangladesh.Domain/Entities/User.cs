@@ -18,6 +18,7 @@ namespace GoBangladesh.Domain.Entities
         public string Address { get; set; }
         public string Gender { get; set; }
         public string UserType { get; set; }
+        public string StaffType { get; set; }
         public string PassengerId { get; set; }
         public string OrganizationId { get; set; }
         [ForeignKey("OrganizationId")]

@@ -19,13 +19,15 @@ public class BusService : IBusService
     private readonly ICommonService _commonService;
     private readonly IRepository<Session> _sessionRepository;
     private readonly IBaseRepository _baseRepository;
+    private readonly ISessionService _sessionService;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService,
         IRepository<Session> sessionRepository,
         IBaseRepository baseRepository,
-        IRepository<Route> routeRepository)
+        IRepository<Route> routeRepository,
+        ISessionService sessionService)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
@@ -33,6 +35,7 @@ public class BusService : IBusService
         _sessionRepository = sessionRepository;
         _baseRepository = baseRepository;
         _routeRepository = routeRepository;
+        _sessionService = sessionService;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -365,6 +368,8 @@ public class BusService : IBusService
                     Message = "Bus not found"
                 };
             }
+
+            _sessionService.UpdateSessionDistance(locationData, bus.PresentLatitude, bus.PresentLongitude);
 
             bus.PresentLatitude = locationData.Latitude;
             bus.PresentLongitude = locationData.Longitude;

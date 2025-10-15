@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Session;
+﻿using GoBangladesh.Application.DTOs.Bus;
+using GoBangladesh.Application.DTOs.Session;
 using GoBangladesh.Application.ViewModels;
 
 namespace GoBangladesh.Application.Interfaces;
@@ -11,4 +12,5 @@ public interface ISessionService
     PayloadResponse CheckIfSessionRunning(string sessionId);
     PayloadResponse GetStatistics(string sessionId);
     PayloadResponse CheckIfSessionRunningForLoggedInUser(string userId);
+    void UpdateSessionDistance(LocationUpdateDto locationData, string busLastLatitude, string busLastLongitude);
 }

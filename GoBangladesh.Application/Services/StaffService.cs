@@ -53,6 +53,7 @@ public class StaffService : IStaffService
                 UserType = user.UserType,
                 OrganizationId = user.OrganizationId,
                 Serial = serial,
+                StaffType = user.StaffType,
                 Code = $"STF-{serial:D6}"
             };
 
@@ -158,6 +159,7 @@ public class StaffService : IStaffService
             model.Address = user.Address;
             model.Gender = user.Gender;
             model.OrganizationId = user.OrganizationId;
+            model.StaffType = user.StaffType;
 
             if (user.ProfilePicture is { Length: > 0 })
             {
@@ -221,6 +223,7 @@ public class StaffService : IStaffService
                 Address = staff.Address,
                 Gender = staff.Gender,
                 UserType = staff.UserType,
+                StaffType = staff.StaffType,
                 ImageUrl = staff.ImageUrl,
                 Organization = staff.Organization,
                 Code = staff.Code,
@@ -300,6 +303,7 @@ public class StaffService : IStaffService
                     Address = staff.Address,
                     Gender = staff.Gender,
                     UserType = staff.UserType,
+                    StaffType = staff.StaffType,
                     ImageUrl = staff.ImageUrl,
                     Organization = staff.Organization,
                     Code = staff.Code,

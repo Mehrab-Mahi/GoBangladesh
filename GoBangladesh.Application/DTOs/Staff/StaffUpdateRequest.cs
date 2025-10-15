@@ -14,4 +14,5 @@ public class StaffUpdateRequest
     public string Gender { get; set; }
     public IFormFile ProfilePicture { get; set; }
     public string OrganizationId { get; set; }
+    public string StaffType { get; set; }
 }

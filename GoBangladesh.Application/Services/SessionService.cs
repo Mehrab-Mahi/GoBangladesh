@@ -1,12 +1,18 @@
-﻿using GoBangladesh.Application.DTOs.Session;
+﻿using GoBangladesh.Application.DTOs.Bus;
+using GoBangladesh.Application.DTOs.Session;
+using GoBangladesh.Application.DTOs.Transaction;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
+using GoBangladesh.Application.ViewModels.Transaction;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using Microsoft.Extensions.Options;
 
 namespace GoBangladesh.Application.Services;
 
@@ -19,6 +25,7 @@ public class SessionService : ISessionService
     private readonly IBaseRepository _baseRepository;
     private readonly ITransactionService _transactionService;
     private readonly IRepository<Bus> _busRepository;
+    private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
 
     public SessionService(ILoggedInUserService loggedInUserService,
         IRepository<Session> sessionRepository, 
@@ -26,7 +33,8 @@ public class SessionService : ISessionService
         IRepository<Trip> tripRepository,
         IBaseRepository baseRepository,
         ITransactionService transactionService,
-        IRepository<Bus> busRepository)
+        IRepository<Bus> busRepository,
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
     {
         _loggedInUserService = loggedInUserService;
         _sessionRepository = sessionRepository;
@@ -35,6 +43,7 @@ public class SessionService : ISessionService
         _baseRepository = baseRepository;
         _transactionService = transactionService;
         _busRepository = busRepository;
+        _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse StartSession(SessionStartDto sessionStartDto)
@@ -318,6 +327,37 @@ public class SessionService : ISessionService
             Content = session,
             Message = "Running session found for the user!"
         };
+    }
+
+    public void UpdateSessionDistance(LocationUpdateDto locationData, string busLastLatitude, string busLastLongitude)
+    {
+        var session = _sessionRepository.GetAll().FirstOrDefault(s => s.BusId == locationData.BusId && s.IsRunning);
+
+        if (session == null)
+        {
+            return;
+        }
+
+        session.Distance += CalculateDistanceInKm(locationData, busLastLatitude, busLastLongitude);
+
+        _sessionRepository.Update(session);
+        _sessionRepository.SaveChanges();
+    }
+
+    private decimal CalculateDistanceInKm(LocationUpdateDto locationData, string busLastLatitude, string busLastLongitude)
+    {
+        try
+        {
+            var url = $"{_distanceMatrixApiSettings.BaseUrl}{busLastLongitude},{busLastLatitude};{locationData.Longitude},{locationData.Latitude}?overview=false";
+            using var httpClient = new HttpClient();
+            var response = httpClient.GetStringAsync(url).Result;
+            var data = JsonConvert.DeserializeObject<DistanceApiDto>(response);
+            return data.Routes.FirstOrDefault()!.Distance / 1000;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private int GetSerialNumberForSession()
