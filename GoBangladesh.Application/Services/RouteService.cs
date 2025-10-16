@@ -1,14 +1,19 @@
-﻿using GoBangladesh.Application.DTOs.Route;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.DTOs.Route;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
+using GoBangladesh.Application.ViewModels.Transaction;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GoBangladesh.Application.DTOs;
-using Microsoft.EntityFrameworkCore;
-using NetTopologySuite.Geometries;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace GoBangladesh.Application.Services;
 
@@ -21,6 +26,8 @@ public class RouteService : IRouteService
     private readonly ICommonService _commonService;
     private readonly IBaseRepository _baseRepository;
     private readonly IRepository<Stoppage> _stoppageRepository;
+    private readonly HttpClient _httpClient;
+    private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
 
     public RouteService(IRepository<Route> routeRepository,
         ILoggedInUserService loggedInUserService,
@@ -28,7 +35,9 @@ public class RouteService : IRouteService
         IRepository<Bus> busRepository, 
         IRepository<Session> sessionRepository,
         IBaseRepository baseRepository,
-        IRepository<Stoppage> stoppageRepository)
+        IRepository<Stoppage> stoppageRepository,
+        HttpClient httpClient,
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
     {
         _routeRepository = routeRepository;
         _loggedInUserService = loggedInUserService;
@@ -37,6 +46,8 @@ public class RouteService : IRouteService
         _sessionRepository = sessionRepository;
         _baseRepository = baseRepository;
         _stoppageRepository = stoppageRepository;
+        _httpClient = httpClient;
+        _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
     public PayloadResponse RouteInsert(RouteCreateRequest model)
@@ -95,13 +106,25 @@ public class RouteService : IRouteService
 
     private LineString GetRoutePath(List<StoppageDto> modelStoppageList)
     {
-        var coordinates = modelStoppageList
-            .Select(s => new Coordinate(double.Parse(s.Longitude), double.Parse(s.Latitude)))
+        var coordinates = string.Join(";", modelStoppageList.Select(p => $"{p.Longitude},{p.Latitude}"));
+
+        var url = $"{_distanceMatrixApiSettings.BaseUrl}{coordinates}?overview=full&geometries=geojson";
+
+        var response = _httpClient.GetAsync(url).Result;
+        var json = response.Content.ReadAsStringAsync().Result;
+        using var doc = JsonDocument.Parse(json);
+
+        var coords = doc.RootElement
+            .GetProperty("routes")[0]
+            .GetProperty("geometry")
+            .GetProperty("coordinates")
+            .EnumerateArray()
+            .Select(c => new Coordinate(c[0].GetDouble(), c[1].GetDouble()))
             .ToArray();
 
         var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
-        var lineString = geometryFactory.CreateLineString(coordinates);
+        var lineString = geometryFactory.CreateLineString(coords);
 
         return lineString;
     }
