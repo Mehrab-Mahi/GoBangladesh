@@ -16,6 +16,7 @@ using System;
 using System.IO;
 using System.Text;
 using GoBangladesh.Application.ViewModels.Transaction;
+using Hangfire;
 
 namespace GoBangladesh.Web
 {
@@ -38,6 +39,15 @@ namespace GoBangladesh.Web
                     sqlOptions => sqlOptions.UseNetTopologySuite()
                 )
             );
+
+            services.AddHangfire(config =>
+                config.UseSqlServerStorage(
+                    Configuration.GetConnectionString(
+                        Enum.GetName(typeof(DbConnection), DbConnection.GoBangladeshConnection_Local)
+                    ))
+            );
+
+            services.AddHangfireServer();
 
             services.AddCors(options =>
             {
@@ -117,6 +127,9 @@ namespace GoBangladesh.Web
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
+
+            app.UseHangfireDashboard("/hangfire");
+
             app.UseRouting();
             app.UseAuthorization();
             

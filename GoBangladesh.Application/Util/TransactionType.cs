@@ -6,4 +6,5 @@ public static class TransactionType
     public const string Return = "Return";
     public const string BusFare = "BusFare";
     public const string Due = "Due";
+    public const string Promo = "Promo";
 }

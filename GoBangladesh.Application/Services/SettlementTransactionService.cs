@@ -13,18 +13,21 @@ public class SettlementTransactionService : ISettlementTransactionService
     private readonly IRepository<CardDue> _cardDueRepository;
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly IRepository<Trip> _tripRepository;
+    private readonly IPromoService _promoService;
 
     public SettlementTransactionService(IRepository<OrganizationCardBalance> organizationCardBalanceRepository,
         IRepository<OrganizationSettlement> organizationSettlementRepository,
         IRepository<CardDue> cardDueRepository,
         IRepository<Transaction> transactionRepository,
-        IRepository<Trip> tripRepository)
+        IRepository<Trip> tripRepository,
+        IPromoService promoService)
     {
         _organizationCardBalanceRepository = organizationCardBalanceRepository;
         _organizationSettlementRepository = organizationSettlementRepository;
         _cardDueRepository = cardDueRepository;
         _transactionRepository = transactionRepository;
         _tripRepository = tripRepository;
+        _promoService = promoService;
     }
 
     public void SettleRecharge(string organizationId, string cardId, decimal modelAmount)
@@ -299,6 +302,29 @@ public class SettlementTransactionService : ISettlementTransactionService
     {
         UpdateOrganizationWiseCardBalance(newCard.Id, previousCard.Id);
         UpdatePreviousCardDue(newCard.Id, previousCard.Id);
+    }
+
+    public void SettlePromoAmount(string cardId, string busOrganizationId, decimal promoAmount, string transactionId)
+    {
+        var promoCard = _promoService.GetPromoCardByCardId(cardId);
+
+        if(promoCard is null) return;
+
+        if (promoCard.Promo.OrganizationId != busOrganizationId)
+        {
+            _organizationSettlementRepository.Insert(new OrganizationSettlement()
+            {
+                FromOrganizationId = promoCard.Promo.OrganizationId,
+                ToOrganizationId = busOrganizationId,
+                Amount = promoAmount,
+                RemainingAmount = promoAmount,
+                TransactionId = transactionId,
+                TransactionType = TransactionType.Promo,
+                Status = SettlementStatus.Pending
+            });
+
+            _organizationSettlementRepository.SaveChanges();
+        }
     }
 
     private void UpdatePreviousCardDue(string newCardId, string previousCardId)

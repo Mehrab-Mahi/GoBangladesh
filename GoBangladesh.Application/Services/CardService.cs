@@ -443,7 +443,7 @@ public class CardService : ICardService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (c.CardNumber like '%{filter.SearchQuery}%' or c.Status like '%{filter.SearchQuery}%') ");
+                condition.Add($" (c.CardNumber like '%{filter.SearchQuery}%' or c.Status like '%{filter.SearchQuery}%' or c.PassengerStatus like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
@@ -555,7 +555,8 @@ public class CardService : ICardService
                 CardNumber = model.CardNumber,
                 Status = string.IsNullOrEmpty(model.Status) ? CardStatus.NotUsed : model.Status,
                 Balance = 0,
-                OrganizationId = model.OrganizationId
+                OrganizationId = model.OrganizationId,
+                PassengerStatus = string.IsNullOrEmpty(model.PassengerStatus) ? PassengerStatus.NotRegistered : model.PassengerStatus
             };
 
             _cardRepository.Insert(card);
@@ -852,5 +853,42 @@ public class CardService : ICardService
             Content = card, 
             Message = "Card data has been fetched successfully!"
         };
+    }
+
+    public void UpdateCardPassengerStatus(string cardNumber, string status)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || string.IsNullOrEmpty(status))
+        {
+            return;
+        }
+
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+
+        if (card == null) return;
+
+        card.PassengerStatus = status;
+
+        _cardRepository.Update(card);
+        _cardRepository.SaveChanges();
+    }
+
+    public List<Card> GetAllCardForByUserId(string userId)
+    {
+        var query = $@"
+                    select c.*
+                    from Cards c
+                             inner join PassengerCardMappings pcm on c.Id = pcm.CardId
+                    where pcm.UserId = '{userId}'
+                    
+                    union
+                    
+                    select c.*
+                    from Cards c
+                             inner join PassengerCardHistory pch on c.Id = pch.CardId
+                    where pch.UserId = '{userId}'";
+
+        var data = _baseRepository.Query<Card>(query);
+
+        return data;
     }
 }

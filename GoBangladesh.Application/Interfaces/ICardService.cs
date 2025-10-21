@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Card;
+﻿using System.Collections.Generic;
+using GoBangladesh.Application.DTOs.Card;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 
@@ -27,4 +28,6 @@ public interface ICardService
     PayloadResponse ActivateCard(CardActivationDto cardActivation);
     PayloadResponse DeactivateCard(CardActivationDto cardActivation);
     PayloadResponse GetCardDetailByCardNumberForReturn(string cardNumber);
+    void UpdateCardPassengerStatus(string cardNumber, string status);
+    List<Card> GetAllCardForByUserId(string userId);
 }

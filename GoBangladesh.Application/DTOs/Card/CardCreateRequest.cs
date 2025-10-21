@@ -9,4 +9,6 @@ public class CardCreateRequest
     public string OrganizationId { get; set; }
     [JsonIgnore]
     public string Status { get; set; }
+    [JsonIgnore]
+    public string PassengerStatus { get; set; }
 }

@@ -24,6 +24,7 @@ public class TransactionService : ITransactionService
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
     private readonly IRepository<Card> _cardRepository;
     private readonly ISettlementTransactionService _settlementService;
+    private readonly IPromoService _promoService;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
@@ -31,7 +32,8 @@ public class TransactionService : ITransactionService
         IRepository<Session> sessionRepository, 
         IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
         IRepository<Card> cardRepository,
-        ISettlementTransactionService settlementService)
+        ISettlementTransactionService settlementService,
+        IPromoService promoService)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
@@ -39,6 +41,7 @@ public class TransactionService : ITransactionService
         _sessionRepository = sessionRepository;
         _cardRepository = cardRepository;
         _settlementService = settlementService;
+        _promoService = promoService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -256,6 +259,9 @@ public class TransactionService : ITransactionService
 
         var trip = _tripRepository
             .GetAll()
+            .Include(t => t.Session)
+            .Include(t => t.Session.Bus)
+            .Include(t => t.Session.Bus)
             .OrderByDescending(t => t.CreateTime)
             .FirstOrDefault(t => t.CardId == card.Id && t.SessionId == tapRequest.SessionId);
 
@@ -329,6 +335,7 @@ public class TransactionService : ITransactionService
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
             trip.TapOutStatus = tapRequest.TapType;
+            trip.PromoAmount = tripFare.PromoAmount;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -476,7 +483,7 @@ public class TransactionService : ITransactionService
         {
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
             _settlementService.SettleTrip(card, settlementOrganizationId, transaction.Amount, transaction.TransactionId);
-
+            _settlementService.SettlePromoAmount(trip.CardId, trip.Session.Bus.OrganizationId, trip.PromoAmount, transaction.TransactionId);
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -504,12 +511,31 @@ public class TransactionService : ITransactionService
         var fare = trip.TapInType == "Penalty" ?
             route.PenaltyAmount :
             GetCalculatedAmount(distance, route);
+        var promoAmount = (decimal)0.0;
+
+        var promoCard = GetAvailablePromo(trip.CardId);
+
+        if (promoCard != null)
+        {
+            promoAmount = _promoService.GetPromoAmountByCardId(trip.CardId, fare);
+            fare -= promoAmount;
+            _promoService.MarkPromoAsUsedByCardId(trip.CardId);
+            _promoService.UpdatePromoUsageAmount(promoCard.Id, promoAmount);
+        }
 
         return new TripFareDistanceDto()
         {
             Distance = distance,
-            Fare = fare
+            Fare = fare,
+            PromoAmount = promoAmount
         };
+    }
+
+    private PromoCard GetAvailablePromo(string cardId)
+    {
+        var promoCard = _promoService.GetPromoCardByCardId(cardId);
+        
+        return promoCard;
     }
 
     private decimal GetCalculatedAmount(decimal distance, Route route)
@@ -607,7 +633,8 @@ public class TransactionService : ITransactionService
             TransactionType = transactionType,
             Amount = trip.Amount,
             CardId = cardId,
-            TripId = trip.Id
+            TripId = trip.Id,
+            PromoAmount = trip.PromoAmount
         };
 
         _transactionRepository.Insert(transaction);
@@ -670,6 +697,7 @@ public class TransactionService : ITransactionService
             trip.Distance = tripFare.Distance;
             trip.Amount = tripFare.Fare;
             trip.TapOutStatus = tapOutStatus;
+            trip.PromoAmount = tripFare.PromoAmount;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();

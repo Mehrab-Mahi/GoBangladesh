@@ -113,6 +113,7 @@ public class PassengerService : IPassengerService
 
             user.UserType = card!.Organization.OrganizationType;
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+            _cardService.UpdateCardPassengerStatus(user.CardNumber, PassengerStatus.Registered);
         }
 
         if (user.UserType == UserTypes.Private)
@@ -125,7 +126,8 @@ public class PassengerService : IPassengerService
                 {
                     CardNumber = user.CardNumber,
                     OrganizationId = user.OrganizationId,
-                    Status = CardStatus.InUse
+                    Status = CardStatus.InUse,
+                    PassengerStatus = PassengerStatus.Registered
                 };
                 card = _cardService.CardInsertForPrivatePassenger(cardInsertRequest).Content;
             }
@@ -161,6 +163,7 @@ public class PassengerService : IPassengerService
                 }
 
                 _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+                _cardService.UpdateCardPassengerStatus(user.CardNumber, PassengerStatus.Registered);
             }
         }
 
@@ -201,6 +204,7 @@ public class PassengerService : IPassengerService
                 };
             }
             _cardService.UpdateCardStatus(user.CardNumber, CardStatus.InUse);
+            _cardService.UpdateCardPassengerStatus(user.CardNumber, PassengerStatus.Registered);
         }
 
         try

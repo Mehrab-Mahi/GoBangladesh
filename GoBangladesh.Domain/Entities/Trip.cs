@@ -18,6 +18,7 @@ public class Trip : Entity
     public decimal Distance { get; set; }
     public string TapInType { get; set; }
     public string TapOutStatus { get; set; }
+    public decimal PromoAmount { get; set; }
     [ForeignKey("SessionId")]
     public Session Session { get; set; }
     [ForeignKey("CardId")]

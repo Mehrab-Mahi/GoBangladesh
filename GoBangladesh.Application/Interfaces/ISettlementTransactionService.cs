@@ -8,4 +8,5 @@ public interface ISettlementTransactionService
     void SettleReturn(Card card, string agentOrganizationId, decimal amount, string transactionId);
     void SettleTrip(Card card, string staffOrganizationId, decimal amount, string transactionId);
     void UpdateCardDetail(Card newCard, Card previousCard);
+    void SettlePromoAmount(string cardId, string busOrganizationId, decimal promoAmount, string transactionId);
 }
