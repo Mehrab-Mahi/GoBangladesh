@@ -69,7 +69,11 @@ public class RouteService : IRouteService
             var route = new Route()
             {
                 TripStartPlace = model.TripStartPlace,
+                TripStartLatitude = model.TripStartLatitude,
+                TripStartLongitude = model.TripStartLongitude,
                 TripEndPlace = model.TripEndPlace,
+                TripEndLatitude = model.TripEndLatitude,
+                TripEndLongitude = model.TripEndLongitude,
                 OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ? currentUser.OrganizationId : model.OrganizationId,
                 PerKmFare = model.PerKmFare,
                 BaseFare = model.BaseFare,
@@ -169,7 +173,11 @@ public class RouteService : IRouteService
             }
 
             route.TripStartPlace = model.TripStartPlace;
+            route.TripStartLatitude = model.TripStartLatitude;
+            route.TripStartLongitude = model.TripStartLongitude;
             route.TripEndPlace = model.TripEndPlace;
+            route.TripEndLatitude = model.TripEndLatitude;
+            route.TripEndLongitude = model.TripEndLongitude;
             route.PerKmFare = model.PerKmFare;
             route.BaseFare = model.BaseFare;
             route.MinimumBalance = model.MinimumBalance;

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace GoBangladesh.Application.Services;
 
@@ -133,6 +134,7 @@ public class HistoryService : IHistoryService
                 if (!string.IsNullOrEmpty(transaction.TripId) && transaction.Trip != null)
                 {
                     transaction.Trip.Session.Bus.Route.Organization = null;
+                    transaction.Trip.Session.Bus.Route.RoutePath = null;
                 }
             }
 

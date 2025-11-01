@@ -564,6 +564,7 @@ public class DashboardService : IDashboardService
                        s.StartingLongitude,
                        s.EndingLatitude,
                        s.EndingLongitude,
+                       s.Distance,
                        case
                            when s.IsRunning = 1 then 'Running'
                            else 'Complete' end                   as Status,
