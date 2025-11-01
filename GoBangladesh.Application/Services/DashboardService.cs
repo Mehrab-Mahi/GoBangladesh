@@ -332,7 +332,7 @@ public class DashboardService : IDashboardService
             var extraCondition = $@"
                                     group by s.Id, s.SessionCode, o.Name, b.BusNumber, b.BusName, r.TripStartPlace, r.TripEndPlace, u.Name, u.MobileNumber,
                                              s.StartTime, s.EndTime, s.StartingLatitude, s.StartingLongitude, s.EndingLatitude, s.EndingLongitude,
-                                             s.IsRunning, s.CreateTime, s.StopStatus
+                                             s.IsRunning, s.CreateTime, s.StopStatus, s.Distance
                                     order by s.IsRunning desc, s.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
