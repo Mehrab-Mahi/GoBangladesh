@@ -83,8 +83,8 @@ public class PromoService : IPromoService
                 DiscountValue = model.DiscountValue,
                 MaxDiscountAmount = model.MaxDiscountAmount,
                 Description = model.Description,
-                StartTime = model.StartTime,
-                EndTime = model.EndTime,
+                StartTime = model.StartTime.AddHours(-6),
+                EndTime = model.EndTime.AddHours(-6),
                 OrganizationId = model.OrganizationId,
                 PassengerStatus = model.PassengerStatus,
                 CardStatus = model.CardStatus,
@@ -412,8 +412,8 @@ public class PromoService : IPromoService
                         SUM(CASE WHEN pc.Status = 'Active' THEN 1 ELSE 0 END) AS ActiveCount,
                         SUM(CASE WHEN pc.Status = 'Expired' THEN 1 ELSE 0 END) AS ExpiredCount
 
-                    FROM Promo p
-                    LEFT JOIN PromoCard pc ON p.Id = pc.PromoId
+                    FROM Promos p
+                    LEFT JOIN PromoCards pc ON p.Id = pc.PromoId
                     WHERE p.Id = '{id}'
                     GROUP BY
                         p.Id, p.Code, p.PromoType, p.DiscountValue, p.MaxDiscountAmount,
@@ -505,11 +505,12 @@ public class PromoService : IPromoService
                             FROM Cards
                             WHERE {whereCondition}
                         )
-                        INSERT INTO PromoCard (
+                        INSERT INTO PromoCards (
                             Id,
                             PromoId,
                             CardId,
                             Status,
+                            UsageAmount,
                             UsageCount,
                             CreateTime,
                             LastModifiedTime,
@@ -522,6 +523,7 @@ public class PromoService : IPromoService
                             '{promo.Id}' AS PromoId,
                             c.Id AS CardId,
                             '{status}' AS Status,
+                            0          AS UsageAmount,
                             0 AS UsageCount,
                             GETUTCDATE() AS CreateTime,
                             GETUTCDATE() AS LastModifiedTime,
