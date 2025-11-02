@@ -2,7 +2,7 @@
 
 public class PromoStatus
 {
-    public const string AvailableSoon = "Available Soon";
+    public const string AvailableSoon = "AvailableSoon";
     public const string Running = "Running";
     public const string Expired = "Expired";
 }

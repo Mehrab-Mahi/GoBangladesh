@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace GoBangladesh.Application.Services;
 
@@ -151,22 +152,29 @@ public class PromoService : IPromoService
                 .OrderByDescending(pc => pc.LastModifiedTime)
                 .Include(pc => pc.Promo);
 
+            List<PromoCard> finalData;
+
             if (!string.IsNullOrEmpty(status))
             {
-                allPromoData
-                    .Where(pc => pc.Status == status);
+                finalData = allPromoData
+                    .Where(pc => pc.Status == status)
+                    .Skip((pageNo - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
             }
-
-            var data = allPromoData
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            else
+            {
+                finalData = allPromoData
+                    .Skip((pageNo - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+            }
 
             return new PayloadResponse
             {
                 IsSuccess = true,
                 Message = "User promos retrieved successfully.",
-                Content = data
+                Content = finalData
             };
         }
         catch(Exception ex)
@@ -183,11 +191,13 @@ public class PromoService : IPromoService
     {
         try
         {
+            var card = _cardService.GetCardDetailByCardNumber(applyPromoRequest.CardNumber);
+
             var promoCard = _promoCardRepository
                 .GetAll()
                 .FirstOrDefault(pc => pc.PromoId == applyPromoRequest.PromoId
-                                      && pc.CardId == applyPromoRequest.CardId
-                                      && pc.Status == PromoCardStatus.NotApplied);
+                                      && pc.CardId == card.Id
+                                      && pc.Status == PromoCardStatus.Available);
 
             if (promoCard == null)
             {
@@ -447,7 +457,7 @@ public class PromoService : IPromoService
         _promoRepository.SaveChanges();
 
         var query = @$"UPDATE PromoCards
-                       SET Status = '{PromoCardStatus.NotApplied}',
+                       SET Status = '{PromoCardStatus.Available}',
                            LastModifiedTime = GETUTCDATE()
                        WHERE PromoId = '{promo.Id}' 
                          AND Status = '{PromoCardStatus.AvailableSoon}';";
@@ -465,7 +475,7 @@ public class PromoService : IPromoService
                        SET Status = '{PromoCardStatus.Expired}',
                            LastModifiedTime = GETUTCDATE()
                        WHERE PromoId = '{promo.Id}' 
-                         AND Status IN ('{PromoCardStatus.NotApplied}', '{PromoCardStatus.AvailableSoon}');";
+                         AND Status IN ('{PromoCardStatus.Available}', '{PromoCardStatus.AvailableSoon}');";
 
         _baseRepository.ExecuteQuery(query);
     }
@@ -497,7 +507,7 @@ public class PromoService : IPromoService
         var whereCondition = string.Join(" AND ", filters);
 
         var status = promo.Status == PromoStatus.AvailableSoon ? PromoCardStatus.AvailableSoon : 
-                promo.Status == PromoStatus.Running ? PromoCardStatus.NotApplied :
+                promo.Status == PromoStatus.Running ? PromoCardStatus.Available :
                 PromoCardStatus.Expired;
 
         var query = @$"WITH card_data AS (
