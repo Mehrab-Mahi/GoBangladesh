@@ -9,6 +9,7 @@ using System.Linq;
 using GoBangladesh.Application.Util;
 using Microsoft.EntityFrameworkCore;
 using GoBangladesh.Application.DTOs.Card;
+using GoBangladesh.Application.DTOs.Notification;
 
 namespace GoBangladesh.Application.Services;
 
@@ -23,6 +24,7 @@ public class PassengerService : IPassengerService
     private readonly IRepository<Organization> _organizationRepository;
     private readonly IRepository<Transaction> _transactionRepository;
     private readonly ISettlementTransactionService _settlementTransactionService;
+    private readonly INotificationService _notificationService;
 
     public PassengerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -32,7 +34,8 @@ public class PassengerService : IPassengerService
         IBaseRepository baseRepository, 
         IRepository<Organization> organizationRepository,
         IRepository<Transaction> transactionRepository,
-        ISettlementTransactionService settlementTransactionService)
+        ISettlementTransactionService settlementTransactionService,
+        INotificationService notificationService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -43,6 +46,7 @@ public class PassengerService : IPassengerService
         _organizationRepository = organizationRepository;
         _transactionRepository = transactionRepository;
         _settlementTransactionService = settlementTransactionService;
+        _notificationService = notificationService;
     }
 
     public PayloadResponse PassengerInsert(PassengerCreateRequest user)
@@ -239,6 +243,13 @@ public class PassengerService : IPassengerService
 
             _cardService.MapUserWithCard(model.Id, card!.Id);
 
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = model.Id,
+                Title = "Welcome to Go Bangladesh!",
+                Message = $"Hi {model.Name}, your account has been successfully created. You can now book trips, recharge on your card wallet, and enjoy our services.",
+            }); 
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -317,6 +328,13 @@ public class PassengerService : IPassengerService
 
             _userRepository.Update(model);
             _userRepository.SaveChanges();
+
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = model.Id,
+                Title = "Profile updated!",
+                Message = "Your profile has been updated successfully!",
+            });
 
             return new PayloadResponse
             {

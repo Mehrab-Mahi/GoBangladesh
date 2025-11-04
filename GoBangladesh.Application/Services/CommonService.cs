@@ -48,13 +48,13 @@ namespace GoBangladesh.Application.Services
             return BCrypt.Net.BCrypt.HashPassword(defaultPass, workFactor: 12);
         }
 
-        public string UploadAndGetImageUrl(IFormFile userProfilePicture, string fileSavePath)
+        public string UploadAndGetImageUrl(IFormFile imageFile, string fileSavePath)
         {
-            if (userProfilePicture is null) return string.Empty;
+            if (imageFile is null) return string.Empty;
 
-            var fileName = GetFileName(userProfilePicture.FileName);
+            var fileName = GetFileName(imageFile.FileName);
 
-            return UploadFile(fileName, fileSavePath, userProfilePicture);
+            return UploadFile(fileName, fileSavePath, imageFile);
         }
 
         public void DeleteFile(string path)

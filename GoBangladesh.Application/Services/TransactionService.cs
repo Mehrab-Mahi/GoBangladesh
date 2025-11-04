@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using GoBangladesh.Application.DTOs.Notification;
 using GoBangladesh.Application.DTOs.Transaction;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.Util;
@@ -25,6 +26,8 @@ public class TransactionService : ITransactionService
     private readonly IRepository<Card> _cardRepository;
     private readonly ISettlementTransactionService _settlementService;
     private readonly IPromoService _promoService;
+    private readonly INotificationService _notificationService;
+    private readonly ICardService _cardService;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
@@ -33,7 +36,9 @@ public class TransactionService : ITransactionService
         IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
         IRepository<Card> cardRepository,
         ISettlementTransactionService settlementService,
-        IPromoService promoService)
+        IPromoService promoService,
+        INotificationService notificationService,
+        ICardService cardService)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
@@ -42,6 +47,8 @@ public class TransactionService : ITransactionService
         _cardRepository = cardRepository;
         _settlementService = settlementService;
         _promoService = promoService;
+        _notificationService = notificationService;
+        _cardService = cardService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -111,6 +118,18 @@ public class TransactionService : ITransactionService
             UpdateCardDatabase(model.Amount, card);
             _settlementService
                 .SettleRecharge(currentUser.OrganizationId, card.Id, model.Amount);
+
+            var cardOwner = _cardService.GetUserByCardNumber(card.CardNumber);
+
+            if (cardOwner is not null)
+            {
+                _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+                {
+                    UserId = cardOwner.Id,
+                    Title = "Card Recharged Successfully",
+                    Message = $"Your card {card.CardNumber} has been successfully recharged with amount {model.Amount}."
+                });
+            }
 
             return new PayloadResponse()
             {
@@ -269,7 +288,7 @@ public class TransactionService : ITransactionService
         {
             try
             {
-                AddTrip(tapRequest, card.Id);
+                AddTrip(tapRequest, card);
 
                 return new PayloadResponse()
                 {
@@ -293,7 +312,7 @@ public class TransactionService : ITransactionService
         {
             try
             {
-                AddTrip(tapRequest, card.Id);
+                AddTrip(tapRequest, card);
 
                 return new PayloadResponse()
                 {
@@ -484,6 +503,19 @@ public class TransactionService : ITransactionService
             UpdateCardAmount(card, trip.Amount, TransactionOperation.Subtract);
             _settlementService.SettleTrip(card, settlementOrganizationId, transaction.Amount, transaction.TransactionId);
             _settlementService.SettlePromoAmount(trip.CardId, trip.Session.Bus.OrganizationId, trip.PromoAmount, transaction.TransactionId);
+
+            var cardOwner = _cardService.GetUserByCardNumber(card.CardNumber);
+
+            if (cardOwner is not null)
+            {
+                _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+                {
+                    UserId = cardOwner.Id,
+                    Title = "Trip Ended",
+                    Message = $"Your trip has been ended successfully. Fare: {trip.Amount}."
+                });
+            }
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -609,11 +641,11 @@ public class TransactionService : ITransactionService
         _tripRepository.SaveChanges();
     }
 
-    private void AddTrip(TapRequest tapRequest, string cardId)
+    private void AddTrip(TapRequest tapRequest, Card card)
     {
         _tripRepository.Insert(new Trip()
         {
-            CardId = cardId,
+            CardId = card.Id,
             SessionId = tapRequest.SessionId,
             StartingLatitude = tapRequest.Latitude,
             StartingLongitude = tapRequest.Longitude,
@@ -622,6 +654,18 @@ public class TransactionService : ITransactionService
         });
 
         _tripRepository.SaveChanges();
+
+        var cardOwner = _cardService.GetUserByCardNumber(card.CardNumber);
+
+        if (cardOwner is not null)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = cardOwner.Id,
+                Title = "Trip Started",
+                Message = "Your trip has been started."
+            });
+        }
     }
 
     private Transaction AddBusFareTransaction(string transactionType,
@@ -797,6 +841,18 @@ public class TransactionService : ITransactionService
             UpdateCardAmount(card, model.Amount, TransactionOperation.Subtract);
             _settlementService
                 .SettleReturn(card, currentUser.OrganizationId, model.Amount, transaction.TransactionId);
+
+            var cardOwner = _cardService.GetUserByCardNumber(card.CardNumber);
+
+            if (cardOwner is not null)
+            {
+                _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+                {
+                    UserId = cardOwner.Id,
+                    Title = "Card Recharged Successfully",
+                    Message = $"Your card {card.CardNumber} has been successfully recharged with amount {model.Amount}."
+                });
+            }
 
             return new PayloadResponse()
             {

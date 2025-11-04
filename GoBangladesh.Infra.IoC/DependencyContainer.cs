@@ -49,6 +49,7 @@ namespace GoBangladesh.Infra.IoC
             services.AddHostedService<AutoTripCloseService>();
             services.AddHostedService<AutoPausedCardStatusChangeService>();
             services.AddHostedService<AutoInvoiceGenerator>();
+            services.AddScoped<INotificationService, NotificationService>();
         }
     }
 }

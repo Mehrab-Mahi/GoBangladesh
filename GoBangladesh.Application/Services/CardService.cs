@@ -891,4 +891,30 @@ public class CardService : ICardService
 
         return data;
     }
+
+    public User GetUserByCardNumber(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber))
+        {
+            return null;
+        }
+
+        var card = _cardRepository.GetConditional(c => c.CardNumber == cardNumber);
+
+        if(card == null)
+        {
+            return null;
+        }
+
+        var passengerId = _passengerCardMappingRepository.GetConditional(pcm => pcm.CardId == card.Id);
+
+        if(passengerId == null)
+        {
+            return null;
+        }
+
+        var user = _userRepository.GetConditional(u => u.Id == passengerId.UserId);
+
+        return user;
+    }
 }

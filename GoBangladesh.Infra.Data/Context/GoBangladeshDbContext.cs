@@ -38,6 +38,8 @@ namespace GoBangladesh.Infra.Data.Context
         public DbSet<Stoppage> Stoppages { get; set; }
         public DbSet<Promo> Promos { get; set; }
         public DbSet<PromoCard> PromoCards { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserNotification> UserNotifications { get; set; }
       
         protected override void OnModelCreating(ModelBuilder builder)
         {

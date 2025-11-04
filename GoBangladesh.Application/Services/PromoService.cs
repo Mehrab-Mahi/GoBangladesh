@@ -7,6 +7,8 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using GoBangladesh.Application.DTOs.Notification;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,13 +22,15 @@ public class PromoService : IPromoService
     private readonly IBaseRepository _baseRepository;
     private readonly ICardService _cardService;
     private readonly ICommonService _commonService;
+    private readonly INotificationService _notificationService;
 
     public PromoService(IRepository<Promo> promoRepository, 
         IRepository<PromoCard> promoCardRepository,
         ILoggedInUserService loggedInUserService,
         IBaseRepository baseRepository,
         ICardService cardService, 
-        ICommonService commonService)
+        ICommonService commonService,
+        INotificationService notificationService)
     {
         _promoRepository = promoRepository;
         _promoCardRepository = promoCardRepository;
@@ -34,6 +38,7 @@ public class PromoService : IPromoService
         _baseRepository = baseRepository;
         _cardService = cardService;
         _commonService = commonService;
+        _notificationService = notificationService;
     }
 
     public PayloadResponse PromoInsert(PromoCreationRequest model)
@@ -558,7 +563,7 @@ public class PromoService : IPromoService
             filters.Add($"Status = '{promo.CardStatus}'");
         }
 
-        var whereCondition = string.Join(" AND ", filters);
+        var whereCondition = filters.Any() ? $"WHERE {string.Join(" AND ", filters)}" : "";
 
         var status = promo.Status == PromoStatus.AvailableSoon ? PromoCardStatus.AvailableSoon : 
                 promo.Status == PromoStatus.Running ? PromoCardStatus.Available :
@@ -567,7 +572,7 @@ public class PromoService : IPromoService
         var query = @$"WITH card_data AS (
                             SELECT *
                             FROM Cards
-                            WHERE {whereCondition}
+                            {whereCondition}
                         )
                         INSERT INTO PromoCards (
                             Id,
@@ -597,6 +602,35 @@ public class PromoService : IPromoService
                         FROM card_data c;";
 
         _baseRepository.ExecuteQuery(query);
+
+        SendNotificationToCardOwners(whereCondition, promo);
+    }
+
+    private void SendNotificationToCardOwners(string whereCondition, Promo promo)
+    {
+        var query =
+            $"select UserId from PassengerCardMappings where CardId in (select Id from Cards {whereCondition});";
+
+        var userIds = _baseRepository.Query<string>(query).Distinct().ToList();
+
+        BackgroundJob.Enqueue(() => SendPromoNotifications(userIds, promo));
+    }
+
+    private void SendPromoNotifications(List<string> userIds, Promo promo)
+    {
+        var discountValue = promo.PromoType == "Percentage"
+            ? $"{promo.MaxDiscountAmount}"
+            : $"{promo.DiscountValue}";
+
+        foreach (var userId in userIds)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = userId,
+                Title = "New Promo Available!",
+                Message = $"A new promo '{promo.Code}' is now available for you. Enjoy up to {discountValue} bdt discount on your next rides. Hurry up, don't miss out!"
+            });
+        }
     }
 
     private bool IfDuplicateCode(string code)

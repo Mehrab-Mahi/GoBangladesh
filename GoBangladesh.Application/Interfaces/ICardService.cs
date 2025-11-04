@@ -30,4 +30,5 @@ public interface ICardService
     PayloadResponse GetCardDetailByCardNumberForReturn(string cardNumber);
     void UpdateCardPassengerStatus(string cardNumber, string status);
     List<Card> GetAllCardForByUserId(string userId);
+    User GetUserByCardNumber(string cardNumber);
 }
