@@ -16,4 +16,5 @@ public interface IPromoService
     PayloadResponse GetAll(PromoDataFilter filter);
     void UpdatePromoUsageAmount(string promoCardId, decimal promoAmount);
     PayloadResponse GetById(string id);
+    PayloadResponse GetUsedCardByPromoId(string id, int pageNo, int pageSize);
 }

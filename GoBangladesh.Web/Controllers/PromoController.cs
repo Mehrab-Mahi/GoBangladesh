@@ -54,4 +54,12 @@ public class PromoController : Controller
         var data = _promoService.GetById(id); 
         return Ok(new { data });
     }
+
+    [GoBangladeshAuth]
+    [HttpGet("getUsedCardByPromoId")]
+    public IActionResult GetUsedCardByPromoId(string id, int pageNo = 1, int pageSize = 10)
+    {
+        var data = _promoService.GetUsedCardByPromoId(id, pageNo, pageSize);
+        return Ok(new { data });
+    }
 }

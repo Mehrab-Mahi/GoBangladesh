@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace GoBangladesh.Application.Services;
 
@@ -293,7 +292,7 @@ public class PromoService : IPromoService
             .GetAll()
             .Include(pc => pc.Promo)
             .FirstOrDefault(pc => pc.CardId == cardId
-                                  && pc.Status == PromoCardStatus.Used
+                                  && pc.Status == PromoCardStatus.Applied
                                   && pc.Promo.Status == PromoStatus.Running);
 
         return existingPromoCard;
@@ -448,6 +447,61 @@ public class PromoService : IPromoService
                 Message = $"Failed to retrieve promo details because : {ex.Message}"
             };
         }
+    }
+
+    public PayloadResponse GetUsedCardByPromoId(string id, int pageNo, int pageSize)
+    {
+        var promo = _promoRepository.GetConditional(p => p.Id == id);
+
+        if (promo == null)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = "Promo not found"
+            };
+        }
+
+        var rowCount = GetUsedPromoCardRowCount(id);
+
+        var data = GetUsedPromoCardData(id, pageNo, pageSize);
+
+        return new PayloadResponse()
+        {
+            IsSuccess = true,
+            Message = "Used card details fetched successfully",
+            Content = new { data, rowCount }
+        };
+    }
+
+    private List<UsedPromoCard> GetUsedPromoCardData(string id, int pageNo, int pageSize)
+    {
+        var query = $@"select u.Name, c.CardNumber, pc.LastModifiedTime as UsedTime, pc.UsageAmount
+                    from PromoCards pc
+                             left join Cards c on pc.CardId = c.Id
+                             left join PassengerCardMappings pcm on c.Id = pcm.CardId
+                             left join Users u on pcm.UserId = u.Id
+                    where pc.PromoId = '{id}'
+                      and pc.Status = 'Used'
+                    ORDER BY pc.LastModifiedTime desc
+                    OFFSET ({pageNo} - 1) * {pageSize} ROWS
+                    FETCH NEXT {pageSize} ROWS ONLY";
+
+        var result = _baseRepository.Query<UsedPromoCard>(query).ToList();
+
+        return result;
+    }
+
+    private int GetUsedPromoCardRowCount(string id)
+    {
+        var query = $@"select count(pc.Id)
+                    from PromoCards pc
+                    where pc.PromoId = '{id}'
+                      and pc.Status = 'Used';";
+
+        var result = _baseRepository.Query<int>(query).FirstOrDefault();
+
+        return result;
     }
 
     public void ActivatePromo(Promo promo)
