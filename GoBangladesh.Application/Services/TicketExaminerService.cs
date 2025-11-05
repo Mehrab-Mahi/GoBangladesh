@@ -1,15 +1,17 @@
-﻿using GoBangladesh.Application.DTOs.TicketChecker;
+﻿using GoBangladesh.Application.DTOs.Notification;
+using GoBangladesh.Application.DTOs.Staff;
+using GoBangladesh.Application.DTOs.TicketChecker;
+using GoBangladesh.Application.DTOs.Transaction;
 using GoBangladesh.Application.Interfaces;
+using GoBangladesh.Application.Util;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
-using System;
-using System.Linq;
-using GoBangladesh.Application.Util;
-using GoBangladesh.Application.DTOs.Staff;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using GoBangladesh.Application.DTOs.Transaction;
+using System.Linq;
 
 namespace GoBangladesh.Application.Services;
 
@@ -23,6 +25,7 @@ public class TicketExaminerService : ITicketExaminerService
     private readonly ICardService _cardService;
     private readonly ITransactionService _transactionService;
     private readonly IBaseRepository _baseRepository;
+    private readonly INotificationService _notificationService;
 
     public TicketExaminerService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
@@ -31,7 +34,8 @@ public class TicketExaminerService : ITicketExaminerService
         ICardService cardService,
         IRepository<Session> sessionRepository,
         ITransactionService transactionService,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        INotificationService notificationService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
@@ -41,6 +45,7 @@ public class TicketExaminerService : ITicketExaminerService
         _sessionRepository = sessionRepository;
         _transactionService = transactionService;
         _baseRepository = baseRepository;
+        _notificationService = notificationService;
     }
 
     public PayloadResponse TicketCheckerCreate(TicketCheckerCreateRequest user)
@@ -89,6 +94,10 @@ public class TicketExaminerService : ITicketExaminerService
             _userRepository.InsertWithUserData(model);
             _userRepository.SaveChanges();
 
+            var adminList = _commonService.GetAdminListByOrganizationId(user.OrganizationId);
+
+            SendTicketExaminerCreationNotificationToAdmins(adminList, model, currentUser);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -106,6 +115,19 @@ public class TicketExaminerService : ITicketExaminerService
                 Content = null,
                 Message = $"Ticket Checker Creation become unsuccessful because {ex.Message}"
             };
+        }
+    }
+
+    private void SendTicketExaminerCreationNotificationToAdmins(List<User> adminList, User ticketExaminer, User currentUser)
+    {
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Ticket Examiner Created",
+                Message = $"A new ticket examiner - {ticketExaminer.Name} has been created with mobile number {ticketExaminer.MobileNumber} and code {ticketExaminer.Code} by {currentUser.Name}."
+            });
         }
     }
 

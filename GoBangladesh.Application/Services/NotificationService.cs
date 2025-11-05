@@ -54,8 +54,7 @@ public class NotificationService : INotificationService
             Message = model.Message,
             OrganizationId = string.IsNullOrEmpty(model.OrganizationId) ?
                 currentUser.OrganizationId : model.OrganizationId,
-            BannerUrl = model.Banner == null ? null : GetBannerUrl(model.Banner),
-            CardStatus = model.CardStatus
+            BannerUrl = model.Banner == null ? null : GetBannerUrl(model.Banner)
         };
 
         _notificationRepository.Insert(notification);
@@ -137,9 +136,9 @@ public class NotificationService : INotificationService
         };
     }
 
-    private async Task SaveAndSendNotificationToCardsAsync(Notification notification, User currentUser)
+    private Task SaveAndSendNotificationToCardsAsync(Notification notification, User currentUser)
     {
-        var organizationId = string.IsNullOrEmpty(notification.OrganizationId) ?
+        notification.OrganizationId = string.IsNullOrEmpty(notification.OrganizationId) ?
             currentUser.Id : notification.OrganizationId;
 
         var filters = new List<string>();
@@ -147,11 +146,6 @@ public class NotificationService : INotificationService
         if (!string.IsNullOrEmpty(notification.OrganizationId))
         {
             filters.Add($"u.OrganizationId = '{notification.OrganizationId}'");
-        }
-
-        if (!string.IsNullOrEmpty(notification.CardStatus))
-        {
-            filters.Add($"c.Status = '{notification.CardStatus}'");
         }
 
         var whereCondition =filters.Any() ? $"WHERE {string.Join(" AND ", filters)}" : "";
@@ -190,6 +184,7 @@ public class NotificationService : INotificationService
                     FROM user_data u;";
 
         _baseRepository.ExecuteQuery(query);
+        return Task.CompletedTask;
     }
 
     private string GetBannerUrl(IFormFile banner)

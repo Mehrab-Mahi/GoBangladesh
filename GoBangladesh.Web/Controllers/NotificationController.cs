@@ -28,7 +28,7 @@ public class NotificationController : Controller
     public IActionResult GetUserNotifications(string cardNumber, int pageNo = 1, int pageSize = 10)
     {
         var data = _notificationService.GetCardNotifications(cardNumber, pageNo, pageSize);
-        return Ok(new { });
+        return Ok(new { data });
     }
 
     [HttpPost("markAsRead")]

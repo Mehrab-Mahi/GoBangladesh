@@ -126,6 +126,10 @@ public class PromoService : IPromoService
                 BackgroundJob.Schedule(() => ExpirePromo(promo), delayUntilEnd);
             }
 
+            var adminList = _commonService.GetAdminListByOrganizationId(promo.OrganizationId);
+
+            SendPromoCreationNotificationToAdmins(adminList, model);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -139,6 +143,21 @@ public class PromoService : IPromoService
                 IsSuccess = false,
                 Message = $"Promo creation failed because : {ex.Message}"
             };
+        }
+    }
+
+    private void SendPromoCreationNotificationToAdmins(List<User> adminList, PromoCreationRequest model)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Promo Created",
+                Message = $"A new promo '{model.Code}' has been created by {currentUser.Name}. Promo is set to start from {model.StartTime} to {model.EndTime}."
+            });
         }
     }
 
@@ -534,7 +553,7 @@ public class PromoService : IPromoService
                        SET Status = '{PromoCardStatus.Expired}',
                            LastModifiedTime = GETUTCDATE()
                        WHERE PromoId = '{promo.Id}' 
-                         AND Status IN ('{PromoCardStatus.Available}', '{PromoCardStatus.AvailableSoon}');";
+                         AND Status IN ('{PromoCardStatus.Available}', '{PromoCardStatus.AvailableSoon}', '{PromoCardStatus.Applied}');";
 
         _baseRepository.ExecuteQuery(query);
     }

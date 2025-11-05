@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GoBangladesh.Application.DTOs.Notification;
 
 namespace GoBangladesh.Application.Services;
 
@@ -18,15 +19,19 @@ public class AgentService : IAgentService
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
     private readonly IBaseRepository _baseRepository;
+    private readonly INotificationService _notificationService;
 
     public AgentService(IRepository<User> userRepository,
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService, IBaseRepository baseRepository)
+        ICommonService commonService,
+        IBaseRepository baseRepository,
+        INotificationService notificationService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
         _baseRepository = baseRepository;
+        _notificationService = notificationService;
     }
     public PayloadResponse AgentInsert(AgentCreateRequest user)
     {
@@ -74,6 +79,10 @@ public class AgentService : IAgentService
             _userRepository.InsertWithUserData(model);
             _userRepository.SaveChanges();
 
+            var adminList = _commonService.GetAdminListByOrganizationId(user.OrganizationId);
+
+            SendAgentCreationNotificationToAdmins(adminList, model, currentUser);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -91,6 +100,19 @@ public class AgentService : IAgentService
                 Content = null,
                 Message = $"Agent Creation become unsuccessful because {ex.Message}"
             };
+        }
+    }
+
+    private void SendAgentCreationNotificationToAdmins(List<User> adminList, User agent, User currentUser)
+    {
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Agent Created",
+                Message = $"A new agent - {agent.Name} has been created with mobile number {agent.MobileNumber} and code {agent.Code} by {currentUser.Name}."
+            });
         }
     }
 

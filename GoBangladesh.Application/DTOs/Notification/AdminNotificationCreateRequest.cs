@@ -8,5 +8,4 @@ public class AdminNotificationCreateRequest
     public string Message { get; set; }
     public string OrganizationId { get; set; }
     public IFormFile Banner { get; set; }
-    public string CardStatus { get; set; }
 }

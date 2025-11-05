@@ -6,6 +6,7 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GoBangladesh.Application.DTOs.Notification;
 
 namespace GoBangladesh.Application.Services;
 
@@ -14,14 +15,20 @@ public class InvoiceService : IInvoiceService
     private readonly IRepository<Organization> _organizationRepository;
     private readonly IRepository<Invoice> _invoiceRepository;
     private readonly IBaseRepository _baseRepository;
+    private readonly IRepository<User> _userRepository; 
+    private readonly INotificationService _notificationService;
 
     public InvoiceService(IRepository<Organization> organizationRepository,
         IRepository<Invoice> invoiceRepository,
-        IBaseRepository baseRepository)
+        IBaseRepository baseRepository,
+        IRepository<User> userRepository, 
+        INotificationService notificationService)
     {
         _organizationRepository = organizationRepository;
         _invoiceRepository = invoiceRepository;
         _baseRepository = baseRepository;
+        _userRepository = userRepository;
+        _notificationService = notificationService;
     }
 
     public void GenerateWeeklyInvoices(DateTimeOffset date, DateTimeOffset localTime)
@@ -32,9 +39,10 @@ public class InvoiceService : IInvoiceService
 
         foreach (var settlement in allSettlementData)
         {
-            var organization = allOrganizationList.FirstOrDefault(o => o.Id == settlement.SenderOrganizationId);
+            var senderOrganization = allOrganizationList.FirstOrDefault(o => o.Id == settlement.SenderOrganizationId);
+            var receiverOrganization = allOrganizationList.FirstOrDefault(o => o.Id == settlement.ReceiverOrganizationId);
 
-            var invoiceNumber = GetNewInvoiceNumber(organization, date);
+            var invoiceNumber = GetNewInvoiceNumber(senderOrganization, date);
 
             _invoiceRepository.Insert(new Invoice()
             {
@@ -51,9 +59,42 @@ public class InvoiceService : IInvoiceService
                 settlement.SenderOrganizationId,
                 settlement.ReceiverOrganizationId,
                 date);
+
+            SendNotificationToTheOrganizationAdmins(invoiceNumber, settlement.TotalAmount, senderOrganization, receiverOrganization);
         }
 
         _invoiceRepository.SaveChanges();
+    }
+
+    private void SendNotificationToTheOrganizationAdmins(string invoiceNumber, decimal totalAmount, Organization senderOrganization, Organization receiverOrganization)
+    {
+        var senderAdmins = _userRepository
+            .GetAll()
+            .Where(u => u.OrganizationId == senderOrganization.Id && u.UserType == UserTypes.Admin)
+            .ToList();
+        var receiverAdmins = _userRepository
+            .GetAll()
+            .Where(u => u.OrganizationId == receiverOrganization.Id && u.UserType == UserTypes.Admin)
+            .ToList();
+        
+        foreach (var admin in senderAdmins)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Payable Invoice Generated",
+                Message = $"A new payable invoice - {invoiceNumber} of amount {totalAmount} has been generated which needs to pay to {receiverOrganization.Name}"
+            });
+        }
+        foreach (var admin in receiverAdmins)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Receivable Invoice Generated",
+                Message = $"A new receivable invoice - {invoiceNumber} of amount {totalAmount} has been generated which will be received from {senderOrganization.Name}"
+            });
+        }
     }
 
     private void UpdateSettlementTransactionDataForNewlyGeneratedInvoice(string invoiceNumber, string fromOrganizationId, string toOrganizationId, DateTimeOffset date)

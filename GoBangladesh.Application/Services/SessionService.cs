@@ -10,8 +10,10 @@ using GoBangladesh.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using GoBangladesh.Application.DTOs.Notification;
 using Microsoft.Extensions.Options;
 
 namespace GoBangladesh.Application.Services;
@@ -26,6 +28,8 @@ public class SessionService : ISessionService
     private readonly ITransactionService _transactionService;
     private readonly IRepository<Bus> _busRepository;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
+    private readonly ICommonService _commonService;
+    private readonly INotificationService _notificationService;
 
     public SessionService(ILoggedInUserService loggedInUserService,
         IRepository<Session> sessionRepository, 
@@ -34,7 +38,9 @@ public class SessionService : ISessionService
         IBaseRepository baseRepository,
         ITransactionService transactionService,
         IRepository<Bus> busRepository,
-        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings, 
+        ICommonService commonService,
+        INotificationService notificationService)
     {
         _loggedInUserService = loggedInUserService;
         _sessionRepository = sessionRepository;
@@ -43,6 +49,8 @@ public class SessionService : ISessionService
         _baseRepository = baseRepository;
         _transactionService = transactionService;
         _busRepository = busRepository;
+        _commonService = commonService;
+        _notificationService = notificationService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -90,6 +98,10 @@ public class SessionService : ISessionService
             _sessionRepository.Insert(session);
             _sessionRepository.SaveChanges();
 
+            var bus = _busRepository.GetConditional(b => b.Id == sessionStartDto.BusId);
+            var adminList = _commonService.GetAdminListByOrganizationId(bus.OrganizationId);
+            SendSessionStartNotificationToAdmins(adminList, bus, session);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -106,6 +118,21 @@ public class SessionService : ISessionService
                 PayloadType = "Staff Bus Mapping",
                 Message = $"Staff bus mapping failed because {ex.Message}"
             };
+        }
+    }
+
+    private void SendSessionStartNotificationToAdmins(List<User> adminList, Bus bus, Session session)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Session Started",
+                Message = $"A new session {session.SessionCode} has been started on bus {bus.BusNumber} by {currentUser.Name}, Mobile No - {currentUser.MobileNumber}."
+            });
         }
     }
 
@@ -166,6 +193,10 @@ public class SessionService : ISessionService
 
             ForceStopTripsLinkedWithSession(session, sessionStopDto.TripClosingType);
 
+            var bus = _busRepository.GetConditional(b => b.Id == session.BusId);
+            var adminList = _commonService.GetAdminListByOrganizationId(bus.OrganizationId);
+            SendSessionStopNotificationToAdmins(adminList, bus, session);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -179,6 +210,21 @@ public class SessionService : ISessionService
                 IsSuccess = false,
                 Message = $"Session stop failed because {ex.Message}"
             };
+        }
+    }
+
+    private void SendSessionStopNotificationToAdmins(List<User> adminList, Bus bus, Session session)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "Session Stopped",
+                Message = $"The session {session.SessionCode} on bus {bus.BusNumber} has been stopped by {currentUser.Name}, Mobile No - {currentUser.MobileNumber}."
+            });
         }
     }
 

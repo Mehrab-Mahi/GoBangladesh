@@ -1,4 +1,5 @@
-﻿using GoBangladesh.Application.DTOs.Staff;
+﻿using GoBangladesh.Application.DTOs.Notification;
+using GoBangladesh.Application.DTOs.Staff;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
@@ -15,14 +16,17 @@ public class StaffService : IStaffService
     private readonly IRepository<User> _userRepository;
     private readonly ILoggedInUserService _loggedInUserService;
     private readonly ICommonService _commonService;
+    private readonly INotificationService _notificationService;
 
     public StaffService(IRepository<User> userRepository, 
         ILoggedInUserService loggedInUserService,
-        ICommonService commonService)
+        ICommonService commonService,
+        INotificationService notificationService)
     {
         _userRepository = userRepository;
         _loggedInUserService = loggedInUserService;
         _commonService = commonService;
+        _notificationService = notificationService;
     }
 
     public PayloadResponse StaffInsert(StaffCreateRequest user)
@@ -72,6 +76,10 @@ public class StaffService : IStaffService
             _userRepository.InsertWithUserData(model);
             _userRepository.SaveChanges();
 
+            var adminList = _commonService.GetAdminListByOrganizationId(user.OrganizationId);
+
+            SendStaffCreationNotificationToAdmins(adminList, model, currentUser);
+
             return new PayloadResponse
             {
                 IsSuccess = true,
@@ -89,6 +97,19 @@ public class StaffService : IStaffService
                 Content = null,
                 Message = $"Staff Creation become unsuccessful because {ex.Message}"
             };
+        }
+    }
+
+    private void SendStaffCreationNotificationToAdmins(List<User> adminList, User staff, User currentUser)
+    {
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Staff Created",
+                Message = $"A new staff - {staff.Name} has been created with mobile number {staff.MobileNumber} and code {staff.Code} by {currentUser.Name}."
+            });
         }
     }
 

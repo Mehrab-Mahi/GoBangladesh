@@ -1,13 +1,14 @@
-﻿using GoBangladesh.Application.DTOs.Bus;
+﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.DTOs.Bus;
+using GoBangladesh.Application.DTOs.Notification;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
 using GoBangladesh.Domain.Entities;
 using GoBangladesh.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GoBangladesh.Application.DTOs;
-using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
 
@@ -21,6 +22,7 @@ public class BusService : IBusService
     private readonly IBaseRepository _baseRepository;
     private readonly ISessionService _sessionService;
     private readonly IRepository<SystemSetting> _systemSettingRepository;
+    private readonly INotificationService _notificationService;
 
     public BusService(IRepository<Bus> busRepository,
         ILoggedInUserService loggedInUserService,
@@ -29,7 +31,8 @@ public class BusService : IBusService
         IBaseRepository baseRepository,
         IRepository<Route> routeRepository,
         ISessionService sessionService,
-        IRepository<SystemSetting> systemSettingRepository)
+        IRepository<SystemSetting> systemSettingRepository,
+        INotificationService notificationService)
     {
         _busRepository = busRepository;
         _loggedInUserService = loggedInUserService;
@@ -39,6 +42,7 @@ public class BusService : IBusService
         _routeRepository = routeRepository;
         _sessionService = sessionService;
         _systemSettingRepository = systemSettingRepository;
+        _notificationService = notificationService;
     }
 
     public PayloadResponse BusInsert(BusCreateRequest model)
@@ -66,6 +70,10 @@ public class BusService : IBusService
             _busRepository.Insert(bus);
             _busRepository.SaveChanges();
 
+            var adminList = _commonService.GetAdminListByOrganizationId(bus.OrganizationId);
+
+            SendBusCreationNotificationToAdmins(adminList, bus);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -81,6 +89,21 @@ public class BusService : IBusService
                 PayloadType = "Bus",
                 Message = $"Bus creation is failed because {ex.Message}!"
             };
+        }
+    }
+
+    private void SendBusCreationNotificationToAdmins(List<User> adminList, Bus bus)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Bus Created",
+                Message = $"A new bus with number {bus.BusNumber} has been created by {currentUser.Name}."
+            });
         }
     }
 
@@ -386,6 +409,8 @@ public class BusService : IBusService
             _busRepository.Update(bus);
             _busRepository.SaveChanges();
 
+            SendNotificationIfBusIsNotInRoute(bus, locationData);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -401,6 +426,38 @@ public class BusService : IBusService
                 PayloadType = "Bus",
                 Message = $"Bus location update failed because {ex.Message}!"
             };
+        }
+    }
+
+    private void SendNotificationIfBusIsNotInRoute(Bus bus, LocationUpdateDto locationData)
+    {
+        var query = $@"SELECT 
+                            RoutePath.STDistance(geography::Point({double.Parse(locationData.Latitude)}, {double.Parse(locationData.Longitude)}, 4326)) AS DistanceMeters
+                        FROM Routes
+                        WHERE Id = '{bus.RouteId}';";
+
+        var distance = _baseRepository.Query<double?>(query).FirstOrDefault();
+
+        if (distance is null)
+        {
+            return ;
+        }
+
+        var minimumDistanceToCheck = _systemSettingRepository.GetAll().FirstOrDefault()!.MinimumDistanceInMeterFromRoute;
+
+        if (distance > minimumDistanceToCheck)
+        {
+            var adminList = _commonService.GetAdminListByOrganizationId(bus.OrganizationId);
+
+            foreach (var admin in adminList)
+            {
+                _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+                {
+                    UserId = admin.Id,
+                    Title = "Bus is out of route alert",
+                    Message = $"The bus with number {bus.BusNumber} is out of its designated route."
+                });
+            }
         }
     }
 

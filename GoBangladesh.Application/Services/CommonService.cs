@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using GoBangladesh.Application.DTOs.Dashboard;
 using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.Util;
 
 namespace GoBangladesh.Application.Services
 {
@@ -16,13 +17,16 @@ namespace GoBangladesh.Application.Services
         private readonly IRepository<Entity> _repo;
         private readonly IFileService _fileService;
         private readonly IBaseRepository _baseRepository;
+        private readonly IRepository<User> _userRepository;
         public CommonService(IRepository<Entity> repo, 
             IFileService fileService,
-            IBaseRepository baseRepository)
+            IBaseRepository baseRepository, 
+            IRepository<User> userRepository)
         {
             _repo = repo;
             _fileService = fileService;
             _baseRepository = baseRepository;
+            _userRepository = userRepository;
         }
         public bool Delete(string id, string table)
         {
@@ -185,6 +189,17 @@ namespace GoBangladesh.Application.Services
             }
 
             return string.Join(",", uploadedFilePaths);
+        }
+
+        public List<User> GetAdminListByOrganizationId(string organizationId)
+        {
+            if (string.IsNullOrEmpty(organizationId)) return new List<User>();
+
+            var adminList = _userRepository.GetConditionalList(u =>
+                    u.OrganizationId == organizationId &&
+                    u.UserType == UserTypes.Admin)
+                .ToList();
+            return adminList;
         }
 
         private string GetFileName(string fileName)

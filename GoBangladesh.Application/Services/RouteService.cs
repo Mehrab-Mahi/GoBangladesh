@@ -1,4 +1,5 @@
 ﻿using GoBangladesh.Application.DTOs;
+using GoBangladesh.Application.DTOs.Notification;
 using GoBangladesh.Application.DTOs.Route;
 using GoBangladesh.Application.Interfaces;
 using GoBangladesh.Application.ViewModels;
@@ -28,6 +29,7 @@ public class RouteService : IRouteService
     private readonly IRepository<Stoppage> _stoppageRepository;
     private readonly HttpClient _httpClient;
     private readonly DistanceMatrixApiSettings _distanceMatrixApiSettings;
+    private readonly INotificationService _notificationService;
 
     public RouteService(IRepository<Route> routeRepository,
         ILoggedInUserService loggedInUserService,
@@ -37,7 +39,8 @@ public class RouteService : IRouteService
         IBaseRepository baseRepository,
         IRepository<Stoppage> stoppageRepository,
         HttpClient httpClient,
-        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings)
+        IOptions<DistanceMatrixApiSettings> distanceMatrixApiSettings,
+        INotificationService notificationService)
     {
         _routeRepository = routeRepository;
         _loggedInUserService = loggedInUserService;
@@ -47,6 +50,7 @@ public class RouteService : IRouteService
         _baseRepository = baseRepository;
         _stoppageRepository = stoppageRepository;
         _httpClient = httpClient;
+        _notificationService = notificationService;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -90,6 +94,10 @@ public class RouteService : IRouteService
                 UpdateRouteStoppageList(route.Id, model.StoppageList);
             }
 
+            var adminList = _commonService.GetAdminListByOrganizationId(route.OrganizationId);
+
+            SendRouteCreationNotificationToAdmins(adminList, route);
+
             return new PayloadResponse()
             {
                 IsSuccess = true,
@@ -105,6 +113,21 @@ public class RouteService : IRouteService
                 PayloadType = "Route",
                 Message = $"Route creation is failed because {ex.Message}!"
             };
+        }
+    }
+
+    private void SendRouteCreationNotificationToAdmins(List<User> adminList, Route route)
+    {
+        var currentUser = _loggedInUserService.GetLoggedInUser();
+
+        foreach (var admin in adminList)
+        {
+            _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+            {
+                UserId = admin.Id,
+                Title = "New Route Created",
+                Message = $"A new route from {route.TripStartPlace} to {route.TripEndPlace} has been created by {currentUser.Name}."
+            });
         }
     }
 
