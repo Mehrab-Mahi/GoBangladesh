@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GoBangladesh.Domain.Entities;
 
@@ -16,4 +17,6 @@ public class Promo : Entity
     public string PassengerStatus { get; set; }
     public string CardStatus { get; set; }
     public int MaxUsagePerCard { get; set; } = 1;
+    [ForeignKey("OrganizationId")]
+    public Organization Organization { get; set; }
 }

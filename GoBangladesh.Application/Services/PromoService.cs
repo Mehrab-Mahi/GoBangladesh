@@ -7,7 +7,6 @@ using GoBangladesh.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using GoBangladesh.Application.DTOs.Notification;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +22,7 @@ public class PromoService : IPromoService
     private readonly ICardService _cardService;
     private readonly ICommonService _commonService;
     private readonly INotificationService _notificationService;
+    private readonly IRepository<Organization> _organizationRepository;
 
     public PromoService(IRepository<Promo> promoRepository, 
         IRepository<PromoCard> promoCardRepository,
@@ -30,7 +30,8 @@ public class PromoService : IPromoService
         IBaseRepository baseRepository,
         ICardService cardService, 
         ICommonService commonService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IRepository<Organization> organizationRepository)
     {
         _promoRepository = promoRepository;
         _promoCardRepository = promoCardRepository;
@@ -39,6 +40,7 @@ public class PromoService : IPromoService
         _cardService = cardService;
         _commonService = commonService;
         _notificationService = notificationService;
+        _organizationRepository = organizationRepository;
     }
 
     public PayloadResponse PromoInsert(PromoCreationRequest model)
@@ -371,7 +373,13 @@ public class PromoService : IPromoService
 
             var rowCount = _commonService.GetRowCountForData("Promos", whereCondition);
 
-            var finalQueryData = _commonService.GetFinalData<Promo>("Promos", whereCondition, extraCondition);
+            var promoIds = _commonService.GetFinalData<Promo>("Promos", whereCondition, extraCondition).Select(p => p.Id);
+
+            var finalQueryData = _promoRepository
+                .GetAll()
+                .Where(p => promoIds.Contains(p.Id))
+                .Include(p => p.Organization)
+                .ToList();
 
             return new PayloadResponse()
             {
@@ -455,6 +463,14 @@ public class PromoService : IPromoService
                         p.CreateTime, p.LastModifiedTime, p.CreatedBy, p.LastModifiedBy, p.IsDeleted;";
 
             var promoDetails = _baseRepository.Query<PromoDataDto>(query).FirstOrDefault();
+
+            var organization = _organizationRepository
+                .GetConditional(o => o.Id == promoDetails.OrganizationId);
+
+            if (organization != null && promoDetails != null)
+            {
+                promoDetails.Organization = organization;
+            }
 
             return new PayloadResponse
             {

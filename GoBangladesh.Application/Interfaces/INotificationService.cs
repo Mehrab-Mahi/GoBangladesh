@@ -10,4 +10,5 @@ public interface INotificationService
     void InsertEventNotification(EventNotificationCreateRequest model);
     PayloadResponse GetCardNotifications(string cardNumber, int pageNo, int pageSize);
     PayloadResponse MarkNotificationsAsRead(MarkAsReadRequest model);
+    PayloadResponse GetAll(NotificationDataFilter filter);
 }

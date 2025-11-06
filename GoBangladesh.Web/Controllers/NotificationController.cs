@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
-using GoBangladesh.Application.DTOs.Notification;
+﻿using GoBangladesh.Application.DTOs.Notification;
 using GoBangladesh.Application.Helper;
 using GoBangladesh.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace GoBangladesh.Web.Controllers;
 
@@ -35,6 +35,14 @@ public class NotificationController : Controller
     public IActionResult MarkNotificationsAsRead([FromBody] MarkAsReadRequest model)
     {
         var data = _notificationService.MarkNotificationsAsRead(model);
+        return Ok(new { data });
+    }
+
+    [GoBangladeshAuth]
+    [HttpPost("getAll")]
+    public IActionResult GetAll([FromBody] NotificationDataFilter filter)
+    {
+        var data = _notificationService.GetAll(filter);
         return Ok(new { data });
     }
 }

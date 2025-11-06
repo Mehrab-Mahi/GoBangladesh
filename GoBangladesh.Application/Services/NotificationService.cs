@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoBangladesh.Application.Services;
 
@@ -134,6 +135,80 @@ public class NotificationService : INotificationService
             IsSuccess = true,
             Message = "Card notification marked as read successfully."
         };
+    }
+
+    public PayloadResponse GetAll(NotificationDataFilter filter)
+    {
+        try
+        {
+            var currentUser = _loggedInUserService
+                .GetLoggedInUser();
+
+            if (currentUser == null)
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    Message = "User not found"
+                };
+            }
+
+            var condition = new List<string>();
+            var extraCondition = $@"ORDER BY CreateTime desc
+                                    OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
+                                    FETCH NEXT {filter.PageSize} ROWS ONLY";
+
+            if (!currentUser.IsSuperAdmin)
+            {
+                if (string.IsNullOrEmpty(currentUser.OrganizationId))
+                {
+                    return new PayloadResponse()
+                    {
+                        IsSuccess = false,
+                        Message = "Current User is not associated with any organization!"
+                    };
+                }
+
+                filter.OrganizationId = currentUser.OrganizationId;
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchQuery))
+            {
+                condition.Add($" (Title like '%{filter.SearchQuery}%' or Message like '%{filter.SearchQuery}%') ");
+            }
+
+            if (!string.IsNullOrEmpty(filter.OrganizationId))
+            {
+                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+            }
+
+            var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
+
+            var rowCount = _commonService.GetRowCountForData("Notifications", whereCondition);
+
+            var promoIds = _commonService.GetFinalData<Notification>("Notifications", whereCondition, extraCondition).Select(p => p.Id);
+
+            var finalQueryData = _notificationRepository
+                .GetAll()
+                .Where(p => promoIds.Contains(p.Id))
+                .Include(p => p.Organization)
+                .ToList();
+
+            return new PayloadResponse()
+            {
+                IsSuccess = true,
+                Content = new { data = finalQueryData, rowCount },
+                Message = "Notification data fetch is successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse()
+            {
+                IsSuccess = false,
+                Message = $"Promo fetching is failed because {ex.Message}!"
+            };
+        }
     }
 
     private Task SaveAndSendNotificationToCardsAsync(Notification notification, User currentUser)
