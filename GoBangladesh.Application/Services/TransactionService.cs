@@ -28,6 +28,7 @@ public class TransactionService : ITransactionService
     private readonly IPromoService _promoService;
     private readonly INotificationService _notificationService;
     private readonly ICardService _cardService;
+    private readonly IRepository<PassengerCardMapping> _passengerCardMappingRepository;
 
     public TransactionService(IRepository<Transaction> transactionRepository,
         ILoggedInUserService loggedInUserService, 
@@ -38,7 +39,8 @@ public class TransactionService : ITransactionService
         ISettlementTransactionService settlementService,
         IPromoService promoService,
         INotificationService notificationService,
-        ICardService cardService)
+        ICardService cardService,
+        IRepository<PassengerCardMapping> passengerCardMappingRepository)
     {
         _transactionRepository = transactionRepository;
         _loggedInUserService = loggedInUserService;
@@ -49,6 +51,7 @@ public class TransactionService : ITransactionService
         _promoService = promoService;
         _notificationService = notificationService;
         _cardService = cardService;
+        _passengerCardMappingRepository = passengerCardMappingRepository;
         _distanceMatrixApiSettings = distanceMatrixApiSettings.Value;
     }
 
@@ -547,11 +550,23 @@ public class TransactionService : ITransactionService
 
         var promoCard = GetAvailablePromo(trip.CardId);
 
+        var passengerCardMapping = _passengerCardMappingRepository.GetConditional(pcm => pcm.CardId == trip.CardId);
+
         if (promoCard != null)
         {
             promoAmount = _promoService.GetPromoAmount(promoCard, fare);
             fare -= promoAmount;
             _promoService.MarkPromoAsUsedAndUpdateUsageAmount(promoCard, promoAmount);
+
+            if (passengerCardMapping is not null)
+            {
+                _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
+                {
+                    UserId = passengerCardMapping.UserId,
+                    Title = "Promo Used",
+                    Message = $"A promo of amount {promoAmount} has been applied to your trip fare."
+                });
+            }
         }
 
         return new TripFareDistanceDto()
