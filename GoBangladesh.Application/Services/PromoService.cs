@@ -102,7 +102,7 @@ public class PromoService : IPromoService
             {
                 promo.Status = PromoStatus.Expired;
             }
-            else if (promo.StartTime.AddHours(-6) > DateTime.UtcNow)
+            else if (promo.StartTime > DateTime.UtcNow)
             {
                 promo.Status = PromoStatus.AvailableSoon;
             }
@@ -634,7 +634,7 @@ public class PromoService : IPromoService
         SendNotificationToCardOwners(whereCondition, promo);
     }
 
-    private void SendNotificationToCardOwners(string whereCondition, Promo promo)
+    public void SendNotificationToCardOwners(string whereCondition, Promo promo)
     {
         var query =
             $"select UserId from PassengerCardMappings where CardId in (select Id from Cards {whereCondition});";
