@@ -10,8 +10,8 @@ public interface IPromoService
     PayloadResponse GetUserPromo(string status, int pageNo, int pageSize);
     PayloadResponse ApplyPromo(ApplyPromoRequest applyPromoRequest);
     bool IfAnyPromoAvailableByCardId(string cardId);
-    decimal GetPromoAmountByCardId(string cardId, decimal fare);
-    void MarkPromoAsUsedByCardId(string cardId);
+    decimal GetPromoAmount(PromoCard promoCard, decimal fare);
+    void MarkPromoAsUsedAndUpdateUsageAmount(PromoCard promoCard, decimal promoAmount);
     PromoCard GetPromoCardByCardId(string cardId);
     PayloadResponse GetAll(PromoDataFilter filter);
     void UpdatePromoUsageAmount(string promoCardId, decimal promoAmount);

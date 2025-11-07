@@ -549,10 +549,9 @@ public class TransactionService : ITransactionService
 
         if (promoCard != null)
         {
-            promoAmount = _promoService.GetPromoAmountByCardId(trip.CardId, fare);
+            promoAmount = _promoService.GetPromoAmount(promoCard, fare);
             fare -= promoAmount;
-            _promoService.MarkPromoAsUsedByCardId(trip.CardId);
-            _promoService.UpdatePromoUsageAmount(promoCard.Id, promoAmount);
+            _promoService.MarkPromoAsUsedAndUpdateUsageAmount(promoCard, promoAmount);
         }
 
         return new TripFareDistanceDto()

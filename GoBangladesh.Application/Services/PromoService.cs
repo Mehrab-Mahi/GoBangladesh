@@ -274,18 +274,9 @@ public class PromoService : IPromoService
         return existingPromoCard != null;
     }
 
-    public decimal GetPromoAmountByCardId(string cardId, decimal fare)
+    public decimal GetPromoAmount(PromoCard promoCard, decimal fare)
     {
-        var existingPromoCard = _promoCardRepository
-            .GetAll()
-            .Include(pc => pc.Promo)
-            .FirstOrDefault(pc => pc.CardId == cardId
-                                  && pc.Status == PromoCardStatus.Applied
-                                  && pc.Promo.Status == PromoStatus.Running);
-
-        if (existingPromoCard == null) return 0;
-
-        var promo = existingPromoCard.Promo;
+        var promo = promoCard.Promo;
 
         if(promo.PromoType == "Percentage")
         {
@@ -301,21 +292,13 @@ public class PromoService : IPromoService
         return 0;
     }
 
-    public void MarkPromoAsUsedByCardId(string cardId)
+    public void MarkPromoAsUsedAndUpdateUsageAmount(PromoCard promoCard, decimal promoAmount)
     {
-        var existingPromoCard = _promoCardRepository
-            .GetAll()
-            .Include(pc => pc.Promo)
-            .FirstOrDefault(pc => pc.CardId == cardId
-                                  && pc.Status == PromoCardStatus.Applied
-                                  && pc.Promo.Status == PromoStatus.Running);
-
-        if (existingPromoCard == null) return;
-
-        existingPromoCard.UsageCount += 1;
-        existingPromoCard.Status = PromoCardStatus.Used;
-        existingPromoCard.UsageDate = DateTime.UtcNow;
-        _promoCardRepository.Update(existingPromoCard);
+        promoCard.UsageCount += 1;
+        promoCard.Status = PromoCardStatus.Used;
+        promoCard.UsageDate = DateTime.UtcNow;
+        promoCard.UsageAmount += promoAmount;
+        _promoCardRepository.Update(promoCard);
         _promoCardRepository.SaveChanges();
     }
 
