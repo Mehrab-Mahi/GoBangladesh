@@ -849,8 +849,8 @@ public class TransactionService : ITransactionService
                 _notificationService.InsertEventNotification(new EventNotificationCreateRequest()
                 {
                     UserId = cardOwner.Id,
-                    Title = "Card Recharged Successfully",
-                    Message = $"Your card {card.CardNumber} has been successfully recharged with amount {model.Amount}."
+                    Title = "Card Returned Successfully",
+                    Message = $"Amount - {model.Amount} from your card - {card.CardNumber} has been returned!"
                 });
             }
 

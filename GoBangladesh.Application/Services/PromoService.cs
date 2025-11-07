@@ -98,11 +98,11 @@ public class PromoService : IPromoService
                 MaxUsagePerCard = model.MaxUsagePerCard
             };
 
-            if (model.EndTime < DateTime.UtcNow)
+            if (promo.EndTime < DateTime.UtcNow)
             {
                 promo.Status = PromoStatus.Expired;
             }
-            else if (model.StartTime > DateTime.UtcNow)
+            else if (promo.StartTime.AddHours(-6) > DateTime.UtcNow)
             {
                 promo.Status = PromoStatus.AvailableSoon;
             }
@@ -324,8 +324,11 @@ public class PromoService : IPromoService
         var existingPromoCard = _promoCardRepository
             .GetAll()
             .Include(pc => pc.Promo)
+            .OrderBy(pc => pc.Promo.EndTime)
             .FirstOrDefault(pc => pc.CardId == cardId
-                                  && pc.Status == PromoCardStatus.Applied
+                                  && (pc.Status == PromoCardStatus.Applied 
+                                      || (pc.Promo.MaxUsagePerCard > pc.UsageCount 
+                                          && pc.Status == PromoCardStatus.Used))
                                   && pc.Promo.Status == PromoStatus.Running);
 
         return existingPromoCard;
@@ -581,7 +584,7 @@ public class PromoService : IPromoService
         _baseRepository.ExecuteQuery(query);
     }
 
-    private void AddPromoToCard(Promo promo)
+    public void AddPromoToCard(Promo promo)
     {
         var currentUser = _loggedInUserService.GetLoggedInUser();
 
@@ -658,7 +661,7 @@ public class PromoService : IPromoService
         BackgroundJob.Enqueue(() => SendPromoNotifications(userIds, promo));
     }
 
-    private void SendPromoNotifications(List<string> userIds, Promo promo)
+    public void SendPromoNotifications(List<string> userIds, Promo promo)
     {
         var discountValue = promo.PromoType == "Percentage"
             ? $"{promo.MaxDiscountAmount}"
