@@ -179,16 +179,23 @@ public class PromoService : IPromoService
 
             List<PromoCard> finalData;
 
+            int rowCount;
+
             if (!string.IsNullOrEmpty(status))
             {
+                rowCount = allPromoData.Count(pc => pc.Status == status);
+
                 finalData = allPromoData
                     .Where(pc => pc.Status == status)
                     .Skip((pageNo - 1) * pageSize)
                     .Take(pageSize)
                     .ToList();
+
             }
             else
             {
+                rowCount = allPromoData.Count();
+
                 finalData = allPromoData
                     .Skip((pageNo - 1) * pageSize)
                     .Take(pageSize)
@@ -199,7 +206,7 @@ public class PromoService : IPromoService
             {
                 IsSuccess = true,
                 Message = "User promos retrieved successfully.",
-                Content = finalData
+                Content = new {finalData, rowCount}
             };
         }
         catch(Exception ex)
