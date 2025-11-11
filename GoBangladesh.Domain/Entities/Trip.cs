@@ -19,6 +19,7 @@ public class Trip : Entity
     public string TapInType { get; set; }
     public string TapOutStatus { get; set; }
     public decimal PromoAmount { get; set; }
+    public string PromoId { get; set; }
     [ForeignKey("SessionId")]
     public Session Session { get; set; }
     [ForeignKey("CardId")]

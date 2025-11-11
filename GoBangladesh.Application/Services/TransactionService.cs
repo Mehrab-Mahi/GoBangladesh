@@ -358,6 +358,7 @@ public class TransactionService : ITransactionService
             trip.Amount = tripFare.Fare;
             trip.TapOutStatus = tapRequest.TapType;
             trip.PromoAmount = tripFare.PromoAmount;
+            trip.PromoId = tripFare.PromoId;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();
@@ -573,7 +574,8 @@ public class TransactionService : ITransactionService
         {
             Distance = distance,
             Fare = fare,
-            PromoAmount = promoAmount
+            PromoAmount = promoAmount,
+            PromoId = promoCard?.Id
         };
     }
 
@@ -756,6 +758,7 @@ public class TransactionService : ITransactionService
             trip.Amount = tripFare.Fare;
             trip.TapOutStatus = tapOutStatus;
             trip.PromoAmount = tripFare.PromoAmount;
+            trip.PromoId = tripFare.PromoId;
 
             _tripRepository.Update(trip);
             _tripRepository.SaveChanges();

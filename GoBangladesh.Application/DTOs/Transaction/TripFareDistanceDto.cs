@@ -5,4 +5,5 @@ public class TripFareDistanceDto
     public decimal Distance { get; set; }
     public decimal Fare { get; set; }
     public decimal PromoAmount { get; set; }
+    public string PromoId { get; set; }
 }

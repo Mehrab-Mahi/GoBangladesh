@@ -186,11 +186,11 @@ public class NotificationService : INotificationService
 
             var rowCount = _commonService.GetRowCountForData("Notifications", whereCondition);
 
-            var promoIds = _commonService.GetFinalData<Notification>("Notifications", whereCondition, extraCondition).Select(p => p.Id);
+            var notificationsIds = _commonService.GetFinalData<Notification>("Notifications", whereCondition, extraCondition).Select(p => p.Id);
 
             var finalQueryData = _notificationRepository
                 .GetAll()
-                .Where(p => promoIds.Contains(p.Id))
+                .Where(p => notificationsIds.Contains(p.Id))
                 .Include(p => p.Organization)
                 .ToList();
 

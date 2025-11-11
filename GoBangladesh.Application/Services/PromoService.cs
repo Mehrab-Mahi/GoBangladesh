@@ -334,7 +334,7 @@ public class PromoService : IPromoService
             }
 
             var condition = new List<string>();
-            var extraCondition = $@"ORDER BY CreateTime desc
+            var extraCondition = $@"ORDER BY p.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
@@ -354,19 +354,19 @@ public class PromoService : IPromoService
 
             if (!string.IsNullOrEmpty(filter.SearchQuery))
             {
-                condition.Add($" (Code like '%{filter.SearchQuery}%' or Description like '%{filter.SearchQuery}%' or Status like '%{filter.SearchQuery}%') ");
+                condition.Add($" (p.Code like '%{filter.SearchQuery}%' or p.Description like '%{filter.SearchQuery}%' or p.Status like '%{filter.SearchQuery}%') ");
             }
 
             if (!string.IsNullOrEmpty(filter.OrganizationId))
             {
-                condition.Add($" OrganizationId = '{filter.OrganizationId}'");
+                condition.Add($" p.OrganizationId = '{filter.OrganizationId}'");
             }
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
-            var rowCount = _commonService.GetRowCountForData("Promos", whereCondition);
+            var rowCount = _commonService.GetRowCountForData("Promos p", whereCondition);
 
-            var promoIds = _commonService.GetFinalData<Promo>("Promos", whereCondition, extraCondition).Select(p => p.Id);
+            var promoIds = _commonService.GetFinalData<Promo>("Promos p", whereCondition, extraCondition).Select(p => p.Id);
 
             var finalQueryData = _promoRepository
                 .GetAll()
@@ -377,7 +377,9 @@ public class PromoService : IPromoService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                Content = new { data = finalQueryData, rowCount },
+                Content = new { CardData = GetAllPromoDashboardData(whereCondition),
+                    data = finalQueryData,
+                    rowCount },
                 Message = "Promo data fetch is successful"
             };
         }
@@ -389,6 +391,22 @@ public class PromoService : IPromoService
                 Message = $"Promo fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    private PromoCardData GetAllPromoDashboardData(string whereCondition)
+    {
+        var query = $@"SELECT COUNT(DISTINCT p.OrganizationId) AS OrganizationCount,
+                           COUNT(DISTINCT p.Id)             AS PromoCount,
+                           COUNT(DISTINCT pc.CardId)        AS CardCount,
+                           SUM(pc.UsageCount)               AS TotalUsageCount,
+                           SUM(pc.UsageAmount)              AS TotalUsageAmount
+                    FROM dbo.Promos p
+                             LEFT JOIN dbo.PromoCards pc ON p.Id = pc.PromoId
+                    {whereCondition};";
+
+        var result = _baseRepository.Query<PromoCardData>(query).FirstOrDefault();
+
+        return result;
     }
 
     public void UpdatePromoUsageAmount(string promoCardId, decimal promoAmount)
@@ -499,21 +517,40 @@ public class PromoService : IPromoService
 
         var data = GetUsedPromoCardData(id, pageNo, pageSize);
 
+        var cardData = GetPromoCardHistoryCardData(id);
+
         return new PayloadResponse()
         {
             IsSuccess = true,
             Message = "Used card details fetched successfully",
-            Content = new { data, rowCount }
+            Content = new { cardData, data, rowCount }
         };
+    }
+
+    private PromoHistoryCardDto GetPromoCardHistoryCardData(string id)
+    {
+        var query = $@"select count(distinct CardId) TotalCardCount, sum(UsageCount) TotalUsageCount, sum(UsageAmount) TotalUsageAmount
+                    from PromoCards
+                    where PromoId = '{id}'
+                      and Status = 'Used';";
+
+        var result = _baseRepository.Query<PromoHistoryCardDto>(query).FirstOrDefault();
+
+        return result;
     }
 
     private List<UsedPromoCard> GetUsedPromoCardData(string id, int pageNo, int pageSize)
     {
-        var query = $@"select u.Name, c.CardNumber, pc.LastModifiedTime as UsedTime, pc.UsageAmount
+        var query = $@"select u.Name, c.CardNumber, tr.TransactionId, pc.LastModifiedTime as UsedTime, b.BusNumber, pc.UsageAmount
                     from PromoCards pc
                              left join Cards c on pc.CardId = c.Id
                              left join PassengerCardMappings pcm on c.Id = pcm.CardId
                              left join Users u on pcm.UserId = u.Id
+                             left join Promos p on pc.PromoId = p.Id
+                             left join Trips t on p.Id = t.PromoId
+                             left join Transactions tr on t.Id = tr.TripId
+                             left join Sessions s on t.SessionId = s.Id
+                             left join Buses b on s.BusId = b.Id
                     where pc.PromoId = '{id}'
                       and pc.Status = 'Used'
                     ORDER BY pc.LastModifiedTime desc
