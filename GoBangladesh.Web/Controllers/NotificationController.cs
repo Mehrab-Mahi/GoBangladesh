@@ -25,12 +25,19 @@ public class NotificationController : Controller
     }
 
     [HttpGet("getCardNotifications")]
-    public IActionResult GetUserNotifications(string cardNumber, int pageNo = 1, int pageSize = 10)
+    public IActionResult GetCardNotifications(string cardNumber, int pageNo = 1, int pageSize = 10)
     {
         var data = _notificationService.GetCardNotifications(cardNumber, pageNo, pageSize);
         return Ok(new { data });
     }
-
+    
+    [HttpGet("getUserNotifications")]
+    public IActionResult GetUserNotifications(string userId, int pageNo = 1, int pageSize = 10)
+    {
+        var data = _notificationService.GetUserNotifications(userId, pageNo, pageSize);
+        return Ok(new { data });
+    }
+    
     [HttpPost("markAsRead")]
     public IActionResult MarkNotificationsAsRead([FromBody] MarkAsReadRequest model)
     {

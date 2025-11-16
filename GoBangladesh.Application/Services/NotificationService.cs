@@ -20,13 +20,15 @@ public class NotificationService : INotificationService
     private readonly IBaseRepository _baseRepository;
     private readonly IRepository<UserNotification> _userNotificationRepository;
     private readonly ICardService _cardService;
+    private readonly IRepository<User> _userRepository;
 
     public NotificationService(IRepository<Notification> notificationRepository,
         ILoggedInUserService loggedInUserService,
         ICommonService commonService, 
         IBaseRepository baseRepository,
         IRepository<UserNotification> userNotificationRepository,
-        ICardService cardService)
+        ICardService cardService, 
+        IRepository<User> userRepository)
     {
         _notificationRepository = notificationRepository;
         _loggedInUserService = loggedInUserService;
@@ -34,6 +36,7 @@ public class NotificationService : INotificationService
         _baseRepository = baseRepository;
         _userNotificationRepository = userNotificationRepository;
         _cardService = cardService;
+        _userRepository = userRepository;
     }
 
     public async Task<PayloadResponse> InsertAdminNotificationAsync(AdminNotificationCreateRequest model)
@@ -209,6 +212,35 @@ public class NotificationService : INotificationService
                 Message = $"Promo fetching is failed because {ex.Message}!"
             };
         }
+    }
+
+    public PayloadResponse GetUserNotifications(string userId, int pageNo, int pageSize)
+    {
+        var user = _userRepository.GetConditional(u => u.Id == userId);
+
+        if(user is null)
+        {
+            return new PayloadResponse
+            {
+                IsSuccess = false,
+                Message = "User not found."
+            };
+        }
+
+        var userNotificationList = _userNotificationRepository
+            .GetAll()
+            .Where(un => un.UserId == user.Id)
+            .OrderByDescending(cn => cn.CreateTime)
+            .Skip((pageNo - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PayloadResponse
+        {
+            IsSuccess = true,
+            Message = "User notifications retrieved successfully.",
+            Content = userNotificationList
+        };
     }
 
     private Task SaveAndSendNotificationToCardsAsync(Notification notification, User currentUser)

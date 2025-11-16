@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GoBangladesh.Domain.Entities;
@@ -19,4 +20,8 @@ public class Promo : Entity
     public int MaxUsagePerCard { get; set; } = 1;
     [ForeignKey("OrganizationId")]
     public Organization Organization { get; set; }
+    [NotMapped]
+    public List<string> PassengerStatusList { get; set; }
+    [NotMapped]
+    public List<string> CardStatusList { get; set; }
 }

@@ -93,8 +93,8 @@ public class PromoService : IPromoService
                 StartTime = model.StartTime.AddHours(-6),
                 EndTime = model.EndTime.AddHours(-6),
                 OrganizationId = model.OrganizationId,
-                PassengerStatus = model.PassengerStatus,
-                CardStatus = model.CardStatus,
+                PassengerStatus = string.Join(",", model.PassengerStatusList),
+                CardStatus = string.Join(",", model.CardStatusList),
                 MaxUsagePerCard = model.MaxUsagePerCard
             };
 
@@ -357,6 +357,14 @@ public class PromoService : IPromoService
                 condition.Add($" (p.Code like '%{filter.SearchQuery}%' or p.Description like '%{filter.SearchQuery}%' or p.Status like '%{filter.SearchQuery}%') ");
             }
 
+            if (filter.StartDate != null || filter.EndDate != null)
+            {
+                var dateTimeFilter = _commonService.GetDateTimeFilterData(filter.StartDate, filter.EndDate);
+
+                condition.Add($@" (p.StartTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}'
+                                or p.EndTime between '{dateTimeFilter.StartDate}' and '{dateTimeFilter.EndDate}') ");
+            }
+
             if (!string.IsNullOrEmpty(filter.OrganizationId))
             {
                 condition.Add($" p.OrganizationId = '{filter.OrganizationId}'");
@@ -373,6 +381,12 @@ public class PromoService : IPromoService
                 .Where(p => promoIds.Contains(p.Id))
                 .Include(p => p.Organization)
                 .ToList();
+
+            foreach (var data in finalQueryData)
+            {
+                data.PassengerStatusList = data.PassengerStatus?.Split(",").ToList() ?? new List<string>();
+                data.CardStatusList = data.CardStatus?.Split(",").ToList() ?? new List<string>();
+            }
 
             return new PayloadResponse()
             {
@@ -475,13 +489,25 @@ public class PromoService : IPromoService
 
             var promoDetails = _baseRepository.Query<PromoDataDto>(query).FirstOrDefault();
 
+            if (promoDetails is null)
+            {
+                return new PayloadResponse
+                {
+                    IsSuccess = false,
+                    Message = "Promo details not found."
+                };
+            }
+
             var organization = _organizationRepository
                 .GetConditional(o => o.Id == promoDetails.OrganizationId);
 
-            if (organization != null && promoDetails != null)
+            if (organization != null)
             {
                 promoDetails.Organization = organization;
             }
+
+            promoDetails.PassengerStatusList = promoDetails.PassengerStatus?.Split(",").ToList() ?? new List<string>();
+            promoDetails.CardStatusList = promoDetails.CardStatus?.Split(",").ToList() ?? new List<string>();
 
             return new PayloadResponse
             {
@@ -620,12 +646,12 @@ public class PromoService : IPromoService
 
         if (!string.IsNullOrEmpty(promo.PassengerStatus))
         {
-            filters.Add($"PassengerStatus = '{promo.PassengerStatus}'");
+            filters.Add($"PassengerStatus in '('{string.Join("','", promo.PassengerStatus.Split(","))}')'");
         }
 
         if (!string.IsNullOrEmpty(promo.CardStatus))
         {
-            filters.Add($"Status = '{promo.CardStatus}'");
+            filters.Add($"Status in '('{string.Join("','", promo.CardStatus.Split(","))}')'");
         }
 
         var whereCondition = filters.Any() ? $"WHERE {string.Join(" AND ", filters)}" : "";

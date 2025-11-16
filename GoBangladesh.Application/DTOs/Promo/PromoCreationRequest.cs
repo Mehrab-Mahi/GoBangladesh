@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace GoBangladesh.Application.DTOs.Promo;
 
@@ -12,7 +13,7 @@ public class PromoCreationRequest
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string OrganizationId { get; set; }
-    public string PassengerStatus { get; set; }
-    public string CardStatus { get; set; }
+    public List<string> PassengerStatusList { get; set; }
+    public List<string> CardStatusList { get; set; }
     public int MaxUsagePerCard { get; set; } = 1;
 }

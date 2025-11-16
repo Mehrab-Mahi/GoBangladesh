@@ -11,4 +11,5 @@ public interface INotificationService
     PayloadResponse GetCardNotifications(string cardNumber, int pageNo, int pageSize);
     PayloadResponse MarkNotificationsAsRead(MarkAsReadRequest model);
     PayloadResponse GetAll(NotificationDataFilter filter);
+    PayloadResponse GetUserNotifications(string userId, int pageNo, int pageSize);
 }
