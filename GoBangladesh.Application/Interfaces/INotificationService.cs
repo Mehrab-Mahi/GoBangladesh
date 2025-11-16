@@ -12,4 +12,5 @@ public interface INotificationService
     PayloadResponse MarkNotificationsAsRead(MarkAsReadRequest model);
     PayloadResponse GetAll(NotificationDataFilter filter);
     PayloadResponse GetUserNotifications(string userId, int pageNo, int pageSize);
+    PayloadResponse MarkAllNotificationsAsRead(MarkAllAsReadRequest model);
 }

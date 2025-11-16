@@ -44,6 +44,13 @@ public class NotificationController : Controller
         var data = _notificationService.MarkNotificationsAsRead(model);
         return Ok(new { data });
     }
+    
+    [HttpPost("markAllAsRead")]
+    public IActionResult MarkAllNotificationsAsRead([FromBody] MarkAllAsReadRequest model)
+    {
+        var data = _notificationService.MarkAllNotificationsAsRead(model);
+        return Ok(new { data });
+    }
 
     [GoBangladeshAuth]
     [HttpPost("getAll")]

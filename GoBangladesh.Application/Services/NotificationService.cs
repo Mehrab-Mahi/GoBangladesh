@@ -243,6 +243,32 @@ public class NotificationService : INotificationService
         };
     }
 
+    public PayloadResponse MarkAllNotificationsAsRead(MarkAllAsReadRequest model)
+    {
+        try
+        {
+            _baseRepository.ExecuteQuery($@"
+            UPDATE UserNotifications
+            SET IsRead = 1,
+                ReadAt = GETUTCDATE()
+            WHERE UserId = '{model.UserId}' AND IsRead = 0;");
+
+            return new PayloadResponse
+            {
+                IsSuccess = true,
+                Message = "All notifications are marked as read successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            return new PayloadResponse
+            {
+                IsSuccess = false,
+                Message = $"Failed to mark all notifications as read. Error: {ex.Message}"
+            };
+        }
+    }
+
     private Task SaveAndSendNotificationToCardsAsync(Notification notification, User currentUser)
     {
         notification.OrganizationId = string.IsNullOrEmpty(notification.OrganizationId) ?
