@@ -334,7 +334,13 @@ public class PromoService : IPromoService
             }
 
             var condition = new List<string>();
-            var extraCondition = $@"ORDER BY p.CreateTime desc
+            var extraCondition = $@"ORDER BY 
+                                    CASE 
+                                        WHEN p.Status = 'Running' THEN 1
+                                        WHEN p.Status = 'AvailableSoon' THEN 2
+                                        WHEN p.Status = 'Expired' THEN 3
+                                        ELSE 4                          
+                                    END, p.CreateTime desc
                                     OFFSET ({filter.PageNo} - 1) * {filter.PageSize} ROWS
                                     FETCH NEXT {filter.PageSize} ROWS ONLY";
 
