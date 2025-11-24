@@ -1,8 +1,9 @@
-﻿using GoBangladesh.Application.Interfaces;
+﻿using GoBangladesh.Application.DTOs.Export;
+using GoBangladesh.Application.Interfaces;
 using Microsoft.AspNetCore.Hosting;
-using System.IO;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.IO;
 
 namespace GoBangladesh.Application.Services
 {
@@ -43,6 +44,14 @@ namespace GoBangladesh.Application.Services
             {
                 File.Delete(filePath);
             }
+            else {
+                var fullPath = Path.Combine(GetRootPath(), filePath);
+
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                }
+            }
         }
 
         public string UploadFile(IFormFile file, string folderName)
@@ -55,6 +64,20 @@ namespace GoBangladesh.Application.Services
             var filePath = Path.Combine(path, fileName);
             SaveFile(filePath, file);
             return Path.Combine(folderName,fileName);
+        }
+
+        public PathDto GetExcelFilePath(string folderName)
+        {
+            var fileName = $"{folderName}-{DateTime.UtcNow.Ticks}.xlsx";
+            var path = Path.Combine(GetRootPath(), $"{folderName}");
+            CreateDirectoryIfNotExists(path);
+            var filePath = Path.Combine(path, fileName);
+
+            return new PathDto
+            {
+                ServerPath = filePath,
+                DownloadPath = Path.Combine(folderName, fileName)
+            };
         }
 
         private static string GetFileName(string fileName)

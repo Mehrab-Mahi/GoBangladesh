@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using GoBangladesh.Application.DTOs.Export;
+using Microsoft.AspNetCore.Http;
 
 namespace GoBangladesh.Application.Interfaces
 {
@@ -9,5 +10,6 @@ namespace GoBangladesh.Application.Interfaces
         void SaveFile(string filePath, IFormFile campaignBanner);
         void DeleteFile(string filePath);
         string UploadFile(IFormFile file, string folderName);
+        PathDto GetExcelFilePath(string folderName);
     }
 }

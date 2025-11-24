@@ -36,7 +36,7 @@ namespace GoBangladesh.Application.Services
                 _repo.ExecuteQuery(query);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }

@@ -369,7 +369,7 @@ public class DashboardService : IDashboardService
 
             var whereCondition = _commonService.GenerateWhereConditionFromConditionList(condition);
 
-            var tripDashboardData = new SessionDashboardData()
+            var sessionDashboardData = new SessionDashboardData()
             {
                 CardData = GetSessionDashboardCardData(whereCondition),
                 TableData = GetSessionDashboardTableData(whereCondition, extraCondition),
@@ -380,7 +380,7 @@ public class DashboardService : IDashboardService
             {
                 IsSuccess = true,
                 PayloadType = "Session Dashboard",
-                Content = tripDashboardData,
+                Content = sessionDashboardData,
                 Message = "Session dashboard data has been fetched successfully!"
             };
         }

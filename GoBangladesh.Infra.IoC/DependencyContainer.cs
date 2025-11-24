@@ -50,6 +50,8 @@ namespace GoBangladesh.Infra.IoC
             services.AddHostedService<AutoPausedCardStatusChangeService>();
             services.AddHostedService<AutoInvoiceGenerator>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IExportService, ExportService>();
+            services.AddScoped<ICommonExportService, CommonExportService>();
         }
     }
 }
