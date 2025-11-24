@@ -337,9 +337,9 @@ public class ExportService : IExportService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Passenger",
+                PayloadType = "Passenger Data Export",
                 Content = excelFilePath,
-                Message = "Passenger data fetch is successful"
+                Message = "Passenger data export is successful"
             };
         }
         catch (Exception ex)
@@ -347,8 +347,8 @@ public class ExportService : IExportService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Passenger",
-                Message = $"Passenger fetching is failed because {ex.Message}!"
+                PayloadType = "Passenger Data Export",
+                Message = $"Passenger data export is failed because {ex.Message}!"
             };
         }
     }
@@ -471,9 +471,9 @@ public class ExportService : IExportService
             return new PayloadResponse()
             {
                 IsSuccess = true,
-                PayloadType = "Recharge Dashboard",
+                PayloadType = "Card Statement Export",
                 Content = excelFilePath,
-                Message = "Recharge dashboard data has been fetched successfully!"
+                Message = "Card statement export has been successfully!"
             };
         }
         catch (Exception ex)
@@ -481,8 +481,8 @@ public class ExportService : IExportService
             return new PayloadResponse()
             {
                 IsSuccess = false,
-                PayloadType = "Recharge Dashboard",
-                Message = $"Recharge dashboard data fetching has been failed because {ex.Message}!"
+                PayloadType = "Card Statement Export",
+                Message = $"Card statement export has been failed because {ex.Message}!"
             };
         }
     }
