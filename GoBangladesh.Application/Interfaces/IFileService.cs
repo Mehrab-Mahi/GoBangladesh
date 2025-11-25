@@ -11,5 +11,6 @@ namespace GoBangladesh.Application.Interfaces
         void DeleteFile(string filePath);
         string UploadFile(IFormFile file, string folderName);
         PathDto GetExcelFilePath(string folderName);
+        bool IsFileExists(string filePath);
     }
 }

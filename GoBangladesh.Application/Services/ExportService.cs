@@ -491,6 +491,16 @@ public class ExportService : IExportService
     {
         try
         {
+            if (!_commonService.IsFileExists(filePath))
+            {
+                return new PayloadResponse()
+                {
+                    IsSuccess = false,
+                    PayloadType = "Delete Exported File",
+                    Message = "Exported file does not exist!"
+                };
+            }
+
             _commonService.DeleteFile(filePath);
 
             return new PayloadResponse()

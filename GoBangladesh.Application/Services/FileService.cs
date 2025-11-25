@@ -40,6 +40,11 @@ namespace GoBangladesh.Application.Services
 
         public void DeleteFile(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return;
+            }
+
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
@@ -52,6 +57,28 @@ namespace GoBangladesh.Application.Services
                     File.Delete(fullPath);
                 }
             }
+        }
+
+        public bool IsFileExists(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return false;
+            }
+
+            if (File.Exists(filePath))
+            {
+                return true;
+            }
+
+            var fullPath = Path.Combine(GetRootPath(), filePath);
+
+            if (File.Exists(fullPath))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public string UploadFile(IFormFile file, string folderName)

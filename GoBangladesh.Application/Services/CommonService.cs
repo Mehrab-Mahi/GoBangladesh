@@ -61,6 +61,11 @@ namespace GoBangladesh.Application.Services
             return UploadFile(fileName, fileSavePath, imageFile);
         }
 
+        public bool IsFileExists(string path)
+        {
+            return _fileService.IsFileExists(path);
+        }
+
         public void DeleteFile(string path)
         {
             _fileService.DeleteFile(path);
